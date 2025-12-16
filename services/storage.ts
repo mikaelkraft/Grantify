@@ -36,7 +36,7 @@ const initialTestimonials: Testimonial[] = [
     likes: 124,
     loves: 45,
     claps: 12,
-    date: '2023-10-15'
+    date: '2025-10-15'
   },
   {
     id: '2',
@@ -48,7 +48,7 @@ const initialTestimonials: Testimonial[] = [
     likes: 89,
     loves: 120,
     claps: 30,
-    date: '2023-10-20'
+    date: '2025-10-20'
   },
   {
     id: '3',
@@ -60,7 +60,7 @@ const initialTestimonials: Testimonial[] = [
     likes: 45,
     loves: 10,
     claps: 5,
-    date: '2023-10-22'
+    date: '2025-11-22'
   },
   {
     id: '4',
@@ -72,7 +72,7 @@ const initialTestimonials: Testimonial[] = [
     likes: 210,
     loves: 55,
     claps: 40,
-    date: '2023-10-25'
+    date: '2025-12-15'
   },
   {
     id: '5',
@@ -84,7 +84,7 @@ const initialTestimonials: Testimonial[] = [
     likes: 78,
     loves: 15,
     claps: 8,
-    date: '2023-10-28'
+    date: '2025-12-12'
   },
   {
     id: '6',
@@ -96,7 +96,7 @@ const initialTestimonials: Testimonial[] = [
     likes: 156,
     loves: 89,
     claps: 22,
-    date: '2023-10-30'
+    date: '2025-10-30'
   }
 ];
 
