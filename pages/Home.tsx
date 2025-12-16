@@ -89,11 +89,15 @@ export const Home: React.FC = () => {
     e.preventDefault();
     setIsSubmittingTestimonial(true);
     
+    // Generate a unique ID using timestamp + random string
+    const uniqueId = `pending_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    
     const newTestimonial: Testimonial = {
-      id: `pending_${Date.now()}`,
+      id: uniqueId,
       name: testimonialForm.name,
-      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?fit=crop&w=150&h=150&q=80', // Default avatar
-      amount: parseInt(testimonialForm.amount) || 0,
+      // Use a data URI for default avatar to avoid external dependency
+      image: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="50" fill="%23006400"/%3E%3Ctext x="50" y="55" font-size="40" text-anchor="middle" fill="white"%3E%3F%3C/text%3E%3C/svg%3E',
+      amount: Number(testimonialForm.amount) || 0,
       content: testimonialForm.content,
       likes: 0,
       loves: 0,
