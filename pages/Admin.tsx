@@ -22,6 +22,13 @@ export const Admin: React.FC = () => {
   // New Admin Form
   const [newAdmin, setNewAdmin] = useState({ name: '', username: '', password: '', role: UserRole.FLOOR_ADMIN });
 
+  // Track unsaved changes
+  const [hasUnsavedTestimonials, setHasUnsavedTestimonials] = useState(false);
+  const [hasUnsavedQualified, setHasUnsavedQualified] = useState(false);
+  const [hasUnsavedAds, setHasUnsavedAds] = useState(false);
+  const [hasUnsavedRepayment, setHasUnsavedRepayment] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
   useEffect(() => {
     if (user) refreshData();
   }, [user]);
@@ -77,14 +84,54 @@ export const Admin: React.FC = () => {
     link.click();
   };
 
-  const handleAdChange = async (key: keyof AdConfig, val: string) => {
+  const handleAdChange = (key: keyof AdConfig, val: string) => {
     if (!ads) return;
     const newAds = { ...ads, [key]: val };
     setAds(newAds);
-    await ApiService.saveAds(newAds);
+    setHasUnsavedAds(true);
+  };
+
+  const handleSaveAds = async () => {
+    if (!ads) return;
+    setIsSaving(true);
+    try {
+      await ApiService.saveAds(ads);
+      setHasUnsavedAds(false);
+      alert('Ad settings saved successfully!');
+    } catch (e) {
+      console.error('Failed to save ads', e);
+      alert('Failed to save changes. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // --- Testimonial Logic ---
+  const handleUpdateTestimonialLocal = (id: string, field: keyof Testimonial, value: any) => {
+    const target = testimonials.find(t => t.id === id);
+    if (!target) return;
+    
+    const updated = { ...target, [field]: value };
+    const newData = testimonials.map(t => t.id === id ? updated : t);
+    
+    setTestimonials(newData);
+    setHasUnsavedTestimonials(true);
+  };
+
+  const handleSaveTestimonials = async () => {
+    setIsSaving(true);
+    try {
+      await ApiService.saveTestimonials(testimonials);
+      setHasUnsavedTestimonials(false);
+      alert('Testimonials saved successfully!');
+    } catch (e) {
+      console.error('Failed to save testimonials', e);
+      alert('Failed to save changes. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleUpdateTestimonial = async (id: string, field: keyof Testimonial, value: any) => {
     const target = testimonials.find(t => t.id === id);
     if (!target) return;
@@ -123,7 +170,7 @@ export const Admin: React.FC = () => {
   };
 
   // --- Qualified Person Logic ---
-  const handleAddQualified = async () => {
+  const handleAddQualified = () => {
     const newPerson: QualifiedPerson = { 
         id: Date.now().toString(), 
         name: 'New Person', 
@@ -133,7 +180,36 @@ export const Admin: React.FC = () => {
     };
     const newData = [newPerson, ...qualified];
     setQualified(newData);
-    await ApiService.saveQualified(newData);
+    setHasUnsavedQualified(true);
+  };
+
+  const handleUpdateQualifiedLocal = (id: string, field: keyof QualifiedPerson, value: any) => {
+    const newData = qualified.map(q => q.id === id ? { ...q, [field]: value } : q);
+    setQualified(newData);
+    setHasUnsavedQualified(true);
+  };
+
+  const handleDeleteQualifiedLocal = (id: string) => {
+    const confirm = window.confirm("Delete this person?");
+    if(confirm) {
+        const n = qualified.filter(x => x.id !== id);
+        setQualified(n);
+        setHasUnsavedQualified(true);
+    }
+  };
+
+  const handleSaveQualified = async () => {
+    setIsSaving(true);
+    try {
+      await ApiService.saveQualified(qualified);
+      setHasUnsavedQualified(false);
+      alert('Qualified persons saved successfully!');
+    } catch (e) {
+      console.error('Failed to save qualified persons', e);
+      alert('Failed to save changes. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleUpdateQualified = async (id: string, field: keyof QualifiedPerson, value: any) => {
@@ -171,6 +247,26 @@ export const Admin: React.FC = () => {
       const newAdmins = admins.filter(a => a.id !== id);
       setAdmins(newAdmins);
       await ApiService.saveAdmins(newAdmins);
+    }
+  };
+
+  const handleRepaymentUpdateLocal = (newContent: RepaymentContent) => {
+    setRepayment(newContent);
+    setHasUnsavedRepayment(true);
+  };
+
+  const handleSaveRepayment = async () => {
+    if (!repayment) return;
+    setIsSaving(true);
+    try {
+      await ApiService.saveRepaymentContent(repayment);
+      setHasUnsavedRepayment(false);
+      alert('Repayment content saved successfully!');
+    } catch (e) {
+      console.error('Failed to save repayment content', e);
+      alert('Failed to save changes. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -310,30 +406,44 @@ export const Admin: React.FC = () => {
                 <div>
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-xl font-bold">Qualified List</h3>
-                    <button onClick={handleAddQualified} className="flex items-center gap-2 bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">
-                      <Plus size={16} /> Add New
-                    </button>
+                    <div className="flex gap-2">
+                      <button onClick={handleAddQualified} className="flex items-center gap-2 bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">
+                        <Plus size={16} /> Add New
+                      </button>
+                      <button 
+                        onClick={handleSaveQualified} 
+                        disabled={!hasUnsavedQualified || isSaving}
+                        className={`flex items-center gap-2 px-3 py-1 rounded text-sm ${hasUnsavedQualified ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                      >
+                        <Save size={16} /> {isSaving ? 'Saving...' : 'Save Changes'}
+                      </button>
+                    </div>
                   </div>
+                  {hasUnsavedQualified && (
+                    <div className="mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm">
+                      You have unsaved changes. Click "Save Changes" to sync with the database.
+                    </div>
+                  )}
                   <div className="space-y-2">
                     {qualified.map(q => (
                       <div key={q.id} className="flex flex-col md:flex-row gap-2 border p-2 rounded items-center bg-gray-50">
                           <input 
                             className={`${inputClassSmall} flex-grow`} 
                             value={q.name} 
-                            onChange={(e) => handleUpdateQualified(q.id, 'name', e.target.value)} 
+                            onChange={(e) => handleUpdateQualifiedLocal(q.id, 'name', e.target.value)} 
                             placeholder="Name"
                           />
                           <input 
                             className={`${inputClassSmall} w-32`} 
                             type="number"
                             value={q.amount} 
-                            onChange={(e) => handleUpdateQualified(q.id, 'amount', parseInt(e.target.value))} 
+                            onChange={(e) => handleUpdateQualifiedLocal(q.id, 'amount', parseInt(e.target.value))} 
                             placeholder="Amount"
                           />
                           <select 
                             className={inputClassSmall}
                             value={q.status}
-                            onChange={(e) => handleUpdateQualified(q.id, 'status', e.target.value)}
+                            onChange={(e) => handleUpdateQualifiedLocal(q.id, 'status', e.target.value)}
                           >
                             <option value="Pending">Pending</option>
                             <option value="Contacted">Contacted</option>
@@ -342,17 +452,10 @@ export const Admin: React.FC = () => {
                           <input 
                             className={`${inputClassSmall} flex-grow`} 
                             value={q.notes} 
-                            onChange={(e) => handleUpdateQualified(q.id, 'notes', e.target.value)} 
+                            onChange={(e) => handleUpdateQualifiedLocal(q.id, 'notes', e.target.value)} 
                             placeholder="Public Note (Optional)"
                           />
-                          <button onClick={async () => {
-                            const confirm = window.confirm("Delete this person?");
-                            if(confirm) {
-                                const n = qualified.filter(x => x.id !== q.id);
-                                setQualified(n);
-                                await ApiService.saveQualified(n);
-                            }
-                          }} className="text-red-500 p-2 hover:bg-red-100 rounded"><Trash2 size={16}/></button>
+                          <button onClick={() => handleDeleteQualifiedLocal(q.id)} className="text-red-500 p-2 hover:bg-red-100 rounded"><Trash2 size={16}/></button>
                       </div>
                     ))}
                   </div>
@@ -364,10 +467,24 @@ export const Admin: React.FC = () => {
                 <div>
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-xl font-bold">Manage Testimonials</h3>
-                    <button onClick={handleAddTestimonial} className="flex items-center gap-2 bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">
-                      <Plus size={16} /> Add New
-                    </button>
+                    <div className="flex gap-2">
+                      <button onClick={handleAddTestimonial} className="flex items-center gap-2 bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">
+                        <Plus size={16} /> Add New
+                      </button>
+                      <button 
+                        onClick={handleSaveTestimonials} 
+                        disabled={!hasUnsavedTestimonials || isSaving}
+                        className={`flex items-center gap-2 px-3 py-1 rounded text-sm ${hasUnsavedTestimonials ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                      >
+                        <Save size={16} /> {isSaving ? 'Saving...' : 'Save Changes'}
+                      </button>
+                    </div>
                   </div>
+                  {hasUnsavedTestimonials && (
+                    <div className="mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm">
+                      You have unsaved changes. Click "Save Changes" to sync with the database.
+                    </div>
+                  )}
                   
                   {/* Pending Testimonials Section */}
                   {testimonials.filter(t => t.status === 'pending').length > 0 && (
@@ -415,7 +532,7 @@ export const Admin: React.FC = () => {
                             <input 
                               className={inputClassSmall + " w-full"}
                               value={t.name}
-                              onChange={(e) => handleUpdateTestimonial(t.id, 'name', e.target.value)}
+                              onChange={(e) => handleUpdateTestimonialLocal(t.id, 'name', e.target.value)}
                             />
                           </div>
                           <div className="flex-1">
@@ -424,7 +541,7 @@ export const Admin: React.FC = () => {
                               type="number"
                               className={inputClassSmall + " w-full"}
                               value={t.amount}
-                              onChange={(e) => handleUpdateTestimonial(t.id, 'amount', parseInt(e.target.value))}
+                              onChange={(e) => handleUpdateTestimonialLocal(t.id, 'amount', parseInt(e.target.value))}
                             />
                           </div>
                           <div className="flex-1">
@@ -433,7 +550,7 @@ export const Admin: React.FC = () => {
                               type="date"
                               className={inputClassSmall + " w-full"}
                               value={t.date}
-                              onChange={(e) => handleUpdateTestimonial(t.id, 'date', e.target.value)}
+                              onChange={(e) => handleUpdateTestimonialLocal(t.id, 'date', e.target.value)}
                             />
                           </div>
                         </div>
@@ -444,7 +561,7 @@ export const Admin: React.FC = () => {
                             rows={2}
                             className={inputClassSmall + " w-full"}
                             value={t.content}
-                            onChange={(e) => handleUpdateTestimonial(t.id, 'content', e.target.value)}
+                            onChange={(e) => handleUpdateTestimonialLocal(t.id, 'content', e.target.value)}
                           />
                         </div>
 
@@ -463,7 +580,21 @@ export const Admin: React.FC = () => {
               {/* Ads Tab */}
               {activeTab === 'ads' && ads && (
                 <div>
-                  <h3 className="text-xl font-bold mb-4">Advertisement Slots</h3>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold">Advertisement Slots</h3>
+                    <button 
+                      onClick={handleSaveAds} 
+                      disabled={!hasUnsavedAds || isSaving}
+                      className={`flex items-center gap-2 px-3 py-1 rounded text-sm ${hasUnsavedAds ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                    >
+                      <Save size={16} /> {isSaving ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
+                  {hasUnsavedAds && (
+                    <div className="mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm">
+                      You have unsaved changes. Click "Save Changes" to sync with the database.
+                    </div>
+                  )}
                   <div className="space-y-4">
                     {Object.keys(ads).map((key) => (
                       <div key={key}>
@@ -482,14 +613,28 @@ export const Admin: React.FC = () => {
               {/* Content Tab */}
               {activeTab === 'content' && repayment && (
                 <div>
-                    <h3 className="text-xl font-bold mb-4">Repayment Page Content</h3>
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-bold">Repayment Page Content</h3>
+                      <button 
+                        onClick={handleSaveRepayment} 
+                        disabled={!hasUnsavedRepayment || isSaving}
+                        className={`flex items-center gap-2 px-3 py-1 rounded text-sm ${hasUnsavedRepayment ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                      >
+                        <Save size={16} /> {isSaving ? 'Saving...' : 'Save Changes'}
+                      </button>
+                    </div>
+                    {hasUnsavedRepayment && (
+                      <div className="mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm">
+                        You have unsaved changes. Click "Save Changes" to sync with the database.
+                      </div>
+                    )}
                     <div className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium">Intro Text</label>
                         <textarea 
                           className={inputClass}
                           value={repayment.introText}
-                          onChange={(e) => handleRepaymentUpdate({...repayment, introText: e.target.value})}
+                          onChange={(e) => handleRepaymentUpdateLocal({...repayment, introText: e.target.value})}
                         />
                       </div>
                       <div>
@@ -497,7 +642,7 @@ export const Admin: React.FC = () => {
                         <input 
                           className={inputClass}
                           value={repayment.standardNote}
-                          onChange={(e) => handleRepaymentUpdate({...repayment, standardNote: e.target.value})}
+                          onChange={(e) => handleRepaymentUpdateLocal({...repayment, standardNote: e.target.value})}
                         />
                       </div>
                       <div>
@@ -505,7 +650,7 @@ export const Admin: React.FC = () => {
                         <input 
                           className={inputClass}
                           value={repayment.fastTrackNote}
-                          onChange={(e) => handleRepaymentUpdate({...repayment, fastTrackNote: e.target.value})}
+                          onChange={(e) => handleRepaymentUpdateLocal({...repayment, fastTrackNote: e.target.value})}
                         />
                       </div>
                     </div>
