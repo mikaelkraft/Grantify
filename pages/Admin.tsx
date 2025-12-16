@@ -368,8 +368,46 @@ export const Admin: React.FC = () => {
                       <Plus size={16} /> Add New
                     </button>
                   </div>
+                  
+                  {/* Pending Testimonials Section */}
+                  {testimonials.filter(t => t.status === 'pending').length > 0 && (
+                    <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <h4 className="font-bold text-yellow-800 mb-3 flex items-center gap-2">
+                        <span className="bg-yellow-500 text-white text-xs px-2 py-1 rounded-full">
+                          {testimonials.filter(t => t.status === 'pending').length}
+                        </span>
+                        Pending User Submissions
+                      </h4>
+                      <div className="space-y-3">
+                        {testimonials.filter(t => t.status === 'pending').map(t => (
+                          <div key={t.id} className="bg-white p-3 rounded border border-yellow-300 flex flex-col md:flex-row md:items-center gap-3">
+                            <div className="flex-grow">
+                              <div className="font-bold text-sm">{t.name}</div>
+                              <div className="text-xs text-gray-500">₦{t.amount.toLocaleString()} • {t.date}</div>
+                              <p className="text-sm text-gray-700 mt-1 line-clamp-2">{t.content}</p>
+                            </div>
+                            <div className="flex gap-2 flex-shrink-0">
+                              <button 
+                                onClick={() => handleUpdateTestimonial(t.id, 'status', 'approved')}
+                                className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700"
+                              >
+                                Approve
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteTestimonial(t.id)}
+                                className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700"
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="grid gap-6">
-                    {testimonials.map(t => (
+                    {testimonials.filter(t => !t.status || t.status === 'approved').map(t => (
                       <div key={t.id} className="border border-gray-300 p-4 rounded bg-gray-50 flex flex-col gap-3">
                         <div className="flex gap-2">
                           <div className="flex-1">

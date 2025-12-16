@@ -35,6 +35,7 @@ export interface Testimonial {
   loves: number;
   claps: number;
   date: string;
+  status?: 'approved' | 'pending'; // For user-submitted testimonials
 }
 
 export interface QualifiedPerson {
