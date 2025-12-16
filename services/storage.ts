@@ -21,9 +21,8 @@ const KEYS = {
 
 // --- CONFIGURATION ---
 // We default to localhost for development.
-// When you deploy your backend (e.g. to Render/Heroku/Vercel), update this URL.
-// You can also set REACT_APP_API_URL or VITE_API_URL in your environment variables.
-const API_URL = 'http://localhost:3000'; 
+// When you deploy your backend (e.g. to Render/Heroku/Vercel), set VITE_API_URL in your environment variables.
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'; 
 
 // Initial Seed Data (Used for Mock Mode if API fails or is empty)
 const initialTestimonials: Testimonial[] = [
