@@ -75,7 +75,8 @@ export const Home: React.FC = () => {
   };
 
   const copyReferralLink = () => {
-    const link = `${window.location.origin}/?ref=${referralData.code}`;
+    const baseUrl = `${window.location.origin}${window.location.pathname}`;
+    const link = `${baseUrl}#/?ref=${encodeURIComponent(referralData.code)}`;
     navigator.clipboard.writeText(link);
     alert('Referral link copied to clipboard!');
   };
