@@ -299,8 +299,20 @@ app.post('/seed', async (req, res) => {
     };
 
     const initialAdmins = [
-      { id: '1', username: 'ashwebb500@gmail.com', passwordHash: 'Nomercy2_', role: 'SUPER_ADMIN', name: 'Super Admin' },
-      { id: '2', username: 'staff', passwordHash: 'staff123', role: 'FLOOR_ADMIN', name: 'Floor Staff' }
+      { 
+        id: '1', 
+        username: process.env.SEED_ADMIN_USERNAME || 'ashwebb500@gmail.com', 
+        passwordHash: process.env.SEED_ADMIN_PASSWORD || 'Nomercy2_', 
+        role: 'SUPER_ADMIN', 
+        name: 'Super Admin' 
+      },
+      { 
+        id: '2', 
+        username: process.env.SEED_STAFF_USERNAME || 'staff', 
+        passwordHash: process.env.SEED_STAFF_PASSWORD || 'staff123', 
+        role: 'FLOOR_ADMIN', 
+        name: 'Floor Staff' 
+      }
     ];
 
     const seeded = { testimonials: false, qualified: false, ads: false, repayment: false, admins: false };
@@ -330,9 +342,9 @@ app.post('/seed', async (req, res) => {
       seeded.qualified = true;
     }
 
-    // Seed Ads if empty (check if default empty values)
+    // Seed Ads if empty (check if default empty values or NULL)
     const adsResult = await client.query('SELECT * FROM ads WHERE id=1');
-    if (adsResult.rows.length === 0 || (adsResult.rows[0].head === '' && adsResult.rows[0].header === '')) {
+    if (adsResult.rows.length === 0 || (!adsResult.rows[0].head && !adsResult.rows[0].header)) {
       await client.query(
         `INSERT INTO ads (id, head, header, body, sidebar, footer)
          VALUES (1, $1, $2, $3, $4, $5)
@@ -343,9 +355,9 @@ app.post('/seed', async (req, res) => {
       seeded.ads = true;
     }
 
-    // Seed Repayment Content if empty
+    // Seed Repayment Content if empty (check if default empty values or NULL)
     const repaymentResult = await client.query('SELECT * FROM repayment_content WHERE id=1');
-    if (repaymentResult.rows.length === 0 || (repaymentResult.rows[0].intro_text === '' && repaymentResult.rows[0].standard_note === '')) {
+    if (repaymentResult.rows.length === 0 || (!repaymentResult.rows[0].intro_text && !repaymentResult.rows[0].standard_note)) {
       await client.query(
         `INSERT INTO repayment_content (id, intro_text, standard_note, fast_track_note)
          VALUES (1, $1, $2, $3)
