@@ -65,8 +65,8 @@ export const Admin: React.FC = () => {
   const handleLogout = () => setUser(null);
 
   const exportApplicationsCSV = () => {
-    const headers = ["ID", "Name", "Phone", "Amount", "Status", "Date"];
-    const rows = applications.map(app => [app.id, app.fullName, app.phoneNumber, app.amount, app.status, app.dateApplied]);
+    const headers = ["ID", "Name", "Phone", "Email", "Amount", "Status", "Date"];
+    const rows = applications.map(app => [app.id, app.fullName, app.phoneNumber, app.email || '', app.amount, app.status, app.dateApplied]);
     const csvContent = "data:text/csv;charset=utf-8," 
       + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
     const encodedUri = encodeURI(csvContent);
@@ -283,6 +283,7 @@ export const Admin: React.FC = () => {
                           <th className="p-2 text-left">Name</th>
                           <th className="p-2 text-left">Amount</th>
                           <th className="p-2 text-left">Phone</th>
+                          <th className="p-2 text-left">Email</th>
                           <th className="p-2 text-left">Type</th>
                           <th className="p-2 text-left">Date</th>
                         </tr>
@@ -293,6 +294,7 @@ export const Admin: React.FC = () => {
                             <td className="p-2">{app.fullName}</td>
                             <td className="p-2">₦{app.amount.toLocaleString()}</td>
                             <td className="p-2">{app.phoneNumber}</td>
+                            <td className="p-2">{app.email || '-'}</td>
                             <td className="p-2">{app.type}</td>
                             <td className="p-2 text-gray-500">{app.dateApplied}</td>
                           </tr>
