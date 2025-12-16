@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
@@ -7,8 +7,24 @@ import { Admin } from './pages/Admin';
 import { Terms } from './pages/Terms';
 import { Privacy } from './pages/Privacy';
 import { Contact } from './pages/Contact';
+import { ApiService } from './services/storage';
 
 function App() {
+  // Auto-seed database on first load if tables are empty
+  useEffect(() => {
+    const initializeDatabase = async () => {
+      try {
+        const result = await ApiService.seedDatabase();
+        if (result.success && Object.values(result.seeded).some(v => v)) {
+          console.log('Database seeded with initial data:', result.seeded);
+        }
+      } catch (e) {
+        console.warn('Database seeding skipped (API may be unavailable)');
+      }
+    };
+    initializeDatabase();
+  }, []);
+
   return (
     <HashRouter>
       <Layout>
