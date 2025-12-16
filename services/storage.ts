@@ -20,9 +20,10 @@ const KEYS = {
 };
 
 // --- CONFIGURATION ---
-// We default to localhost for development.
-// When you deploy your backend (e.g. to Render/Heroku/Vercel), set VITE_API_URL in your environment variables.
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'; 
+// For Vercel deployment: API routes are automatically available at /api/* (same origin)
+// For local development: set VITE_API_URL to your local server (e.g., http://localhost:3000)
+// When deployed to Vercel, leave VITE_API_URL empty to use same-origin API routes
+const API_URL = import.meta.env.VITE_API_URL || ''; 
 
 // Initial Seed Data (Used for Mock Mode if API fails or is empty)
 const initialTestimonials: Testimonial[] = [
@@ -155,7 +156,7 @@ export const ApiService = {
   // Seeds the database with initial mock data if tables are empty
   seedDatabase: async (): Promise<{ success: boolean; seeded: Record<string, boolean> }> => {
     try {
-      const res = await fetch(`${API_URL}/seed`, {
+      const res = await fetch(`${API_URL}/api/seed`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'}
       });
@@ -170,7 +171,7 @@ export const ApiService = {
   // -- Applications --
   getApplications: async (): Promise<LoanApplication[]> => {
     try {
-      const res = await fetch(`${API_URL}/applications`);
+      const res = await fetch(`${API_URL}/api/applications`);
       if (!res.ok) throw new Error('API Error');
       return await res.json();
     } catch (e) {
@@ -181,7 +182,7 @@ export const ApiService = {
 
   addApplication: async (app: LoanApplication): Promise<void> => {
     try {
-      const res = await fetch(`${API_URL}/applications`, {
+      const res = await fetch(`${API_URL}/api/applications`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(app)
@@ -197,7 +198,7 @@ export const ApiService = {
   // -- Testimonials --
   getTestimonials: async (): Promise<Testimonial[]> => {
     try {
-      const res = await fetch(`${API_URL}/testimonials`);
+      const res = await fetch(`${API_URL}/api/testimonials`);
       if (!res.ok) throw new Error('API Error');
       const data = await res.json();
       // Return data from database (even if empty) - don't fall back to mock data
@@ -210,7 +211,7 @@ export const ApiService = {
 
   updateTestimonial: async (updated: Testimonial): Promise<void> => {
     try {
-      const res = await fetch(`${API_URL}/testimonials/${updated.id}`, {
+      const res = await fetch(`${API_URL}/api/testimonials/${updated.id}`, {
         method: 'PUT',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(updated)
@@ -226,7 +227,7 @@ export const ApiService = {
 
   saveTestimonials: async (data: Testimonial[]): Promise<void> => {
     try {
-      const res = await fetch(`${API_URL}/testimonials`, {
+      const res = await fetch(`${API_URL}/api/testimonials`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(data)
@@ -241,7 +242,7 @@ export const ApiService = {
   // -- Qualified Persons --
   getQualified: async (): Promise<QualifiedPerson[]> => {
     try {
-      const res = await fetch(`${API_URL}/qualified`);
+      const res = await fetch(`${API_URL}/api/qualified`);
       if (!res.ok) throw new Error('API Error');
       const data = await res.json();
       // Return data from database (even if empty) - don't fall back to mock data
@@ -254,7 +255,7 @@ export const ApiService = {
 
   saveQualified: async (data: QualifiedPerson[]): Promise<void> => {
     try {
-      const res = await fetch(`${API_URL}/qualified`, {
+      const res = await fetch(`${API_URL}/api/qualified`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(data)
@@ -269,7 +270,7 @@ export const ApiService = {
   // -- Ads --
   getAds: async (): Promise<AdConfig> => {
     try {
-      const res = await fetch(`${API_URL}/ads`);
+      const res = await fetch(`${API_URL}/api/ads`);
       if (!res.ok) throw new Error('API Error');
       return await res.json();
     } catch (e) {
@@ -280,7 +281,7 @@ export const ApiService = {
 
   saveAds: async (data: AdConfig): Promise<void> => {
     try {
-      const res = await fetch(`${API_URL}/ads`, {
+      const res = await fetch(`${API_URL}/api/ads`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(data)
@@ -295,7 +296,7 @@ export const ApiService = {
   // -- Admins --
   getAdmins: async (): Promise<AdminUser[]> => {
     try {
-      const res = await fetch(`${API_URL}/admins`);
+      const res = await fetch(`${API_URL}/api/admins`);
       if (!res.ok) throw new Error('API Error');
       return await res.json();
     } catch (e) {
@@ -306,7 +307,7 @@ export const ApiService = {
 
   saveAdmins: async (data: AdminUser[]): Promise<void> => {
     try {
-      const res = await fetch(`${API_URL}/admins`, {
+      const res = await fetch(`${API_URL}/api/admins`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(data)
@@ -321,7 +322,7 @@ export const ApiService = {
   // -- Repayment Content --
   getRepaymentContent: async (): Promise<RepaymentContent> => {
     try {
-      const res = await fetch(`${API_URL}/content/repayment`);
+      const res = await fetch(`${API_URL}/api/content/repayment`);
       if (!res.ok) throw new Error('API Error');
       return await res.json();
     } catch (e) {
@@ -332,7 +333,7 @@ export const ApiService = {
 
   saveRepaymentContent: async (data: RepaymentContent): Promise<void> => {
     try {
-      const res = await fetch(`${API_URL}/content/repayment`, {
+      const res = await fetch(`${API_URL}/api/content/repayment`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(data)
@@ -347,7 +348,7 @@ export const ApiService = {
   // -- Auth --
   login: async (username: string, password: string): Promise<AdminUser | null> => {
     try {
-      const res = await fetch(`${API_URL}/auth/login`, {
+      const res = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ username, password })

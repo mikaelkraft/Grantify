@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -12,7 +15,8 @@
     "react-dom": "^19.2.3",
     "react": "^19.2.3",
     "react-router-dom": "^7.10.1",
-    "lucide-react": "^0.561.0"
+    "lucide-react": "^0.561.0",
+    "pg": "^8.13.1"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
