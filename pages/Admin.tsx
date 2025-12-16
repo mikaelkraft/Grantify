@@ -143,6 +143,21 @@ export const Admin: React.FC = () => {
     await ApiService.updateTestimonial(updated);
   };
 
+  const handleDeleteTestimonialLocal = (id: string) => {
+    const confirm = window.confirm("Are you sure you want to delete this testimonial?");
+    if (!confirm) return;
+    
+    const newData = testimonials.filter(t => t.id !== id);
+    setTestimonials(newData);
+    setHasUnsavedTestimonials(true);
+  };
+
+  const handleApproveTestimonialLocal = (id: string) => {
+    const newData = testimonials.map(t => t.id === id ? { ...t, status: 'approved' as const } : t);
+    setTestimonials(newData);
+    setHasUnsavedTestimonials(true);
+  };
+
   const handleDeleteTestimonial = async (id: string) => {
     const confirm = window.confirm("Are you sure you want to delete this testimonial?");
     if (!confirm) return;
@@ -152,6 +167,23 @@ export const Admin: React.FC = () => {
     await ApiService.saveTestimonials(newData);
   };
   
+  const handleAddTestimonialLocal = () => {
+    const newT: Testimonial = {
+      id: Date.now().toString(),
+      name: 'New Testimonial',
+      content: 'Enter content here...',
+      amount: 100000,
+      date: new Date().toISOString().split('T')[0],
+      image: 'https://picsum.photos/100/100',
+      likes: 0,
+      loves: 0,
+      claps: 0
+    };
+    const newData = [newT, ...testimonials];
+    setTestimonials(newData);
+    setHasUnsavedTestimonials(true);
+  };
+
   const handleAddTestimonial = async () => {
     const newT: Testimonial = {
       id: Date.now().toString(),
@@ -468,7 +500,7 @@ export const Admin: React.FC = () => {
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-xl font-bold">Manage Testimonials</h3>
                     <div className="flex gap-2">
-                      <button onClick={handleAddTestimonial} className="flex items-center gap-2 bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">
+                      <button onClick={handleAddTestimonialLocal} className="flex items-center gap-2 bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">
                         <Plus size={16} /> Add New
                       </button>
                       <button 
@@ -505,13 +537,13 @@ export const Admin: React.FC = () => {
                             </div>
                             <div className="flex gap-2 flex-shrink-0">
                               <button 
-                                onClick={() => handleUpdateTestimonial(t.id, 'status', 'approved')}
+                                onClick={() => handleApproveTestimonialLocal(t.id)}
                                 className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700"
                               >
                                 Approve
                               </button>
                               <button 
-                                onClick={() => handleDeleteTestimonial(t.id)}
+                                onClick={() => handleDeleteTestimonialLocal(t.id)}
                                 className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700"
                               >
                                 Reject
@@ -567,7 +599,7 @@ export const Admin: React.FC = () => {
 
                         <div className="flex justify-between items-center border-t border-gray-200 pt-2">
                           <span className="text-xs text-gray-400">ID: {t.id} • Stats: {t.likes} likes, {t.loves} loves</span>
-                          <button onClick={() => handleDeleteTestimonial(t.id)} className="text-red-500 hover:bg-red-100 p-2 rounded flex items-center gap-1 text-sm">
+                          <button onClick={() => handleDeleteTestimonialLocal(t.id)} className="text-red-500 hover:bg-red-100 p-2 rounded flex items-center gap-1 text-sm">
                               <Trash2 size={16} /> Delete
                           </button>
                         </div>
