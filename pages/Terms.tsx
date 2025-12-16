@@ -54,7 +54,7 @@ export const Terms: React.FC = () => {
         </section>
         
         <div className="pt-8 border-t">
-          <p className="text-xs text-gray-500">Last Updated: October 2023</p>
+          <p className="text-xs text-gray-500">Last Updated: January 2025</p>
         </div>
       </div>
     </div>

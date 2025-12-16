@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS testimonials (
     loves INTEGER DEFAULT 0,
     claps INTEGER DEFAULT 0,
     date TEXT NOT NULL,
+    status TEXT DEFAULT NULL CHECK (status IS NULL OR status IN ('approved', 'pending')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
