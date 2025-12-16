@@ -3,7 +3,7 @@ import { ApiService } from '../services/storage';
 import { AdSlot } from '../components/AdSlot';
 import { TestimonialCard } from '../components/TestimonialCard';
 import { LoanType, ApplicationStatus, LoanApplication, Testimonial, QualifiedPerson, AdConfig } from '../types';
-import { Calculator, CheckCircle, AlertCircle, ArrowRight, Share2, Copy, Info, Loader2 } from 'lucide-react';
+import { Calculator, CheckCircle, AlertCircle, ArrowRight, Share2, Copy, Info, Loader2, MessageSquarePlus, Send } from 'lucide-react';
 
 export const Home: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -20,6 +20,15 @@ export const Home: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [loanType, setLoanType] = useState<LoanType>(LoanType.STANDARD);
+  
+  // Testimonial submission form state
+  const [testimonialForm, setTestimonialForm] = useState({
+    name: '',
+    amount: '',
+    content: ''
+  });
+  const [testimonialSubmitted, setTestimonialSubmitted] = useState(false);
+  const [isSubmittingTestimonial, setIsSubmittingTestimonial] = useState(false);
   
   // Data State
   const [ads, setAds] = useState<AdConfig | null>(null);
@@ -49,7 +58,9 @@ export const Home: React.FC = () => {
     loadData();
   }, []);
 
-  const visibleTestimonials = allTestimonials.slice(0, testimonialLimit);
+  // Filter to only show approved testimonials (or those without status, which are legacy approved)
+  const approvedTestimonials = allTestimonials.filter(t => !t.status || t.status === 'approved');
+  const visibleTestimonials = approvedTestimonials.slice(0, testimonialLimit);
 
   const calculateRepayment = (amount: number) => {
     // 5% flat rate
@@ -74,8 +85,43 @@ export const Home: React.FC = () => {
     setTestimonialLimit(prev => Math.min(prev + 3, 10));
   };
 
+  const handleTestimonialSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingTestimonial(true);
+    
+    // Generate a unique ID using timestamp + random string
+    const uniqueId = `pending_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    
+    const newTestimonial: Testimonial = {
+      id: uniqueId,
+      name: testimonialForm.name,
+      // Use a data URI for default avatar to avoid external dependency
+      image: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="50" fill="%23006400"/%3E%3Ctext x="50" y="55" font-size="40" text-anchor="middle" fill="white"%3E%3F%3C/text%3E%3C/svg%3E',
+      amount: Number(testimonialForm.amount) || 0,
+      content: testimonialForm.content,
+      likes: 0,
+      loves: 0,
+      claps: 0,
+      date: new Date().toISOString().split('T')[0],
+      status: 'pending'
+    };
+
+    try {
+      // Get current testimonials and add the new pending one
+      const currentTestimonials = await ApiService.getTestimonials();
+      await ApiService.saveTestimonials([...currentTestimonials, newTestimonial]);
+      setTestimonialSubmitted(true);
+      setTestimonialForm({ name: '', amount: '', content: '' });
+    } catch (e) {
+      console.error("Failed to submit testimonial", e);
+    } finally {
+      setIsSubmittingTestimonial(false);
+    }
+  };
+
   const copyReferralLink = () => {
-    const link = `${window.location.origin}/?ref=${referralData.code}`;
+    const baseUrl = `${window.location.origin}${window.location.pathname}`;
+    const link = `${baseUrl}#/?ref=${encodeURIComponent(referralData.code)}`;
     navigator.clipboard.writeText(link);
     alert('Referral link copied to clipboard!');
   };
@@ -420,7 +466,7 @@ export const Home: React.FC = () => {
         </div>
         
         {/* Load More Button */}
-        {testimonialLimit < Math.min(allTestimonials.length, 10) && (
+        {testimonialLimit < Math.min(approvedTestimonials.length, 10) && (
            <div className="text-center mt-6">
              <button 
                onClick={handleLoadMoreTestimonials}
@@ -430,6 +476,98 @@ export const Home: React.FC = () => {
              </button>
            </div>
         )}
+      </section>
+
+      {/* Share Your Story Form */}
+      <section className="bg-white rounded-xl p-8 shadow-md border-t-4 border-grantify-gold">
+        <div className="max-w-2xl mx-auto">
+          <div className="flex items-center gap-3 mb-6">
+            <MessageSquarePlus className="text-grantify-gold" size={28} />
+            <h2 className="text-2xl font-bold font-heading text-gray-800">Share Your Success Story</h2>
+          </div>
+          
+          {testimonialSubmitted ? (
+            <div className="text-center py-8 bg-green-50 rounded-lg border border-green-200">
+              <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-gray-800 mb-2">Thank You!</h3>
+              <p className="text-gray-600 mb-4">
+                Your story has been submitted and is pending approval. Once approved by our team, it will appear in the Success Stories section.
+              </p>
+              <button 
+                onClick={() => setTestimonialSubmitted(false)}
+                className="text-grantify-green font-semibold hover:underline"
+              >
+                Submit Another Story
+              </button>
+            </div>
+          ) : (
+            <>
+              <p className="text-gray-600 mb-6">
+                Have you benefited from Grantify? Share your experience to inspire others! Your story will be reviewed by our team before being published.
+              </p>
+              
+              <form onSubmit={handleTestimonialSubmit} className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Your Name *</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g., John Doe"
+                      className={inputClass}
+                      value={testimonialForm.name}
+                      onChange={e => setTestimonialForm({...testimonialForm, name: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Loan Amount Received (₦) *</label>
+                    <input 
+                      type="number" 
+                      placeholder="e.g., 200000"
+                      className={inputClass}
+                      value={testimonialForm.amount}
+                      onChange={e => setTestimonialForm({...testimonialForm, amount: e.target.value})}
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Your Story *</label>
+                  <textarea 
+                    rows={4}
+                    placeholder="Tell us how Grantify helped you..."
+                    className={inputClass}
+                    value={testimonialForm.content}
+                    onChange={e => setTestimonialForm({...testimonialForm, content: e.target.value})}
+                    required
+                  />
+                </div>
+                
+                <div className="text-xs text-gray-500 bg-yellow-50 p-3 rounded border border-yellow-200">
+                  <Info size={14} className="inline mr-1 text-yellow-600" />
+                  Your submission will be reviewed by our team. Once approved, your story will appear in our Success Stories section with a default profile image.
+                </div>
+                
+                <button 
+                  type="submit" 
+                  disabled={isSubmittingTestimonial}
+                  className="w-full bg-grantify-gold text-grantify-green font-bold py-3 rounded hover:bg-yellow-400 transition shadow-lg flex items-center justify-center gap-2"
+                >
+                  {isSubmittingTestimonial ? (
+                    <>
+                      <Loader2 className="animate-spin" size={18} /> Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Send size={18} /> Submit Your Story
+                    </>
+                  )}
+                </button>
+              </form>
+            </>
+          )}
+        </div>
       </section>
 
     </div>

@@ -54,7 +54,7 @@ Regards,
 ${ftForm.name}`;
 
     // Construct mailto link
-    window.location.href = `mailto:ashwebb500@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = `mailto:grantifyme@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
   // Consistent dark input style
