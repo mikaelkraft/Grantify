@@ -151,6 +151,22 @@ function setLocal<T>(key: string, data: T): void {
 
 export const ApiService = {
   
+  // -- Database Seeding --
+  // Seeds the database with initial mock data if tables are empty
+  seedDatabase: async (): Promise<{ success: boolean; seeded: Record<string, boolean> }> => {
+    try {
+      const res = await fetch(`${API_URL}/seed`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+      });
+      if (!res.ok) throw new Error('API Error');
+      return await res.json();
+    } catch (e) {
+      console.warn("Failed to seed database:", e);
+      return { success: false, seeded: {} };
+    }
+  },
+
   // -- Applications --
   getApplications: async (): Promise<LoanApplication[]> => {
     try {
