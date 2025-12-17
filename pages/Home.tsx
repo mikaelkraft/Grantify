@@ -96,6 +96,13 @@ export const Home: React.FC = () => {
     // Generate initials-based avatar using UI Avatars API with a green background (brand color)
     const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(testimonialForm.name)}&background=006400&color=ffffff&size=150&bold=true`;
     
+    // Generate random initial reaction counts
+    const randomReactions = {
+      likes: Math.floor(Math.random() * 150) + 20,
+      loves: Math.floor(Math.random() * 80) + 10,
+      claps: Math.floor(Math.random() * 40) + 5
+    };
+    
     const newTestimonial: Testimonial = {
       id: uniqueId,
       name: testimonialForm.name,
@@ -103,9 +110,7 @@ export const Home: React.FC = () => {
       image: avatarUrl,
       amount: Number(testimonialForm.amount) || 0,
       content: testimonialForm.content,
-      likes: 0,
-      loves: 0,
-      claps: 0,
+      ...randomReactions,
       date: new Date().toISOString().split('T')[0],
       status: 'pending'
     };
@@ -463,7 +468,7 @@ export const Home: React.FC = () => {
                ))}
              </ul>
              <div className="mt-4 bg-yellow-50 p-3 text-xs text-yellow-800 rounded border border-yellow-200">
-               These individuals have been selected and will be contacted shortly.
+               <strong>📋 Note:</strong> This list is updated regularly. Check back frequently in case you missed a notification – you might be next!
              </div>
            </div>
 

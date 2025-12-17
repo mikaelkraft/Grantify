@@ -135,7 +135,13 @@ export const Admin: React.FC = () => {
     const target = testimonials.find(t => t.id === id);
     if (!target) return;
     
-    const updated = { ...target, [field]: value };
+    let updated = { ...target, [field]: value };
+    
+    // Auto-update avatar URL when name changes (if using UI Avatars placeholder)
+    if (field === 'name' && target.image.includes('ui-avatars.com')) {
+      updated.image = `https://ui-avatars.com/api/?name=${encodeURIComponent(value)}&background=006400&color=ffffff&size=150&bold=true`;
+    }
+    
     const newData = testimonials.map(t => t.id === id ? updated : t);
     
     setTestimonials(newData);
@@ -191,7 +197,15 @@ export const Admin: React.FC = () => {
     await ApiService.saveTestimonials(newData);
   };
   
+  // Helper to generate random reaction counts for new testimonials
+  const generateRandomReactions = () => ({
+    likes: Math.floor(Math.random() * 150) + 20,
+    loves: Math.floor(Math.random() * 80) + 10,
+    claps: Math.floor(Math.random() * 40) + 5
+  });
+  
   const handleAddTestimonialLocal = () => {
+    const reactions = generateRandomReactions();
     const newT: Testimonial = {
       id: Date.now().toString(),
       name: 'New Testimonial',
@@ -200,9 +214,7 @@ export const Admin: React.FC = () => {
       date: new Date().toISOString().split('T')[0],
       // Use initials-based avatar with brand green background
       image: 'https://ui-avatars.com/api/?name=New+Testimonial&background=006400&color=ffffff&size=150&bold=true',
-      likes: 0,
-      loves: 0,
-      claps: 0
+      ...reactions
     };
     const newData = [newT, ...testimonials];
     setTestimonials(newData);
@@ -210,6 +222,7 @@ export const Admin: React.FC = () => {
   };
 
   const handleAddTestimonial = async () => {
+    const reactions = generateRandomReactions();
     const newT: Testimonial = {
       id: Date.now().toString(),
       name: 'New Testimonial',
@@ -218,9 +231,7 @@ export const Admin: React.FC = () => {
       date: new Date().toISOString().split('T')[0],
       // Use initials-based avatar with brand green background
       image: 'https://ui-avatars.com/api/?name=New+Testimonial&background=006400&color=ffffff&size=150&bold=true',
-      likes: 0,
-      loves: 0,
-      claps: 0
+      ...reactions
     };
     const newData = [newT, ...testimonials];
     setTestimonials(newData);
