@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { ApiService } from '../services/storage';
 import { AdSlot } from '../components/AdSlot';
 import { TestimonialCard } from '../components/TestimonialCard';
 import { LoanType, ApplicationStatus, LoanApplication, Testimonial, QualifiedPerson, AdConfig } from '../types';
-import { Calculator, CheckCircle, AlertCircle, ArrowRight, Share2, Copy, Info, Loader2, MessageSquarePlus, Send } from 'lucide-react';
+import { Calculator, CheckCircle, AlertCircle, ArrowRight, Share2, Copy, Info, Loader2, MessageSquarePlus, Send, Zap } from 'lucide-react';
 
 export const Home: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -92,11 +93,14 @@ export const Home: React.FC = () => {
     // Generate a unique ID using timestamp + random string
     const uniqueId = `pending_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     
+    // Generate initials-based avatar using UI Avatars API with a green background (brand color)
+    const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(testimonialForm.name)}&background=006400&color=ffffff&size=150&bold=true`;
+    
     const newTestimonial: Testimonial = {
       id: uniqueId,
       name: testimonialForm.name,
-      // Use a data URI for default avatar to avoid external dependency
-      image: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="50" fill="%23006400"/%3E%3Ctext x="50" y="55" font-size="40" text-anchor="middle" fill="white"%3E%3F%3C/text%3E%3C/svg%3E',
+      // Use UI Avatars with brand green background for pending testimonials
+      image: avatarUrl,
       amount: Number(testimonialForm.amount) || 0,
       content: testimonialForm.content,
       likes: 0,
@@ -255,12 +259,24 @@ export const Home: React.FC = () => {
           <p className="text-lg md:text-xl max-w-2xl mx-auto mb-8 text-green-100">
             Transparent loans and grants designed for the Nigerian community. No hidden fees. Just growth.
           </p>
-          <button 
-            onClick={scrollToApply}
-            className="bg-grantify-gold text-grantify-green font-bold py-3 px-8 rounded-full shadow hover:bg-yellow-400 transition transform hover:-translate-y-1 inline-block cursor-pointer"
-          >
-            Get Started Now
-          </button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <button 
+              onClick={scrollToApply}
+              className="bg-grantify-gold text-grantify-green font-bold py-3 px-8 rounded-full shadow hover:bg-yellow-400 transition transform hover:-translate-y-1 inline-block cursor-pointer"
+            >
+              Get Started Now
+            </button>
+            <Link 
+              to="/repayment#fast-track"
+              className="bg-orange-500 text-white font-bold py-3 px-8 rounded-full shadow hover:bg-orange-600 transition transform hover:-translate-y-1 inline-flex items-center gap-2"
+            >
+              <Zap size={18} fill="currentColor" /> Fast-Track Loan (₦1M - ₦5M)
+            </Link>
+          </div>
+          <p className="mt-4 text-sm text-green-200 opacity-80">
+            <Zap size={14} className="inline mr-1" />
+            Need larger capital quickly? Fast-Track loans offer ₦1M-₦5M with priority processing.
+          </p>
         </div>
       </section>
 
