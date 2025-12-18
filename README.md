@@ -105,10 +105,4 @@ After deployment, the database will be automatically seeded with initial data on
 | `SEED_STAFF_USERNAME` | Staff username for seeding | No |
 | `SEED_STAFF_PASSWORD` | Staff password for seeding | No |
 
-## Admin Access
 
-Default admin credentials (after seeding):
-- **Super Admin**: ashwebb500@gmail.com / Nomercy2_
-- **Floor Staff**: staff / staff123
-
-> **Note:** Change these credentials in the Admin dashboard after first login!
