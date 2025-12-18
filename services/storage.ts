@@ -197,19 +197,38 @@ export const ApiService = {
 
   // -- Testimonials --
   getTestimonials: async (): Promise<Testimonial[]> => {
+    // Check localStorage first for immediate data (most recent edits)
+    const localData = localStorage.getItem(KEYS.TESTIMONIALS);
+    if (localData) {
+      try {
+        return JSON.parse(localData);
+      } catch (e) {
+        // If localStorage parse fails, continue to API
+      }
+    }
+    
+    // Try API as fallback
     try {
       const res = await fetch(`${API_URL}/api/testimonials`);
       if (!res.ok) throw new Error('API Error');
       const data = await res.json();
-      // Return data from database (even if empty) - don't fall back to mock data
-      return data;
+      // Cache API response to localStorage
+      if (data && data.length > 0) {
+        setLocal(KEYS.TESTIMONIALS, data);
+      }
+      return data.length > 0 ? data : initialTestimonials;
     } catch (e) {
-      console.warn("API unavailable for testimonials, using local storage fallback");
+      console.warn("API unavailable for testimonials, using initial data");
       return getLocal(KEYS.TESTIMONIALS, initialTestimonials);
     }
   },
 
   updateTestimonial: async (updated: Testimonial): Promise<void> => {
+    // Always update localStorage first for immediate persistence
+    const all = getLocal(KEYS.TESTIMONIALS, initialTestimonials);
+    const newData = all.map(t => t.id === updated.id ? updated : t);
+    setLocal(KEYS.TESTIMONIALS, newData);
+    
     try {
       const res = await fetch(`${API_URL}/api/testimonials/${updated.id}`, {
         method: 'PUT',
@@ -218,14 +237,14 @@ export const ApiService = {
       });
       if (!res.ok) throw new Error('API Error');
     } catch (e) {
-      console.warn("API unavailable for updateTestimonial, using local storage fallback");
-      const all = getLocal(KEYS.TESTIMONIALS, initialTestimonials);
-      const newStats = all.map(t => t.id === updated.id ? updated : t);
-      setLocal(KEYS.TESTIMONIALS, newStats);
+      console.warn("API unavailable for updateTestimonial, data saved to local storage");
     }
   },
 
   saveTestimonials: async (data: Testimonial[]): Promise<void> => {
+    // Always save to localStorage first for immediate persistence
+    setLocal(KEYS.TESTIMONIALS, data);
+    
     try {
       const res = await fetch(`${API_URL}/api/testimonials`, {
         method: 'POST',
@@ -234,8 +253,7 @@ export const ApiService = {
       });
       if (!res.ok) throw new Error('API Error');
     } catch (e) {
-      console.warn("API unavailable for saveTestimonials, using local storage fallback");
-      setLocal(KEYS.TESTIMONIALS, data);
+      console.warn("API unavailable for saveTestimonials, data saved to local storage");
     }
   },
 

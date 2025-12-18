@@ -3,8 +3,23 @@ import { ApiService } from '../services/storage';
 import { AdminUser, LoanApplication, Testimonial, QualifiedPerson, AdConfig, UserRole, RepaymentContent } from '../types';
 import { LogOut, Download, Trash2, Edit, Plus, UserPlus, Shield, Loader2, Save } from 'lucide-react';
 
+const ADMIN_SESSION_KEY = 'grantify_admin_session';
+// Default fallback avatar (green circle with question mark) for broken/missing images
+const DEFAULT_AVATAR_FALLBACK = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="50" fill="%23006400"/%3E%3Ctext x="50" y="55" font-size="40" text-anchor="middle" fill="white"%3E%3F%3C/text%3E%3C/svg%3E';
+
 export const Admin: React.FC = () => {
-  const [user, setUser] = useState<AdminUser | null>(null);
+  const [user, setUser] = useState<AdminUser | null>(() => {
+    // Initialize from localStorage if available
+    const stored = localStorage.getItem(ADMIN_SESSION_KEY);
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   
@@ -62,14 +77,23 @@ export const Admin: React.FC = () => {
     setIsLoggingIn(true);
     try {
       const admin = await ApiService.login(loginForm.username, loginForm.password);
-      if (admin) setUser(admin);
-      else alert('Invalid credentials');
+      if (admin) {
+        setUser(admin);
+        // Persist session to localStorage
+        localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(admin));
+      } else {
+        alert('Invalid credentials');
+      }
     } finally {
       setIsLoggingIn(false);
     }
   };
 
-  const handleLogout = () => setUser(null);
+  const handleLogout = () => {
+    setUser(null);
+    // Clear persisted session
+    localStorage.removeItem(ADMIN_SESSION_KEY);
+  };
 
   const exportApplicationsCSV = () => {
     const headers = ["ID", "Name", "Phone", "Email", "Amount", "Status", "Date"];
@@ -111,7 +135,13 @@ export const Admin: React.FC = () => {
     const target = testimonials.find(t => t.id === id);
     if (!target) return;
     
-    const updated = { ...target, [field]: value };
+    let updated = { ...target, [field]: value };
+    
+    // Auto-update avatar URL when name changes (if using UI Avatars placeholder)
+    if (field === 'name' && target.image.includes('ui-avatars.com')) {
+      updated.image = `https://ui-avatars.com/api/?name=${encodeURIComponent(value)}&background=006400&color=ffffff&size=150&bold=true`;
+    }
+    
     const newData = testimonials.map(t => t.id === id ? updated : t);
     
     setTestimonials(newData);
@@ -167,17 +197,24 @@ export const Admin: React.FC = () => {
     await ApiService.saveTestimonials(newData);
   };
   
+  // Helper to generate random reaction counts for new testimonials
+  const generateRandomReactions = () => ({
+    likes: Math.floor(Math.random() * 150) + 20,
+    loves: Math.floor(Math.random() * 80) + 10,
+    claps: Math.floor(Math.random() * 40) + 5
+  });
+  
   const handleAddTestimonialLocal = () => {
+    const reactions = generateRandomReactions();
     const newT: Testimonial = {
       id: Date.now().toString(),
       name: 'New Testimonial',
       content: 'Enter content here...',
       amount: 100000,
       date: new Date().toISOString().split('T')[0],
-      image: 'https://picsum.photos/100/100',
-      likes: 0,
-      loves: 0,
-      claps: 0
+      // Use initials-based avatar with brand green background
+      image: 'https://ui-avatars.com/api/?name=New+Testimonial&background=006400&color=ffffff&size=150&bold=true',
+      ...reactions
     };
     const newData = [newT, ...testimonials];
     setTestimonials(newData);
@@ -185,16 +222,16 @@ export const Admin: React.FC = () => {
   };
 
   const handleAddTestimonial = async () => {
+    const reactions = generateRandomReactions();
     const newT: Testimonial = {
       id: Date.now().toString(),
       name: 'New Testimonial',
       content: 'Enter content here...',
       amount: 100000,
       date: new Date().toISOString().split('T')[0],
-      image: 'https://picsum.photos/100/100',
-      likes: 0,
-      loves: 0,
-      claps: 0
+      // Use initials-based avatar with brand green background
+      image: 'https://ui-avatars.com/api/?name=New+Testimonial&background=006400&color=ffffff&size=150&bold=true',
+      ...reactions
     };
     const newData = [newT, ...testimonials];
     setTestimonials(newData);
@@ -595,6 +632,30 @@ export const Admin: React.FC = () => {
                             value={t.content}
                             onChange={(e) => handleUpdateTestimonialLocal(t.id, 'content', e.target.value)}
                           />
+                        </div>
+
+                        <div className="flex gap-2 items-end">
+                          <div className="flex-shrink-0">
+                            <label className="text-xs text-gray-500 block mb-1">Avatar Preview</label>
+                            <img 
+                              src={t.image} 
+                              alt={t.name}
+                              className="w-12 h-12 rounded-full object-cover border border-gray-300"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = DEFAULT_AVATAR_FALLBACK;
+                              }}
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <label className="text-xs text-gray-500 block mb-1">Avatar Image URL</label>
+                            <input 
+                              type="url"
+                              placeholder="https://example.com/photo.jpg"
+                              className={inputClassSmall + " w-full"}
+                              value={t.image}
+                              onChange={(e) => handleUpdateTestimonialLocal(t.id, 'image', e.target.value)}
+                            />
+                          </div>
                         </div>
 
                         <div className="flex justify-between items-center border-t border-gray-200 pt-2">

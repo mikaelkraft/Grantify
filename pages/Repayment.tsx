@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { ApiService } from '../services/storage';
 import { Send, Zap, Loader2 } from 'lucide-react';
 import { RepaymentContent } from '../types';
 
 export const Repayment: React.FC = () => {
+  const location = useLocation();
   const [content, setContent] = useState<RepaymentContent | null>(null);
   const [ftForm, setFtForm] = useState({
     name: '',
@@ -19,6 +21,18 @@ export const Repayment: React.FC = () => {
     };
     loadContent();
   }, []);
+
+  // Handle scrolling to anchor from hash
+  useEffect(() => {
+    if (location.hash && content) {
+      const element = document.querySelector(location.hash);
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      }
+    }
+  }, [location.hash, content]);
 
   const generateTableData = (start: number, end: number, step: number, months: number) => {
     const rows = [];
@@ -127,7 +141,7 @@ ${ftForm.name}`;
       </div>
 
       {/* Fast Track Application Box */}
-      <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-xl p-6 shadow-sm">
+      <div id="fast-track" className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-xl p-6 shadow-sm scroll-mt-8">
         <div className="flex items-start gap-4">
           <div className="bg-orange-500 text-white p-3 rounded-full hidden md:block">
             <Zap size={24} fill="currentColor" />
