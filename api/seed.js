@@ -66,8 +66,8 @@ export default async function handler(req, res) {
       },
       { 
         id: '2', 
-        username: process.env.SEED_STAFF_USERNAME || 'staff', 
-        passwordHash: process.env.SEED_STAFF_PASSWORD || 'staff123', 
+        username: process.env.SEED_STAFF_USERNAME, 
+        passwordHash: process.env.SEED_STAFF_PASSWORD, 
         role: 'FLOOR_ADMIN', 
         name: 'Floor Staff' 
       }
