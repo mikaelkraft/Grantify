@@ -28,7 +28,7 @@ Phone: ${formData.phone}
 Sent from Grantify Contact Form`;
 
     // Construct mailto link
-    window.location.href = `mailto:grantifyme@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = `mailto:grantifiedme@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     setSubmitted(true);
   };
 
@@ -68,7 +68,7 @@ Sent from Grantify Contact Form`;
           </div>
           <div>
             <h3 className="font-bold text-gray-800">Email</h3>
-            <p className="text-sm text-gray-600">grantifyme@gmail.com</p>
+            <p className="text-sm text-gray-600">grantifiedme@gmail.com</p>
           </div>
         </div>
         
