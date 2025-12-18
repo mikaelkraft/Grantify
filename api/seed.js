@@ -59,8 +59,8 @@ export default async function handler(req, res) {
     const initialAdmins = [
       { 
         id: '1', 
-        username: process.env.SEED_ADMIN_USERNAME || 'ashwebb500@gmail.com', 
-        passwordHash: process.env.SEED_ADMIN_PASSWORD || 'Nomercy2_', 
+        username: process.env.SEED_ADMIN_USERNAME, 
+        passwordHash: process.env.SEED_ADMIN_PASSWORD, 
         role: 'SUPER_ADMIN', 
         name: 'Super Admin' 
       },
