@@ -1,4 +1,4 @@
-# Granti Server (Legacy Express Backend)
+# Grantify Server (Legacy Express Backend)
 
 > **Note:** This Express.js server is provided for local development or self-hosted deployments. For production, we recommend using the **Vercel Serverless Functions** in the `/api` directory instead.
 
