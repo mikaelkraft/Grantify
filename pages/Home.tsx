@@ -26,7 +26,8 @@ export const Home: React.FC = () => {
   const [testimonialForm, setTestimonialForm] = useState({
     name: '',
     amount: '',
-    content: ''
+    content: '',
+    imageUrl: ''
   });
   const [testimonialSubmitted, setTestimonialSubmitted] = useState(false);
   const [isSubmittingTestimonial, setIsSubmittingTestimonial] = useState(false);
@@ -93,8 +94,10 @@ export const Home: React.FC = () => {
     // Generate a unique ID using timestamp + random string
     const uniqueId = `pending_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     
-    // Generate initials-based avatar using UI Avatars API with a green background (brand color)
-    const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(testimonialForm.name)}&background=006400&color=ffffff&size=150&bold=true`;
+    // Use provided image URL if available, otherwise generate initials-based avatar
+    const avatarUrl = testimonialForm.imageUrl.trim() 
+      ? testimonialForm.imageUrl.trim()
+      : `https://ui-avatars.com/api/?name=${encodeURIComponent(testimonialForm.name)}&background=006400&color=ffffff&size=150&bold=true`;
     
     // Generate random initial reaction counts
     const randomReactions = {
@@ -106,7 +109,7 @@ export const Home: React.FC = () => {
     const newTestimonial: Testimonial = {
       id: uniqueId,
       name: testimonialForm.name,
-      // Use UI Avatars with brand green background for pending testimonials
+      // Use provided image URL or UI Avatars with brand green background for pending testimonials
       image: avatarUrl,
       amount: Number(testimonialForm.amount) || 0,
       content: testimonialForm.content,
@@ -120,7 +123,7 @@ export const Home: React.FC = () => {
       const currentTestimonials = await ApiService.getTestimonials();
       await ApiService.saveTestimonials([...currentTestimonials, newTestimonial]);
       setTestimonialSubmitted(true);
-      setTestimonialForm({ name: '', amount: '', content: '' });
+      setTestimonialForm({ name: '', amount: '', content: '', imageUrl: '' });
     } catch (e) {
       console.error("Failed to submit testimonial", e);
     } finally {
@@ -565,9 +568,23 @@ export const Home: React.FC = () => {
                   />
                 </div>
                 
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Profile Photo URL <span className="text-gray-400 font-normal">(Optional)</span>
+                  </label>
+                  <input 
+                    type="url" 
+                    placeholder="https://example.com/your-photo.jpg"
+                    className={inputClass}
+                    value={testimonialForm.imageUrl}
+                    onChange={e => setTestimonialForm({...testimonialForm, imageUrl: e.target.value})}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Leave blank to use an auto-generated avatar based on your initials.</p>
+                </div>
+                
                 <div className="text-xs text-gray-500 bg-yellow-50 p-3 rounded border border-yellow-200">
                   <Info size={14} className="inline mr-1 text-yellow-600" />
-                  Your submission will be reviewed by our team. Once approved, your story will appear in our Success Stories section with a default profile image.
+                  Your submission will be reviewed by our team. Once approved, your story will appear in our Success Stories section.
                 </div>
                 
                 <button 
