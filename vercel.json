@@ -4,6 +4,6 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "rewrites": [
-    { "source": "/((?!api).*)", "destination": "/" }
+    { "source": "/((?!api|ads\\.txt).*)", "destination": "/" }
   ]
 }

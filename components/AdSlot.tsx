@@ -15,20 +15,53 @@ export const AdSlot: React.FC<AdSlotProps> = ({ htmlContent, className = "", lab
     // Clear previous content
     containerRef.current.innerHTML = '';
 
-    // Create a range to create a fragment that executes scripts
-    const range = document.createRange();
-    range.selectNode(containerRef.current);
-    
-    // createContextualFragment parses the markup and allows scripts to execute when appended
-    try {
-      const documentFragment = range.createContextualFragment(htmlContent);
-      containerRef.current.appendChild(documentFragment);
-    } catch (e) {
-      console.error("AdSlot Error:", e);
-      // Fallback
-      containerRef.current.innerHTML = htmlContent;
+    // Create a temporary container to parse the HTML
+    const temp = document.createElement('div');
+    temp.innerHTML = htmlContent;
+
+    // Find all script elements and handle them specially
+    const scripts = temp.getElementsByTagName('script');
+    const scriptsArray = Array.from(scripts);
+
+    // Remove scripts from temp (they'll be added separately)
+    scriptsArray.forEach(script => script.remove());
+
+    // Add non-script content using createContextualFragment for inline execution
+    if (temp.innerHTML.trim()) {
+      const range = document.createRange();
+      range.selectNode(containerRef.current);
+      try {
+        const fragment = range.createContextualFragment(temp.innerHTML);
+        containerRef.current.appendChild(fragment);
+      } catch (e) {
+        containerRef.current.innerHTML = temp.innerHTML;
+      }
     }
 
+    // Now handle scripts - create new script elements to ensure they execute
+    scriptsArray.forEach(originalScript => {
+      const newScript = document.createElement('script');
+      
+      // Copy all attributes
+      Array.from(originalScript.attributes).forEach(attr => {
+        newScript.setAttribute(attr.name, attr.value);
+      });
+      
+      // Copy inline script content
+      if (originalScript.innerHTML) {
+        newScript.innerHTML = originalScript.innerHTML;
+      }
+      
+      // Append to container (this triggers execution for external scripts)
+      containerRef.current?.appendChild(newScript);
+    });
+
+    // Cleanup function
+    return () => {
+      if (containerRef.current) {
+        containerRef.current.innerHTML = '';
+      }
+    };
   }, [htmlContent]);
 
   if (!htmlContent) return null;
