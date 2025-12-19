@@ -7,6 +7,7 @@ import { Admin } from './pages/Admin';
 import { Terms } from './pages/Terms';
 import { Privacy } from './pages/Privacy';
 import { Contact } from './pages/Contact';
+import { LoanProviders } from './pages/LoanProviders';
 import { ApiService } from './services/storage';
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/loan-providers" element={<LoanProviders />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>
