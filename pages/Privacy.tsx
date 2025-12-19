@@ -53,6 +53,11 @@ export const Privacy: React.FC = () => {
           <p>If you have questions about this privacy policy or our data practices, please contact our support team.</p>
         </section>
 
+        <section>
+          <h2 className="text-lg font-bold text-gray-900 mb-2">Disclaimer</h2>
+          <p>Actually, you will be bombarded with ADS... We can only show you best loan offering services; We do not offer loans directly.</p>
+        </section>
+        
         <div className="pt-8 border-t">
           <p className="text-xs text-gray-500">Effective Date: June 2025</p>
         </div>
