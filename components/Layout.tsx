@@ -17,6 +17,11 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     const loadAds = async () => {
       const adData = await ApiService.getAds();
       setAds(adData);
+      
+      // Inject head scripts (e.g., Google AdSense, analytics)
+      if (adData?.head) {
+        injectHeadScripts(adData.head);
+      }
     };
     loadAds();
     
@@ -55,6 +60,40 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
     detectAdBlock();
   }, []);
+
+  // Inject scripts into document head (for AdSense, GTM, etc.)
+  const injectHeadScripts = (headContent: string) => {
+    // Create a temporary container to parse the HTML
+    const temp = document.createElement('div');
+    temp.innerHTML = headContent;
+
+    // Check if scripts are already injected (by data attribute)
+    const existingMarker = document.head.querySelector('[data-grantify-ads]');
+    if (existingMarker) return; // Already injected
+
+    // Add a marker to prevent duplicate injection
+    const marker = document.createElement('meta');
+    marker.setAttribute('data-grantify-ads', 'true');
+    document.head.appendChild(marker);
+
+    // Process all direct children of temp container
+    Array.from(temp.children).forEach(el => {
+      if (el.tagName === 'SCRIPT') {
+        // Scripts need to be recreated to execute
+        const newScript = document.createElement('script');
+        Array.from(el.attributes).forEach(attr => {
+          newScript.setAttribute(attr.name, attr.value);
+        });
+        if (el.innerHTML) {
+          newScript.innerHTML = el.innerHTML;
+        }
+        document.head.appendChild(newScript);
+      } else {
+        // Other elements (meta, link, etc.) can be cloned directly
+        document.head.appendChild(el.cloneNode(true));
+      }
+    });
+  };
 
   const handleDismissCompliance = () => {
     if (blockerDetected) {

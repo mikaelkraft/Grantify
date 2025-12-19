@@ -15,7 +15,7 @@ const cbnApprovedLenders: LoanProvider[] = [
   {
     name: "FairMoney",
     description: "Offers instant loans without collateral. One of the leading digital banks in Nigeria with CBN approval.",
-    loanRange: "₦1,500 - ₦3,000,000",
+    loanRange: "NGN 1,500 - NGN 3,000,000",
     interestRange: "5% - 30% monthly",
     tenure: "2 - 12 months",
     website: "https://fairmoney.ng",
@@ -24,7 +24,7 @@ const cbnApprovedLenders: LoanProvider[] = [
   {
     name: "Carbon (Paylater)",
     description: "Provides quick loans, bill payments, and investment services. Formerly known as Paylater.",
-    loanRange: "₦2,000 - ₦1,000,000",
+    loanRange: "NGN 2,000 - NGN 1,000,000",
     interestRange: "5% - 15% monthly",
     tenure: "1 - 6 months",
     website: "https://getcarbon.co",
@@ -33,7 +33,7 @@ const cbnApprovedLenders: LoanProvider[] = [
   {
     name: "Branch",
     description: "International lending app offering loans in Nigeria, Kenya, and other African countries.",
-    loanRange: "₦1,000 - ₦500,000",
+    loanRange: "NGN 1,000 - NGN 500,000",
     interestRange: "4% - 21% monthly",
     tenure: "1 - 12 months",
     website: "https://branch.co",
@@ -42,7 +42,7 @@ const cbnApprovedLenders: LoanProvider[] = [
   {
     name: "PalmCredit",
     description: "Quick loan app with simple application process and fast disbursement.",
-    loanRange: "₦2,000 - ₦500,000",
+    loanRange: "NGN 2,000 - NGN 500,000",
     interestRange: "5% - 20% monthly",
     tenure: "14 days - 6 months",
     website: "https://palmcredit.io",
@@ -51,7 +51,7 @@ const cbnApprovedLenders: LoanProvider[] = [
   {
     name: "Renmoney",
     description: "Licensed lending company offering personal and business loans with competitive rates.",
-    loanRange: "₦50,000 - ₦6,000,000",
+    loanRange: "NGN 50,000 - NGN 6,000,000",
     interestRange: "2.5% - 4% monthly",
     tenure: "3 - 24 months",
     website: "https://renmoney.com",
@@ -60,7 +60,7 @@ const cbnApprovedLenders: LoanProvider[] = [
   {
     name: "Specta",
     description: "A product by Sterling Bank offering instant loans to salary earners and business owners.",
-    loanRange: "₦50,000 - ₦5,000,000",
+    loanRange: "NGN 50,000 - NGN 5,000,000",
     interestRange: "2% - 3% monthly",
     tenure: "3 - 12 months",
     website: "https://specta.com.ng"
@@ -68,7 +68,7 @@ const cbnApprovedLenders: LoanProvider[] = [
   {
     name: "QuickCheck",
     description: "AI-powered lending platform providing quick loans based on mobile data analysis.",
-    loanRange: "₦1,500 - ₦500,000",
+    loanRange: "NGN 1,500 - NGN 500,000",
     interestRange: "5% - 30% monthly",
     tenure: "1 - 6 months",
     website: "https://quickcheck.ng",
@@ -77,7 +77,7 @@ const cbnApprovedLenders: LoanProvider[] = [
   {
     name: "Aella Credit",
     description: "Provides salary advances and personal loans to employed individuals.",
-    loanRange: "₦1,500 - ₦1,000,000",
+    loanRange: "NGN 1,500 - NGN 1,000,000",
     interestRange: "4% - 20% monthly",
     tenure: "1 - 12 months",
     website: "https://aellaapp.com",
@@ -86,7 +86,7 @@ const cbnApprovedLenders: LoanProvider[] = [
   {
     name: "Kuda Bank",
     description: "Digital bank offering overdraft facilities to customers based on account history.",
-    loanRange: "₦2,000 - ₦100,000",
+    loanRange: "NGN 2,000 - NGN 100,000",
     interestRange: "0.3% daily",
     tenure: "Up to 30 days",
     website: "https://kuda.com",
@@ -95,7 +95,7 @@ const cbnApprovedLenders: LoanProvider[] = [
   {
     name: "OPay",
     description: "Fintech platform offering OKash loans with quick approval and disbursement.",
-    loanRange: "₦3,000 - ₦500,000",
+    loanRange: "NGN 3,000 - NGN 500,000",
     interestRange: "5% - 14% monthly",
     tenure: "14 days - 6 months",
     website: "https://opay.com",

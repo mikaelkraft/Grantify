@@ -197,38 +197,25 @@ export const ApiService = {
 
   // -- Testimonials --
   getTestimonials: async (): Promise<Testimonial[]> => {
-    // Check localStorage first for immediate data (most recent edits)
-    const localData = localStorage.getItem(KEYS.TESTIMONIALS);
-    if (localData) {
-      try {
-        return JSON.parse(localData);
-      } catch (e) {
-        // If localStorage parse fails, continue to API
-      }
-    }
-    
-    // Try API as fallback
+    // Try API first for cross-device sync (database is source of truth)
     try {
       const res = await fetch(`${API_URL}/api/testimonials`);
       if (!res.ok) throw new Error('API Error');
       const data = await res.json();
-      // Cache API response to localStorage
+      // Cache API response to localStorage for offline use
       if (data && data.length > 0) {
         setLocal(KEYS.TESTIMONIALS, data);
+        return data;
       }
-      return data.length > 0 ? data : initialTestimonials;
+      // API returned empty, use initial data
+      return initialTestimonials;
     } catch (e) {
-      console.warn("API unavailable for testimonials, using initial data");
+      console.warn("API unavailable for testimonials, using local storage fallback");
       return getLocal(KEYS.TESTIMONIALS, initialTestimonials);
     }
   },
 
   updateTestimonial: async (updated: Testimonial): Promise<void> => {
-    // Always update localStorage first for immediate persistence
-    const all = getLocal(KEYS.TESTIMONIALS, initialTestimonials);
-    const newData = all.map(t => t.id === updated.id ? updated : t);
-    setLocal(KEYS.TESTIMONIALS, newData);
-    
     try {
       const res = await fetch(`${API_URL}/api/testimonials/${updated.id}`, {
         method: 'PUT',
@@ -236,15 +223,18 @@ export const ApiService = {
         body: JSON.stringify(updated)
       });
       if (!res.ok) throw new Error('API Error');
+      // Clear local cache so next read fetches fresh data from API
+      localStorage.removeItem(KEYS.TESTIMONIALS);
     } catch (e) {
-      console.warn("API unavailable for updateTestimonial, data saved to local storage");
+      console.warn("API unavailable for updateTestimonial, data saved to local storage only");
+      // Fallback: update localStorage for offline use
+      const all = getLocal(KEYS.TESTIMONIALS, initialTestimonials);
+      const newData = all.map(t => t.id === updated.id ? updated : t);
+      setLocal(KEYS.TESTIMONIALS, newData);
     }
   },
 
   saveTestimonials: async (data: Testimonial[]): Promise<void> => {
-    // Always save to localStorage first for immediate persistence
-    setLocal(KEYS.TESTIMONIALS, data);
-    
     try {
       const res = await fetch(`${API_URL}/api/testimonials`, {
         method: 'POST',
@@ -252,8 +242,12 @@ export const ApiService = {
         body: JSON.stringify(data)
       });
       if (!res.ok) throw new Error('API Error');
+      // Clear local cache so next read fetches fresh data from API
+      localStorage.removeItem(KEYS.TESTIMONIALS);
     } catch (e) {
-      console.warn("API unavailable for saveTestimonials, data saved to local storage");
+      console.warn("API unavailable for saveTestimonials, data saved to local storage only");
+      // Fallback: save to localStorage for offline use
+      setLocal(KEYS.TESTIMONIALS, data);
     }
   },
 
@@ -290,7 +284,13 @@ export const ApiService = {
     try {
       const res = await fetch(`${API_URL}/api/ads`);
       if (!res.ok) throw new Error('API Error');
-      return await res.json();
+      const data = await res.json();
+      // Check if API returned valid ad configuration (not empty object)
+      if (data && Object.values(data).some(Boolean)) {
+        return data;
+      }
+      // API returned empty/no ads, use initial ads as default
+      return initialAds;
     } catch (e) {
       console.warn("API unavailable for ads, using local storage fallback");
       return getLocal(KEYS.ADS, initialAds);
@@ -305,6 +305,8 @@ export const ApiService = {
         body: JSON.stringify(data)
       });
       if (!res.ok) throw new Error('API Error');
+      // Clear local cache so next read fetches fresh data from API
+      localStorage.removeItem(KEYS.ADS);
     } catch (e) {
       console.warn("API unavailable for saveAds, using local storage fallback");
       setLocal(KEYS.ADS, data);
