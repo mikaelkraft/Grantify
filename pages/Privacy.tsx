@@ -56,7 +56,7 @@ export const Privacy: React.FC = () => {
         <section>
           <h2 className="text-lg font-bold text-gray-900 mb-2">7. Advertising & Revenue</h2>
           <p className="mb-2">
-            <strong>We love ads! 💰</strong> Advertising is how we keep Grantify running and free for you. Here's what you should know:
+            <strong>Advertising helps us keep Grantify free for you.</strong> Here's what you should know about how we use advertising:
           </p>
           <ul className="list-disc ml-5 mt-2 space-y-1">
             <li>We display advertisements throughout our platform to generate revenue.</li>

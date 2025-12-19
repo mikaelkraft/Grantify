@@ -115,7 +115,7 @@ export const LoanProviders: React.FC = () => {
           <div>
             <h2 className="font-bold text-red-700 text-lg">Important Disclaimer</h2>
             <p className="text-red-700 text-sm mt-1">
-              <strong>Grantify does NOT offer loans directly.</strong> We are here to help individuals find legitimate loan options for fun and educational purposes. 
+              <strong>Grantify does NOT offer loans directly.</strong> We are here to help individuals find legitimate loan options for informational and educational purposes. 
               The information provided below is for reference only. Always conduct your own research and read each lender's terms and conditions carefully before applying.
             </p>
           </div>
