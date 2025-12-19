@@ -1,3 +1,5 @@
+### Disclaimer 
+` To whom it may concern, this script does not offer you loans nor trade user inputs, but you will surely see many ads and mock data. It's a mere demonstration. Do not hesitate to read the Privacy Policy and Terms. In the future, it might come as one, but for now, it has detailed page to CBN-licensed loan apps `
 
 ### Grantify - Loans and Grants 
 
@@ -100,8 +102,8 @@ After deployment, the database will be automatically seeded with initial data on
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `DATABASE_URL` | Neon PostgreSQL connection string | Yes |
-| `SEED_ADMIN_USERNAME` | Admin username for seeding | No |
-| `SEED_ADMIN_PASSWORD` | Admin password for seeding | No |
+| `SEED_ADMIN_USERNAME` | Admin username for seeding | Yes |
+| `SEED_ADMIN_PASSWORD` | Admin password for seeding | Yes |
 | `SEED_STAFF_USERNAME` | Staff username for seeding | No |
 | `SEED_STAFF_PASSWORD` | Staff password for seeding | No |
 
