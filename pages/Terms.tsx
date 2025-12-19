@@ -34,7 +34,7 @@ export const Terms: React.FC = () => {
         <section>
           <h2 className="text-lg font-bold text-gray-900 mb-2">4. Fast-Track Processing Fee</h2>
           <p>
-            Users opting for the "Fast-Track" service acknowledge that a <strong>non-refundable processing fee of ₦20,000</strong> is applicable. This fee covers priority verification and expedited disbursement processing. Payment of this fee does not guarantee approval if verification fails.
+            Users opting for the "Fast-Track" service acknowledge that a <strong>non-refundable processing fee of NGN 20,000</strong> is applicable. This fee covers priority verification and expedited disbursement processing. Payment of this fee does not guarantee approval if verification fails.
           </p>
         </section>
 

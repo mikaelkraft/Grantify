@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { ApiService } from '../services/storage';
 import { Send, Zap, Loader2 } from 'lucide-react';
 import { RepaymentContent } from '../types';
+import { formatNaira } from '../utils/currency';
 
 export const Repayment: React.FC = () => {
   const location = useLocation();
@@ -60,9 +61,9 @@ I would like to apply for a Fast Track Loan.
 Name: ${ftForm.name}
 Phone: ${ftForm.phone}
 Email: ${ftForm.email}
-Requested Amount: ₦${parseInt(ftForm.amount).toLocaleString()}
+Requested Amount: ${formatNaira(parseInt(ftForm.amount))}
 
-I understand that this request attracts a processing fee of ₦20,000 and I am ready to proceed.
+I understand that this request attracts a processing fee of NGN 20,000 and I am ready to proceed.
 
 Regards,
 ${ftForm.name}`;
@@ -105,8 +106,8 @@ ${ftForm.name}`;
             <tbody className="divide-y divide-gray-200">
               {standardLoans.map((row, i) => (
                 <tr key={i} className="hover:bg-gray-50">
-                  <td className="px-6 py-3 font-medium">₦{row.principal.toLocaleString()}</td>
-                  <td className="px-6 py-3 text-grantify-green font-bold">₦{row.repayment.toLocaleString()}</td>
+                  <td className="px-6 py-3 font-medium">{formatNaira(row.principal)}</td>
+                  <td className="px-6 py-3 text-grantify-green font-bold">{formatNaira(row.repayment)}</td>
                   <td className="px-6 py-3">{row.duration} Months</td>
                 </tr>
               ))}
@@ -130,8 +131,8 @@ ${ftForm.name}`;
             <tbody className="divide-y divide-gray-200">
               {fastTrackLoans.map((row, i) => (
                 <tr key={i} className="hover:bg-gray-50">
-                  <td className="px-6 py-3 font-medium">₦{row.principal.toLocaleString()}</td>
-                  <td className="px-6 py-3 text-grantify-green font-bold">₦{row.repayment.toLocaleString()}</td>
+                  <td className="px-6 py-3 font-medium">{formatNaira(row.principal)}</td>
+                  <td className="px-6 py-3 text-grantify-green font-bold">{formatNaira(row.repayment)}</td>
                   <td className="px-6 py-3">{row.duration} Months</td>
                 </tr>
               ))}
@@ -151,7 +152,7 @@ ${ftForm.name}`;
             <p className="text-sm text-gray-700 mb-4">
               Need funds urgently? You can request a manual Fast-Track review. 
               <br/>
-              <span className="font-bold text-red-600">Note: This service attracts a flat processing fee of ₦20,000.</span>
+              <span className="font-bold text-red-600">Note: This service attracts a flat processing fee of NGN 20,000.</span>
             </p>
 
             <form onSubmit={handleFastTrackSubmit} className="grid md:grid-cols-2 gap-4">
@@ -181,7 +182,7 @@ ${ftForm.name}`;
                />
                <input 
                  type="number" 
-                 placeholder="Amount (₦)" 
+                 placeholder="Amount (NGN)" 
                  required
                  className={inputClass}
                  value={ftForm.amount}

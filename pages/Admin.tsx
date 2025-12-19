@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ApiService } from '../services/storage';
 import { AdminUser, LoanApplication, Testimonial, QualifiedPerson, AdConfig, UserRole, RepaymentContent } from '../types';
 import { LogOut, Download, Trash2, Edit, Plus, UserPlus, Shield, Loader2, Save } from 'lucide-react';
+import { formatNaira } from '../utils/currency';
 
 const ADMIN_SESSION_KEY = 'grantify_admin_session';
 // Default fallback avatar (green circle with question mark) for broken/missing images
@@ -457,7 +458,7 @@ export const Admin: React.FC = () => {
                         {applications.map(app => (
                           <tr key={app.id}>
                             <td className="p-2">{app.fullName}</td>
-                            <td className="p-2">₦{app.amount.toLocaleString()}</td>
+                            <td className="p-2">{formatNaira(app.amount)}</td>
                             <td className="p-2">{app.phoneNumber}</td>
                             <td className="p-2">{app.email || '-'}</td>
                             <td className="p-2">{app.type}</td>
@@ -569,7 +570,7 @@ export const Admin: React.FC = () => {
                           <div key={t.id} className="bg-white p-3 rounded border border-yellow-300 flex flex-col md:flex-row md:items-center gap-3">
                             <div className="flex-grow">
                               <div className="font-bold text-sm">{t.name}</div>
-                              <div className="text-xs text-gray-500">₦{t.amount.toLocaleString()} • {t.date}</div>
+                              <div className="text-xs text-gray-500">{formatNaira(t.amount)} • {t.date}</div>
                               <p className="text-sm text-gray-700 mt-1 line-clamp-2">{t.content}</p>
                             </div>
                             <div className="flex gap-2 flex-shrink-0">

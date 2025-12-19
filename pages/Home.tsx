@@ -5,6 +5,7 @@ import { AdSlot } from '../components/AdSlot';
 import { TestimonialCard } from '../components/TestimonialCard';
 import { LoanType, ApplicationStatus, LoanApplication, Testimonial, QualifiedPerson, AdConfig } from '../types';
 import { Calculator, CheckCircle, AlertCircle, ArrowRight, Share2, Copy, Info, Loader2, MessageSquarePlus, Send, Zap, Landmark, ExternalLink } from 'lucide-react';
+import { formatNaira, formatNairaCompact } from '../utils/currency';
 
 export const Home: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -146,13 +147,7 @@ export const Home: React.FC = () => {
   };
 
   const formatCompactNumber = (num: number) => {
-    if (num >= 1000000) {
-      return '₦' + (num / 1000000).toFixed(num % 1000000 === 0 ? 0 : 1) + 'M';
-    }
-    if (num >= 1000) {
-      return '₦' + (num / 1000).toFixed(0) + 'k';
-    }
-    return '₦' + num.toLocaleString();
+    return formatNairaCompact(num);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -175,7 +170,7 @@ export const Home: React.FC = () => {
 
     const type = getLoanTerms(amount);
     if (!type) {
-      setError('Amount must be between ₦50,000 - ₦500,000 (Standard) or ₦1M - ₦5M (Fast-Track).');
+      setError(`Amount must be between NGN 50,000 - NGN 500,000 (Standard) or NGN 1M - NGN 5M (Fast-Track).`);
       return;
     }
 
@@ -215,16 +210,16 @@ export const Home: React.FC = () => {
         <h2 className="text-2xl font-bold text-gray-800 mb-2">Application Submitted!</h2>
         <p className="text-gray-600 mb-6">
           Thank you for applying to Grantify. Your application for 
-          <span className="font-bold text-grantify-green"> ₦{parseInt(formData.amount).toLocaleString()}</span> has been received.
+          <span className="font-bold text-grantify-green"> {formatNaira(parseInt(formData.amount))}</span> has been received.
         </p>
         <div className="bg-green-50 p-4 rounded text-left mb-6 border border-green-100">
           <h3 className="font-bold text-grantify-green mb-2">Your Repayment Plan:</h3>
-          <p>Total to repay: <span className="font-bold">₦{calculateRepayment(parseInt(formData.amount)).toLocaleString()}</span></p>
+          <p>Total to repay: <span className="font-bold">{formatNaira(calculateRepayment(parseInt(formData.amount)))}</span></p>
           <p>Duration: <span className="font-bold">{loanType === LoanType.STANDARD ? '3 Months' : '6 Months'}</span></p>
           {loanType === LoanType.FAST_TRACK && (
              <p className="text-xs text-orange-600 mt-2 font-bold bg-orange-50 p-1 rounded border border-orange-100">
                <Info size={12} className="inline mr-1"/>
-               NOTE: Fast-track loans attract a ₦20,000 processing fee.
+               NOTE: Fast-track loans attract a NGN 20,000 processing fee.
              </p>
           )}
         </div>
@@ -278,12 +273,12 @@ export const Home: React.FC = () => {
               to="/repayment#fast-track"
               className="bg-orange-500 text-white font-bold py-3 px-8 rounded-full shadow hover:bg-orange-600 transition transform hover:-translate-y-1 inline-flex items-center gap-2"
             >
-              <Zap size={18} fill="currentColor" /> Fast-Track Loan (₦1M - ₦5M)
+              <Zap size={18} fill="currentColor" /> Fast-Track Loan (NGN 1M - NGN 5M)
             </Link>
           </div>
           <p className="mt-4 text-sm text-green-200 opacity-80">
             <Zap size={14} className="inline mr-1" />
-            Need larger capital quickly? Fast-Track loans offer ₦1M-₦5M with priority processing.
+            Need larger capital quickly? Fast-Track loans offer NGN 1M - NGN 5M with priority processing.
           </p>
         </div>
       </section>
@@ -350,7 +345,7 @@ export const Home: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Loan Amount (₦)
+                  Loan Amount (NGN)
                   <span className="text-xs text-gray-500 ml-2 font-normal">(Min 50k, Max 5M)</span>
                 </label>
                 <input 
@@ -374,12 +369,12 @@ export const Home: React.FC = () => {
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">Repayment after {loanType === LoanType.STANDARD ? '3' : '6'} months:</span>
                       <span className="font-bold text-grantify-green">
-                        ₦{calculateRepayment(parseInt(formData.amount) || 0).toLocaleString()}
+                        {formatNaira(calculateRepayment(parseInt(formData.amount) || 0))}
                       </span>
                     </div>
                     {loanType === LoanType.FAST_TRACK && (
                        <div className="mt-2 text-xs text-orange-700 bg-orange-100 p-2 rounded border border-orange-200">
-                         <strong>Notice:</strong> A ₦20,000 processing fee applies for Fast-Track loans.
+                         <strong>Notice:</strong> A NGN 20,000 processing fee applies for Fast-Track loans.
                        </div>
                     )}
                 </div>
@@ -544,7 +539,7 @@ export const Home: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Loan Amount Received (₦) *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Loan Amount Received (NGN) *</label>
                     <input 
                       type="number" 
                       placeholder="e.g., 200000"
