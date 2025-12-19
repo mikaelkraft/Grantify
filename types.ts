@@ -77,3 +77,10 @@ export interface ReferralData {
   code: string;
   points: number;
 }
+
+// Ad network type definitions for window object
+declare global {
+  interface Window {
+    adsbygoogle?: any[];
+  }
+}
