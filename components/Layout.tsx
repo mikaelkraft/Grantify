@@ -15,14 +15,22 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     const loadAds = async () => {
-      const adData = await ApiService.getAds();
-      setAds(adData);
-      
-      // Inject head scripts (e.g., Google AdSense, analytics)
-      if (adData?.head) {
-        injectHeadScripts(adData.head);
+      try {
+        const adData = await ApiService.getAds();
+        setAds(adData);
+        
+        // Inject head scripts (e.g., Google AdSense, analytics) after a small delay
+        // to ensure DOM is fully ready
+        if (adData?.head) {
+          setTimeout(() => {
+            injectHeadScripts(adData.head);
+          }, 200);
+        }
+      } catch (error) {
+        console.error('Error loading ads:', error);
       }
     };
+    
     loadAds();
     
     // Check local storage for initial compliance acceptance
@@ -31,7 +39,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       setShowCompliance(true);
     }
 
-    // Adblock Detection
+    // Adblock Detection - run after a delay to ensure page is loaded
     const detectAdBlock = () => {
       const bait = document.createElement('div');
       // Using 'adsbox' is a common class targeted by EasyList
@@ -45,52 +53,81 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       document.body.appendChild(bait);
 
       setTimeout(() => {
-        const style = window.getComputedStyle(bait);
-        if (
-          bait.offsetHeight === 0 || 
-          style.display === 'none' || 
-          style.visibility === 'hidden'
-        ) {
-           setBlockerDetected(true);
-           setShowCompliance(true);
+        try {
+          const style = window.getComputedStyle(bait);
+          if (
+            bait.offsetHeight === 0 || 
+            style.display === 'none' || 
+            style.visibility === 'hidden'
+          ) {
+             setBlockerDetected(true);
+             setShowCompliance(true);
+          }
+          document.body.removeChild(bait);
+        } catch (error) {
+          console.error('Ad blocker detection error:', error);
         }
-        document.body.removeChild(bait);
       }, 1000);
     };
 
-    detectAdBlock();
+    // Delay ad blocker detection slightly
+    setTimeout(detectAdBlock, 500);
   }, []);
 
   // Inject scripts into document head (for AdSense, GTM, etc.)
   const injectHeadScripts = (headContent: string) => {
+    if (!headContent || !headContent.trim()) return;
+
     // Create a temporary container to parse the HTML
     const temp = document.createElement('div');
     temp.innerHTML = headContent;
 
     // Check if scripts are already injected (by data attribute)
     const existingMarker = document.head.querySelector('[data-grantify-ads]');
-    if (existingMarker) return; // Already injected
+    if (existingMarker) {
+      console.log('Head scripts already injected, skipping...');
+      return; // Already injected
+    }
 
     // Add a marker to prevent duplicate injection
     const marker = document.createElement('meta');
     marker.setAttribute('data-grantify-ads', 'true');
     document.head.appendChild(marker);
 
+    console.log('Injecting head scripts...');
+
     // Process all direct children of temp container
-    Array.from(temp.children).forEach(el => {
+    Array.from(temp.children).forEach((el, index) => {
       if (el.tagName === 'SCRIPT') {
         // Scripts need to be recreated to execute
         const newScript = document.createElement('script');
+        
+        // Copy all attributes
         Array.from(el.attributes).forEach(attr => {
           newScript.setAttribute(attr.name, attr.value);
         });
+        
+        // Copy inline script content
         if (el.innerHTML) {
           newScript.innerHTML = el.innerHTML;
         }
+        
+        // Add error handling for external scripts
+        if (el.getAttribute('src')) {
+          newScript.onerror = () => {
+            console.error(`Failed to load head script: ${el.getAttribute('src')}`);
+          };
+          newScript.onload = () => {
+            console.log(`Successfully loaded head script: ${el.getAttribute('src')}`);
+          };
+        }
+        
         document.head.appendChild(newScript);
-      } else {
-        // Other elements (meta, link, etc.) can be cloned directly
+        console.log(`Injected head script #${index + 1}`);
+      } else if (el.tagName === 'META' || el.tagName === 'LINK' || el.tagName === 'STYLE') {
+        // Other elements (meta, link, style, etc.) can be cloned directly
         document.head.appendChild(el.cloneNode(true));
+        console.log(`Injected ${el.tagName.toLowerCase()} element`);
       }
     });
   };

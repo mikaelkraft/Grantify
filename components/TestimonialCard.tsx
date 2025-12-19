@@ -9,6 +9,9 @@ interface Props {
 
 type ReactionType = 'likes' | 'loves' | 'claps';
 
+// Default fallback avatar for broken/missing images
+const DEFAULT_AVATAR = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="50" fill="%23006400"/%3E%3Ctext x="50" y="55" font-size="40" text-anchor="middle" fill="white"%3E%3F%3C/text%3E%3C/svg%3E';
+
 export const TestimonialCard: React.FC<Props> = ({ data }) => {
   const [counts, setCounts] = useState({
     likes: data.likes,
@@ -17,6 +20,7 @@ export const TestimonialCard: React.FC<Props> = ({ data }) => {
   });
 
   const [currentVote, setCurrentVote] = useState<ReactionType | null>(null);
+  const [imageError, setImageError] = useState(false);
 
   // Check local storage for previous votes by this user
   useEffect(() => {
@@ -60,13 +64,18 @@ export const TestimonialCard: React.FC<Props> = ({ data }) => {
     return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(val);
   };
 
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4 mb-4 flex flex-col h-full">
       <div className="flex items-start gap-3 mb-3">
         <img 
-          src={data.image} 
+          src={imageError ? DEFAULT_AVATAR : data.image} 
           alt={data.name} 
           className="w-10 h-10 rounded-full object-cover border border-gray-100"
+          onError={handleImageError}
         />
         <div>
           <h4 className="font-bold text-gray-900 text-sm">{data.name}</h4>
