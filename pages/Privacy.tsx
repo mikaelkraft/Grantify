@@ -54,8 +54,28 @@ export const Privacy: React.FC = () => {
         </section>
 
         <section>
+          <h2 className="text-lg font-bold text-gray-900 mb-2">7. Advertising & Revenue</h2>
+          <p className="mb-2">
+            <strong>Advertising helps us keep Grantify free for you.</strong> Here's what you should know about how we use advertising:
+          </p>
+          <ul className="list-disc ml-5 mt-2 space-y-1">
+            <li>We display advertisements throughout our platform to generate revenue.</li>
+            <li>We may share anonymized, non-personal data with advertising partners to improve ad relevance.</li>
+            <li>We do NOT sell your personal information (phone number or email address) to advertisers.</li>
+            <li>Your data is used to improve our services and help connect you with relevant financial products.</li>
+          </ul>
+          <p className="mt-3 text-green-700 font-medium">
+            Rest assured – we mean no harm to your shared data. Your phone number and optional email address are handled with care and used only to communicate with you about your applications and relevant updates.
+          </p>
+        </section>
+
+        <section>
           <h2 className="text-lg font-bold text-gray-900 mb-2">Disclaimer</h2>
-          <p>Actually, you will be bombarded with ADS... We can only show you best loan offering services; We do not offer loans directly.</p>
+          <p>
+            <strong>Grantify does NOT offer loans directly.</strong> We help individuals find legitimate loan options for informational purposes. 
+            You will see advertisements on our platform – this is how we sustain our services. We can show you the best loan offering services 
+            and connect you with CBN-approved lenders, but all loan agreements are between you and the respective financial institution.
+          </p>
         </section>
         
         <div className="pt-8 border-t">
