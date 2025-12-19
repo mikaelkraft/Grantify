@@ -153,9 +153,9 @@ export const AdSlot: React.FC<AdSlotProps> = ({ htmlContent, className = "", lab
     try {
       // Google AdSense
       if (scriptSrc.includes('adsbygoogle')) {
-        if ((window as any).adsbygoogle) {
-          (window as any).adsbygoogle = (window as any).adsbygoogle || [];
-          (window as any).adsbygoogle.push({});
+        const adsByGoogle = (window as any).adsbygoogle;
+        if (adsByGoogle) {
+          adsByGoogle.push({});
         }
       }
       
@@ -171,9 +171,11 @@ export const AdSlot: React.FC<AdSlotProps> = ({ htmlContent, className = "", lab
         const adsenseElements = containerRef.current?.querySelectorAll('ins.adsbygoogle');
         if (adsenseElements && adsenseElements.length > 0) {
           adsenseElements.forEach((el) => {
-            if (!(el as any).getAttribute('data-adsbygoogle-status')) {
+            const adElement = el as HTMLElement;
+            if (!adElement.getAttribute('data-adsbygoogle-status')) {
               try {
-                ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
+                const adsByGoogle = (window as any).adsbygoogle || [];
+                adsByGoogle.push({});
               } catch (e) {
                 console.warn('AdSense push failed:', e);
               }

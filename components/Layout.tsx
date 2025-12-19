@@ -114,11 +114,12 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         
         // Add error handling for external scripts
         if (el.getAttribute('src')) {
-          newScript.onerror = () => {
-            console.error(`Failed to load head script: ${el.getAttribute('src')}`);
+          const scriptSrc = el.getAttribute('src');
+          newScript.onerror = (error) => {
+            console.error(`Failed to load head script: ${scriptSrc}`, error);
           };
           newScript.onload = () => {
-            console.log(`Successfully loaded head script: ${el.getAttribute('src')}`);
+            console.log(`Successfully loaded head script: ${scriptSrc}`);
           };
         }
         
