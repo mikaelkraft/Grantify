@@ -4,7 +4,7 @@ import { ApiService } from '../services/storage';
 import { AdSlot } from '../components/AdSlot';
 import { TestimonialCard } from '../components/TestimonialCard';
 import { LoanType, ApplicationStatus, LoanApplication, Testimonial, QualifiedPerson, AdConfig } from '../types';
-import { Calculator, CheckCircle, AlertCircle, ArrowRight, Share2, Copy, Info, Loader2, MessageSquarePlus, Send, Zap } from 'lucide-react';
+import { Calculator, CheckCircle, AlertCircle, ArrowRight, Share2, Copy, Info, Loader2, MessageSquarePlus, Send, Zap, Landmark, ExternalLink } from 'lucide-react';
 
 export const Home: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -605,6 +605,36 @@ export const Home: React.FC = () => {
               </form>
             </>
           )}
+        </div>
+      </section>
+
+      {/* Loan Providers Awareness Section */}
+      <section className="bg-gradient-to-r from-blue-900 to-blue-800 rounded-xl p-8 text-white shadow-xl">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="flex justify-center mb-4">
+            <div className="bg-white/10 p-4 rounded-full">
+              <Landmark size={40} className="text-blue-200" />
+            </div>
+          </div>
+          <h2 className="text-2xl md:text-3xl font-bold font-heading mb-4">
+            Need Quick Cash? Explore CBN-Approved Lenders
+          </h2>
+          <p className="text-blue-100 mb-6 max-w-2xl mx-auto">
+            Looking for alternative loan options? We've compiled a list of legitimate, CBN-approved loan providers in Nigeria. 
+            Compare interest rates, loan amounts, and terms to make the best financial decision for your needs.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Link 
+              to="/loan-providers"
+              className="bg-white text-blue-900 font-bold py-3 px-8 rounded-full shadow hover:bg-blue-50 transition transform hover:-translate-y-1 inline-flex items-center gap-2"
+            >
+              <ExternalLink size={18} /> View Loan Providers
+            </Link>
+          </div>
+          <p className="mt-6 text-xs text-blue-200 opacity-80">
+            <Info size={12} className="inline mr-1" />
+            Grantify does not offer loans directly. We help you find legitimate options for informational purposes.
+          </p>
         </div>
       </section>
 
