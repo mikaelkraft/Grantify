@@ -1,4 +1,5 @@
-### Disclaimer 
+### Disclaimer ⚠️ 
+
 ` To whom it may concern, this script does not offer you loans nor trade user inputs, but you will surely see many ads and mock data. It's a mere demonstration. Do not hesitate to read the Privacy Policy and Terms. In the future, it might come as one, but for now, it has detailed page to CBN-licensed loan apps `
 
 ### Grantify - Loans and Grants 
