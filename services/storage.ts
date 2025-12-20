@@ -141,7 +141,12 @@ function getLocal<T>(key: string, defaultData: T): T {
     localStorage.setItem(key, JSON.stringify(defaultData));
     return defaultData;
   }
-  return JSON.parse(stored);
+  try {
+    return JSON.parse(stored);
+  } catch {
+    localStorage.setItem(key, JSON.stringify(defaultData));
+    return defaultData;
+  }
 }
 
 function setLocal<T>(key: string, data: T): void {
