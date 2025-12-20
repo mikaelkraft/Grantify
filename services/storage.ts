@@ -123,8 +123,11 @@ const initialAds: AdConfig = {
 const adFields: (keyof AdConfig)[] = ['head', 'header', 'body', 'sidebar', 'footer'];
 
 const isValidAdConfig = (value: unknown): value is AdConfig => {
-  return value !== null && typeof value === 'object' &&
-    adFields.every(k => typeof (value as Record<string, unknown>)[k] === 'string');
+  if (value === null || typeof value !== 'object') return false;
+  const obj = value as Record<string, unknown>;
+  const keys = Object.keys(obj);
+  if (!keys.every(k => adFields.includes(k as keyof AdConfig))) return false;
+  return adFields.every(k => typeof obj[k] === 'string');
 };
 
 const initialRepayment: RepaymentContent = {
@@ -317,7 +320,7 @@ export const ApiService = {
     } catch (e) {
       console.warn("API unavailable for ads, using local storage fallback");
       const cached = getLocal(KEYS.ADS, initialAds);
-      if (isValidAdConfig(cached) && Object.values(cached).every(val => val !== null && val !== undefined)) {
+      if (isValidAdConfig(cached)) {
         return cached;
       }
       setLocal(KEYS.ADS, initialAds);
