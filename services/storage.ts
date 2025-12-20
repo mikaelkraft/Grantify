@@ -123,9 +123,10 @@ const initialAds: AdConfig = {
 const adFields: (keyof AdConfig)[] = ['head', 'header', 'body', 'sidebar', 'footer'];
 
 const isValidAdConfig = (value: unknown): value is AdConfig => {
-  if (value === null || typeof value !== 'object') return false;
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
   const obj = value as Record<string, unknown>;
   const keys = Object.keys(obj);
+  if (keys.length !== adFields.length) return false;
   if (!keys.every(k => adFields.includes(k as keyof AdConfig))) return false;
   return adFields.every(k => typeof obj[k] === 'string');
 };
