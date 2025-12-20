@@ -12,8 +12,20 @@ A loan and grants application platform for Nigerian small businesses and familie
 - Admin dashboard for managing applications
 - Testimonials management with approval workflow
 - Qualified persons list
-- Ad management
+- **Advertisement management with multiple placement positions**
 - Repayment content management
+
+## Advertisement System
+
+Grantify includes a comprehensive ad management system supporting:
+- Google AdSense
+- Propeller Ads
+- Custom HTML/JavaScript ad codes
+- Multiple ad placements (Head, Header, Body, Sidebar, Footer)
+- Ad blocker detection
+- Automatic script loading and initialization
+
+For detailed ad configuration instructions, see [AD_CONFIGURATION.md](./AD_CONFIGURATION.md)
 
 ## Tech Stack
 

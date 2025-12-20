@@ -16,11 +16,11 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'PUT') {
-      const { likes, loves, claps, name, content, amount, status } = req.body;
+      const { likes, loves, claps, name, content, amount, status, image, date } = req.body;
       
       await pool.query(
-        `UPDATE testimonials SET likes=$1, loves=$2, claps=$3, name=$4, content=$5, amount=$6, status=$7 WHERE id=$8`,
-        [likes, loves, claps, name, content, amount, status || null, id]
+        `UPDATE testimonials SET likes=$1, loves=$2, claps=$3, name=$4, content=$5, amount=$6, status=$7, image=$8, date=$9 WHERE id=$10`,
+        [likes, loves, claps, name, content, amount, status || null, image, date, id]
       );
       
       return res.status(200).json({ success: true });

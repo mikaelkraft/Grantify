@@ -9,6 +9,9 @@ interface Props {
 
 type ReactionType = 'likes' | 'loves' | 'claps';
 
+// Default fallback avatar for broken/missing images
+const DEFAULT_AVATAR = 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2250%22%20fill%3D%22%23006400%22%2F%3E%3Ctext%20x%3D%2250%22%20y%3D%2255%22%20font-size%3D%2240%22%20text-anchor%3D%22middle%22%20fill%3D%22white%22%3E%3F%3C%2Ftext%3E%3C%2Fsvg%3E';
+
 export const TestimonialCard: React.FC<Props> = ({ data }) => {
   const [counts, setCounts] = useState({
     likes: data.likes,
@@ -17,6 +20,7 @@ export const TestimonialCard: React.FC<Props> = ({ data }) => {
   });
 
   const [currentVote, setCurrentVote] = useState<ReactionType | null>(null);
+  const [imageError, setImageError] = useState(false);
 
   // Check local storage for previous votes by this user
   useEffect(() => {
@@ -60,13 +64,18 @@ export const TestimonialCard: React.FC<Props> = ({ data }) => {
     return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(val);
   };
 
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4 mb-4 flex flex-col h-full">
       <div className="flex items-start gap-3 mb-3">
         <img 
-          src={data.image} 
+          src={imageError ? DEFAULT_AVATAR : data.image} 
           alt={data.name} 
           className="w-10 h-10 rounded-full object-cover border border-gray-100"
+          onError={handleImageError}
         />
         <div>
           <h4 className="font-bold text-gray-900 text-sm">{data.name}</h4>
