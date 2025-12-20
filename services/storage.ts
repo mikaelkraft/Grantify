@@ -310,7 +310,9 @@ export const ApiService = {
     } catch (e) {
       console.warn("API unavailable for ads, using local storage fallback");
       const cached = getLocal(KEYS.ADS, initialAds);
-      if (cached && Object.values(cached).some(Boolean)) {
+      const hasAllFields = cached && typeof cached === 'object' &&
+        ['head','header','body','sidebar','footer'].every(k => typeof (cached as any)[k] === 'string');
+      if (hasAllFields && Object.values(cached).some(Boolean)) {
         return cached;
       }
       setLocal(KEYS.ADS, initialAds);
