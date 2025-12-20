@@ -143,7 +143,8 @@ function getLocal<T>(key: string, defaultData: T): T {
   }
   try {
     return JSON.parse(stored);
-  } catch {
+  } catch (error) {
+    console.warn(`Corrupt local storage for ${key}, resetting`, error);
     localStorage.setItem(key, JSON.stringify(defaultData));
     return defaultData;
   }
