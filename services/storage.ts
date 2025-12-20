@@ -120,6 +120,8 @@ const initialAds: AdConfig = {
   footer: '<div style="background:#333; color:#fff; padding:10px; text-align:center;">Footer Ad Space</div>',
 };
 
+const adFields: (keyof AdConfig)[] = ['head','header','body','sidebar','footer'];
+
 const initialRepayment: RepaymentContent = {
   introText: "We believe in transparent, easy-to-understand repayment terms. No hidden fees, just a flat interest rate.",
   standardNote: "Standard loans are designed for quick turnaround and small business support.",
@@ -310,8 +312,8 @@ export const ApiService = {
     } catch (e) {
       console.warn("API unavailable for ads, using local storage fallback");
       const cached = getLocal(KEYS.ADS, initialAds);
-      const hasAllFields = cached && typeof cached === 'object' &&
-        ['head','header','body','sidebar','footer'].every(k => typeof (cached as any)[k] === 'string');
+      const hasAllFields = (cached && typeof cached === 'object' &&
+        adFields.every(k => typeof (cached as Record<string, unknown>)[k] === 'string'));
       if (hasAllFields && Object.values(cached).some(Boolean)) {
         return cached;
       }
