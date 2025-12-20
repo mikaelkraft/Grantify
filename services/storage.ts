@@ -217,7 +217,12 @@ export const ApiService = {
       return initialTestimonials;
     } catch (e) {
       console.warn("API unavailable for testimonials, using local storage fallback");
-      return getLocal(KEYS.TESTIMONIALS, initialTestimonials);
+      const cached = getLocal(KEYS.TESTIMONIALS, initialTestimonials);
+      if (!cached || cached.length === 0) {
+        setLocal(KEYS.TESTIMONIALS, initialTestimonials);
+        return initialTestimonials;
+      }
+      return cached;
     }
   },
 
@@ -267,7 +272,12 @@ export const ApiService = {
       return data;
     } catch (e) {
       console.warn("API unavailable for qualified persons, using local storage fallback");
-      return getLocal(KEYS.QUALIFIED, initialQualified);
+      const cached = getLocal(KEYS.QUALIFIED, initialQualified);
+      if (!cached || cached.length === 0) {
+        setLocal(KEYS.QUALIFIED, initialQualified);
+        return initialQualified;
+      }
+      return cached;
     }
   },
 
@@ -299,7 +309,12 @@ export const ApiService = {
       return initialAds;
     } catch (e) {
       console.warn("API unavailable for ads, using local storage fallback");
-      return getLocal(KEYS.ADS, initialAds);
+      const cached = getLocal(KEYS.ADS, initialAds);
+      if (cached && Object.values(cached).some(Boolean)) {
+        return cached;
+      }
+      setLocal(KEYS.ADS, initialAds);
+      return initialAds;
     }
   },
 
