@@ -229,7 +229,7 @@ export const ApiService = {
     } catch (e) {
       console.warn("API unavailable for testimonials, using local storage fallback");
       const cached = getLocal(KEYS.TESTIMONIALS, initialTestimonials);
-      if (!cached || cached.length === 0) {
+      if (!cached || !Array.isArray(cached) || cached.length === 0) {
         setLocal(KEYS.TESTIMONIALS, initialTestimonials);
         return initialTestimonials;
       }
@@ -284,7 +284,7 @@ export const ApiService = {
     } catch (e) {
       console.warn("API unavailable for qualified persons, using local storage fallback");
       const cached = getLocal(KEYS.QUALIFIED, initialQualified);
-      if (!cached || cached.length === 0) {
+      if (!cached || !Array.isArray(cached) || cached.length === 0) {
         setLocal(KEYS.QUALIFIED, initialQualified);
         return initialQualified;
       }
