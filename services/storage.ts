@@ -120,6 +120,17 @@ const initialAds: AdConfig = {
   footer: '<div style="background:#333; color:#fff; padding:10px; text-align:center;">Footer Ad Space</div>',
 };
 
+const adFields: (keyof AdConfig)[] = ['head', 'header', 'body', 'sidebar', 'footer'];
+
+const isValidAdConfig = (value: unknown): value is AdConfig => {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
+  const obj = value as Record<string, unknown>;
+  const keys = Object.keys(obj);
+  if (keys.length !== adFields.length) return false;
+  if (!keys.every(k => adFields.includes(k as keyof AdConfig))) return false;
+  return adFields.every(k => typeof obj[k] === 'string');
+};
+
 const initialRepayment: RepaymentContent = {
   introText: "We believe in transparent, easy-to-understand repayment terms. No hidden fees, just a flat interest rate.",
   standardNote: "Standard loans are designed for quick turnaround and small business support.",
@@ -141,7 +152,13 @@ function getLocal<T>(key: string, defaultData: T): T {
     localStorage.setItem(key, JSON.stringify(defaultData));
     return defaultData;
   }
-  return JSON.parse(stored);
+  try {
+    return JSON.parse(stored);
+  } catch (error) {
+    console.warn(`Corrupt local storage for ${key}, resetting`, error);
+    localStorage.setItem(key, JSON.stringify(defaultData));
+    return defaultData;
+  }
 }
 
 function setLocal<T>(key: string, data: T): void {
@@ -211,7 +228,12 @@ export const ApiService = {
       return initialTestimonials;
     } catch (e) {
       console.warn("API unavailable for testimonials, using local storage fallback");
-      return getLocal(KEYS.TESTIMONIALS, initialTestimonials);
+      const cached = getLocal(KEYS.TESTIMONIALS, initialTestimonials);
+      if (!cached || cached.length === 0) {
+        setLocal(KEYS.TESTIMONIALS, initialTestimonials);
+        return initialTestimonials;
+      }
+      return cached;
     }
   },
 
@@ -261,7 +283,12 @@ export const ApiService = {
       return data;
     } catch (e) {
       console.warn("API unavailable for qualified persons, using local storage fallback");
-      return getLocal(KEYS.QUALIFIED, initialQualified);
+      const cached = getLocal(KEYS.QUALIFIED, initialQualified);
+      if (!cached || cached.length === 0) {
+        setLocal(KEYS.QUALIFIED, initialQualified);
+        return initialQualified;
+      }
+      return cached;
     }
   },
 
@@ -293,7 +320,12 @@ export const ApiService = {
       return initialAds;
     } catch (e) {
       console.warn("API unavailable for ads, using local storage fallback");
-      return getLocal(KEYS.ADS, initialAds);
+      const cached = getLocal(KEYS.ADS, initialAds);
+      if (isValidAdConfig(cached)) {
+        return cached;
+      }
+      setLocal(KEYS.ADS, initialAds);
+      return initialAds;
     }
   },
 
