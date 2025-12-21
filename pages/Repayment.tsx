@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { ApiService } from '../services/storage';
-import { Send, Zap, Loader2 } from 'lucide-react';
+import { Send, Zap, Loader2, AlertCircle } from 'lucide-react';
 import { RepaymentContent } from '../types';
 import { formatNaira } from '../utils/currency';
 
 export const Repayment: React.FC = () => {
   const location = useLocation();
   const [content, setContent] = useState<RepaymentContent | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [ftForm, setFtForm] = useState({
     name: '',
     phone: '',
@@ -17,8 +18,14 @@ export const Repayment: React.FC = () => {
 
   useEffect(() => {
     const loadContent = async () => {
-      const data = await ApiService.getRepaymentContent();
-      setContent(data);
+      try {
+        const data = await ApiService.getRepaymentContent();
+        setContent(data);
+        setLoadError(null);
+      } catch (e) {
+        console.error("Failed to load repayment content from database", e);
+        setLoadError("Unable to load content from the database. Please check your connection and try again.");
+      }
     };
     loadContent();
   }, []);
@@ -74,6 +81,24 @@ ${ftForm.name}`;
 
   // Consistent dark input style
   const inputClass = "w-full p-2 border border-gray-600 rounded bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-grantify-gold outline-none";
+
+  if (loadError) {
+    return (
+      <div className="min-h-[400px] flex flex-col items-center justify-center">
+        <div className="max-w-md w-full bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Unable to Load Content</h2>
+          <p className="text-gray-600 mb-4">{loadError}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="bg-grantify-green text-white px-6 py-2 rounded hover:bg-green-800 transition"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!content) {
     return (
