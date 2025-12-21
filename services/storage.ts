@@ -151,7 +151,8 @@ const initialAdmins: AdminUser[] = [
 // --- HELPERS ---
 
 // Safe localStorage wrapper that handles cases where localStorage is unavailable
-function safeLocalStorageGet(key: string): string | null {
+// Exported for use in components that need direct localStorage access
+export function safeLocalStorageGet(key: string): string | null {
   try {
     return localStorage.getItem(key);
   } catch (error) {
@@ -160,7 +161,7 @@ function safeLocalStorageGet(key: string): string | null {
   }
 }
 
-function safeLocalStorageSet(key: string, value: string): void {
+export function safeLocalStorageSet(key: string, value: string): void {
   try {
     localStorage.setItem(key, value);
   } catch (error) {
@@ -168,7 +169,7 @@ function safeLocalStorageSet(key: string, value: string): void {
   }
 }
 
-function safeLocalStorageRemove(key: string): void {
+export function safeLocalStorageRemove(key: string): void {
   try {
     localStorage.removeItem(key);
   } catch (error) {

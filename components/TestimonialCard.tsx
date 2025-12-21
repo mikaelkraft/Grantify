@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Testimonial } from '../types';
-import { ApiService } from '../services/storage';
+import { ApiService, safeLocalStorageGet, safeLocalStorageSet, safeLocalStorageRemove } from '../services/storage';
 import { ThumbsUp, Heart, Hand } from 'lucide-react';
 
 interface Props {
@@ -24,13 +24,9 @@ export const TestimonialCard: React.FC<Props> = ({ data }) => {
 
   // Check local storage for previous votes by this user
   useEffect(() => {
-    try {
-      const savedVote = localStorage.getItem(`vote_${data.id}_type`);
-      if (savedVote && ['likes', 'loves', 'claps'].includes(savedVote)) {
-        setCurrentVote(savedVote as ReactionType);
-      }
-    } catch (error) {
-      console.warn('localStorage not available:', error);
+    const savedVote = safeLocalStorageGet(`vote_${data.id}_type`);
+    if (savedVote && ['likes', 'loves', 'claps'].includes(savedVote)) {
+      setCurrentVote(savedVote as ReactionType);
     }
   }, [data.id]);
 
@@ -41,11 +37,7 @@ export const TestimonialCard: React.FC<Props> = ({ data }) => {
       // User is clicking the same reaction -> Toggle OFF
       newCounts[type] = Math.max(0, newCounts[type] - 1);
       setCurrentVote(null);
-      try {
-        localStorage.removeItem(`vote_${data.id}_type`);
-      } catch (error) {
-        console.warn('localStorage not available:', error);
-      }
+      safeLocalStorageRemove(`vote_${data.id}_type`);
     } else {
       // User is switching reaction or adding new one
       
@@ -57,11 +49,7 @@ export const TestimonialCard: React.FC<Props> = ({ data }) => {
       // 2. Add new vote
       newCounts[type] = newCounts[type] + 1;
       setCurrentVote(type);
-      try {
-        localStorage.setItem(`vote_${data.id}_type`, type);
-      } catch (error) {
-        console.warn('localStorage not available:', error);
-      }
+      safeLocalStorageSet(`vote_${data.id}_type`, type);
     }
 
     // Update Local State immediately

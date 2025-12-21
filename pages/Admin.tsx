@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ApiService } from '../services/storage';
+import { ApiService, safeLocalStorageGet, safeLocalStorageSet, safeLocalStorageRemove } from '../services/storage';
 import { AdminUser, LoanApplication, Testimonial, QualifiedPerson, AdConfig, UserRole, RepaymentContent } from '../types';
 import { LogOut, Download, Trash2, Plus, UserPlus, Shield, Loader2, Save } from 'lucide-react';
 import { formatNaira } from '../utils/currency';
@@ -11,17 +11,13 @@ const DEFAULT_AVATAR_FALLBACK = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.
 export const Admin: React.FC = () => {
   const [user, setUser] = useState<AdminUser | null>(() => {
     // Initialize from localStorage if available
-    try {
-      const stored = localStorage.getItem(ADMIN_SESSION_KEY);
-      if (stored) {
-        try {
-          return JSON.parse(stored);
-        } catch {
-          return null;
-        }
+    const stored = safeLocalStorageGet(ADMIN_SESSION_KEY);
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        return null;
       }
-    } catch (error) {
-      console.warn('localStorage not available:', error);
     }
     return null;
   });
@@ -100,11 +96,7 @@ export const Admin: React.FC = () => {
       if (admin) {
         setUser(admin);
         // Persist session to localStorage
-        try {
-          localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(admin));
-        } catch (error) {
-          console.warn('localStorage not available:', error);
-        }
+        safeLocalStorageSet(ADMIN_SESSION_KEY, JSON.stringify(admin));
       } else {
         alert('Invalid credentials');
       }
@@ -116,11 +108,7 @@ export const Admin: React.FC = () => {
   const handleLogout = () => {
     setUser(null);
     // Clear persisted session
-    try {
-      localStorage.removeItem(ADMIN_SESSION_KEY);
-    } catch (error) {
-      console.warn('localStorage not available:', error);
-    }
+    safeLocalStorageRemove(ADMIN_SESSION_KEY);
   };
 
   const exportApplicationsCSV = () => {

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AdSlot } from './AdSlot';
-import { ApiService } from '../services/storage';
+import { ApiService, safeLocalStorageGet, safeLocalStorageSet } from '../services/storage';
 import { AdConfig } from '../types';
 import { Menu, X, Banknote, AlertTriangle, ShieldAlert, RefreshCw, HelpCircle } from 'lucide-react';
 
@@ -34,13 +34,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     loadAds();
     
     // Check local storage for initial compliance acceptance
-    try {
-      const hasSeenCompliance = localStorage.getItem('grantify_compliance_seen');
-      if (!hasSeenCompliance) {
-        setShowCompliance(true);
-      }
-    } catch (error) {
-      console.warn('localStorage not available:', error);
+    const hasSeenCompliance = safeLocalStorageGet('grantify_compliance_seen');
+    if (!hasSeenCompliance) {
       setShowCompliance(true);
     }
 
@@ -143,11 +138,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       const confirm = window.confirm("If you are using an adblocker, the loan application form may fail to submit. Are you sure you want to proceed?");
       if (!confirm) return;
     }
-    try {
-      localStorage.setItem('grantify_compliance_seen', 'true');
-    } catch (error) {
-      console.warn('localStorage not available:', error);
-    }
+    safeLocalStorageSet('grantify_compliance_seen', 'true');
     setShowCompliance(false);
   };
 
