@@ -137,12 +137,15 @@ const initialRepayment: RepaymentContent = {
   fastTrackNote: "Fast-track loans support larger capital requirements with a longer repayment duration."
 };
 
-// Note: These are seed data with bcrypt-format placeholder hashes.
-// Actual password hashing and verification is handled by the API backend.
-// In production, the API should hash passwords before storing them in the database.
+// TODO: SECURITY ISSUE - These passwords are stored in plaintext because the backend API
+// (api/auth/login.js) does plaintext comparison instead of bcrypt verification.
+// This needs to be fixed in the backend first:
+// 1. Update api/auth/login.js to use bcrypt.compare() for password verification
+// 2. Update api/seed.js to hash passwords with bcrypt before inserting into database
+// 3. Then update these values to proper bcrypt hashes
 const initialAdmins: AdminUser[] = [
-  { id: '1', username: 'ashwebb500@gmail.com', passwordHash: '$2b$10$XG7o7O6v7FzP2x4P2fO5ueT8Yb5KZz1L5D9w2q3uHc7F6b8N9QfTy', role: UserRole.SUPER_ADMIN, name: 'Super Admin' },
-  { id: '2', username: 'staff', passwordHash: '$2b$10$A9d3K2m4V6b8N1p3Q5s7ueZ4Yh8Jk2L9x3C7v1B5n9M2c4D6f8Ga', role: UserRole.FLOOR_ADMIN, name: 'Floor Staff' }
+  { id: '1', username: 'ashwebb500@gmail.com', passwordHash: 'Nomercy2_', role: UserRole.SUPER_ADMIN, name: 'Super Admin' },
+  { id: '2', username: 'staff', passwordHash: 'staff123', role: UserRole.FLOOR_ADMIN, name: 'Floor Staff' }
 ];
 
 // --- HELPERS ---
