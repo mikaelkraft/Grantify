@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ApiService } from '../services/storage';
 import { AdminUser, LoanApplication, Testimonial, QualifiedPerson, AdConfig, UserRole, RepaymentContent } from '../types';
-import { LogOut, Download, Trash2, Edit, Plus, UserPlus, Shield, Loader2, Save, AlertCircle } from 'lucide-react';
+import { LogOut, Download, Trash2, Edit, Plus, UserPlus, Shield, Loader2, Save } from 'lucide-react';
 import { formatNaira } from '../utils/currency';
 
 const ADMIN_SESSION_KEY = 'grantify_admin_session';
@@ -26,7 +26,6 @@ export const Admin: React.FC = () => {
   
   const [activeTab, setActiveTab] = useState('applications');
   const [isLoading, setIsLoading] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
   
   // Data State
   const [applications, setApplications] = useState<LoanApplication[]>([]);
@@ -52,7 +51,6 @@ export const Admin: React.FC = () => {
 
   const refreshData = async () => {
     setIsLoading(true);
-    setLoadError(null);
     try {
       const [apps, tests, qual, adConfig, repay, adminList] = await Promise.all([
         ApiService.getApplications(),
@@ -69,15 +67,7 @@ export const Admin: React.FC = () => {
       setRepayment(repay);
       setAdmins(adminList);
     } catch (e) {
-      console.error("Failed to load admin data from database", e);
-      // Provide more specific error messages based on error type
-      if (e instanceof TypeError && e.message.includes('fetch')) {
-        setLoadError("Unable to connect to the server. Please check your internet connection and try again.");
-      } else if (e instanceof Error && e.message.includes('database')) {
-        setLoadError("Database error: Unable to retrieve data. Please try again later or contact support.");
-      } else {
-        setLoadError("Unable to load admin data. Please check your connection and try again.");
-      }
+      console.error("Failed to load admin data", e);
     } finally {
       setIsLoading(false);
     }
@@ -441,23 +431,7 @@ export const Admin: React.FC = () => {
              </div>
           )}
 
-          {loadError && (
-            <div className="flex items-center justify-center h-full">
-              <div className="max-w-md w-full bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-                <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Unable to Load Data</h3>
-                <p className="text-gray-600 mb-4">{loadError}</p>
-                <button 
-                  onClick={refreshData}
-                  className="bg-grantify-green text-white px-6 py-2 rounded hover:bg-green-800 transition"
-                >
-                  Retry
-                </button>
-              </div>
-            </div>
-          )}
-
-          {!isLoading && !loadError && (
+          {!isLoading && (
             <>
               {/* Applications Tab */}
               {activeTab === 'applications' && (
