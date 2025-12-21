@@ -1,26 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { ApiService, safeLocalStorageGet, safeLocalStorageSet, safeLocalStorageRemove } from '../services/storage';
+import { ApiService } from '../services/storage';
 import { AdminUser, LoanApplication, Testimonial, QualifiedPerson, AdConfig, UserRole, RepaymentContent } from '../types';
 import { LogOut, Download, Trash2, Plus, UserPlus, Shield, Loader2, Save } from 'lucide-react';
 import { formatNaira } from '../utils/currency';
 
-const ADMIN_SESSION_KEY = 'grantify_admin_session';
 // Default fallback avatar (green circle with question mark) for broken/missing images
 const DEFAULT_AVATAR_FALLBACK = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="50" fill="%23006400"/%3E%3Ctext x="50" y="55" font-size="40" text-anchor="middle" fill="white"%3E%3F%3C/text%3E%3C/svg%3E';
 
 export const Admin: React.FC = () => {
-  const [user, setUser] = useState<AdminUser | null>(() => {
-    // Initialize from localStorage if available
-    const stored = safeLocalStorageGet(ADMIN_SESSION_KEY);
-    if (stored) {
-      try {
-        return JSON.parse(stored);
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  });
+  // Admin session is not persisted - require login each time
+  const [user, setUser] = useState<AdminUser | null>(null);
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   
@@ -95,8 +84,7 @@ export const Admin: React.FC = () => {
       const admin = await ApiService.login(loginForm.username, loginForm.password);
       if (admin) {
         setUser(admin);
-        // Persist session to localStorage
-        safeLocalStorageSet(ADMIN_SESSION_KEY, JSON.stringify(admin));
+        // Session stored in React state only (no localStorage)
       } else {
         alert('Invalid credentials');
       }
@@ -107,8 +95,7 @@ export const Admin: React.FC = () => {
 
   const handleLogout = () => {
     setUser(null);
-    // Clear persisted session
-    safeLocalStorageRemove(ADMIN_SESSION_KEY);
+    // Session cleared from React state (no localStorage)
   };
 
   const exportApplicationsCSV = () => {
