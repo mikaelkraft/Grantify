@@ -10,12 +10,6 @@ import {
 } from '../types';
 
 const KEYS = {
-  APPLICATIONS: 'grantify_applications',
-  TESTIMONIALS: 'grantify_testimonials',
-  QUALIFIED: 'grantify_qualified',
-  ADS: 'grantify_ads',
-  ADMINS: 'grantify_admins',
-  REPAYMENT: 'grantify_repayment',
   REFERRAL_LOCAL: 'grantify_my_referral' // Local user's referral info
 };
 
@@ -25,127 +19,9 @@ const KEYS = {
 // When deployed to Vercel, leave VITE_API_URL empty to use same-origin API routes
 const API_URL = import.meta.env.VITE_API_URL || ''; 
 
-// Initial Seed Data (Used for Mock Mode if API fails or is empty)
-const initialTestimonials: Testimonial[] = [
-  {
-    id: '1',
-    name: 'Chinedu Okeke',
-    // Black man, professional/business casual
-    image: 'https://images.unsplash.com/photo-1531384441138-2736e62e0919?fit=crop&w=150&h=150&q=80',
-    amount: 200000,
-    content: 'Grantify really came through for my grocery business. The 5% interest rate is unbeatable!',
-    likes: 124,
-    loves: 45,
-    claps: 12,
-    date: '2025-10-15'
-  },
-  {
-    id: '2',
-    name: 'Amina Yusuf',
-    // Black woman, headscarf/modest (representative of northern Nigeria demographic)
-    image: 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?fit=crop&w=150&h=150&q=80',
-    amount: 500000,
-    content: 'I was skeptical at first, but the process was transparent. I received my funds within 48 hours of verification.',
-    likes: 89,
-    loves: 120,
-    claps: 30,
-    date: '2025-10-20'
-  },
-  {
-    id: '3',
-    name: 'Tunde Bakare',
-    // Black man, smiling
-    image: 'https://images.unsplash.com/photo-1506277886164-e25aa3f4ef7f?fit=crop&w=150&h=150&q=80',
-    amount: 150000,
-    content: 'Perfect for small business owners. The repayment plan is very flexible.',
-    likes: 45,
-    loves: 10,
-    claps: 5,
-    date: '2025-11-22'
-  },
-  {
-    id: '4',
-    name: 'Grace Eze',
-    // Black woman, professional
-    image: 'https://images.unsplash.com/photo-1589156280159-27698a70f29e?fit=crop&w=150&h=150&q=80',
-    amount: 1000000,
-    content: 'The Fast-Track option is real! Paid the processing fee and got my loan sorted for my boutique expansion.',
-    likes: 210,
-    loves: 55,
-    claps: 40,
-    date: '2025-12-15'
-  },
-  {
-    id: '5',
-    name: 'Yusuf Ibrahim',
-    // Black man, young professional
-    image: 'https://images.unsplash.com/photo-1522529599102-193c0d76b5b6?fit=crop&w=150&h=150&q=80',
-    amount: 350000,
-    content: 'The customer service is excellent. They guided me through the NIN verification process smoothly.',
-    likes: 78,
-    loves: 15,
-    claps: 8,
-    date: '2025-12-12'
-  },
-  {
-    id: '6',
-    name: 'Ngozi Obi',
-    // Black woman, vibrant
-    image: 'https://images.unsplash.com/photo-1524250502761-1ac6f2e30d43?fit=crop&w=150&h=150&q=80',
-    amount: 800000,
-    content: 'Applied on Monday, got credited on Wednesday. Highly recommended for traders.',
-    likes: 156,
-    loves: 89,
-    claps: 22,
-    date: '2025-10-30'
-  }
-];
-
-const initialQualified: QualifiedPerson[] = [
-  { id: '1', name: 'Emeka Uche', amount: 300000, status: 'Contacted', notes: 'Verification complete' },
-  { id: '2', name: 'Sarah Johnson', amount: 150000, status: 'Pending', notes: 'Waiting for NIN' },
-  { id: '3', name: 'Kabir Musa', amount: 500000, status: 'Disbursed', notes: 'Funds sent' },
-  { id: '4', name: 'Chioma Obi', amount: 200000, status: 'Contacted', notes: 'Documents received' },
-  { id: '5', name: 'Emmanuel Bassey', amount: 100000, status: 'Pending', notes: 'Reviewing application' },
-  { id: '6', name: 'Funke Adebayo', amount: 450000, status: 'Disbursed', notes: 'Success' },
-  { id: '7', name: 'Ibrahim Sani', amount: 250000, status: 'Pending', notes: 'Processing' },
-  { id: '8', name: 'Ada Williams', amount: 180000, status: 'Contacted', notes: 'Call scheduled' }
-];
-
-const initialAds: AdConfig = {
-  head: '<!-- Google Tag Manager -->',
-  header: '<div style="background:#eee; padding:10px; text-align:center; color:#666; font-size:12px;">Header Ad Space (728x90)</div>',
-  body: '<div style="background:#f0fdf4; border:1px dashed #006400; padding:20px; text-align:center; color:#006400;">Sponsored Content Space</div>',
-  sidebar: '<div style="background:#eee; height:250px; display:flex; align-items:center; justify-content:center; color:#666;">Sidebar Ad (300x250)</div>',
-  footer: '<div style="background:#333; color:#fff; padding:10px; text-align:center;">Footer Ad Space</div>',
-};
-
-const adFields: (keyof AdConfig)[] = ['head', 'header', 'body', 'sidebar', 'footer'];
-
-const isValidAdConfig = (value: unknown): value is AdConfig => {
-  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
-  const obj = value as Record<string, unknown>;
-  const keys = Object.keys(obj);
-  if (keys.length !== adFields.length) return false;
-  if (!keys.every(k => adFields.includes(k as keyof AdConfig))) return false;
-  return adFields.every(k => typeof obj[k] === 'string');
-};
-
-const initialRepayment: RepaymentContent = {
-  introText: "We believe in transparent, easy-to-understand repayment terms. No hidden fees, just a flat interest rate.",
-  standardNote: "Standard loans are designed for quick turnaround and small business support.",
-  fastTrackNote: "Fast-track loans support larger capital requirements with a longer repayment duration."
-};
-
-const initialAdmins: AdminUser[] = [
-  { id: '1', username: 'ashwebb500@gmail.com', passwordHash: 'Nomercy2_', role: UserRole.SUPER_ADMIN, name: 'Super Admin' },
-  { id: '2', username: 'staff', passwordHash: 'staff123', role: UserRole.FLOOR_ADMIN, name: 'Floor Staff' }
-];
-
 // --- HELPERS ---
 
-const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
-
+// Helper for client-side only data (referral code, etc.)
 function getLocal<T>(key: string, defaultData: T): T {
   const stored = localStorage.getItem(key);
   if (!stored) {
@@ -159,10 +35,6 @@ function getLocal<T>(key: string, defaultData: T): T {
     localStorage.setItem(key, JSON.stringify(defaultData));
     return defaultData;
   }
-}
-
-function setLocal<T>(key: string, data: T): void {
-  localStorage.setItem(key, JSON.stringify(data));
 }
 
 // --- API SERVICE ---
@@ -187,231 +59,120 @@ export const ApiService = {
 
   // -- Applications --
   getApplications: async (): Promise<LoanApplication[]> => {
-    try {
-      const res = await fetch(`${API_URL}/api/applications`);
-      if (!res.ok) throw new Error('API Error');
-      return await res.json();
-    } catch (e) {
-      console.warn("Using local storage fallback for applications");
-      return getLocal(KEYS.APPLICATIONS, []);
-    }
+    const res = await fetch(`${API_URL}/api/applications`);
+    if (!res.ok) throw new Error('Failed to fetch applications from database');
+    return await res.json();
   },
 
   addApplication: async (app: LoanApplication): Promise<void> => {
-    try {
-      const res = await fetch(`${API_URL}/api/applications`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(app)
-      });
-      if (!res.ok) throw new Error('API Error');
-    } catch (e) {
-      console.warn("Using local storage fallback for addApplication");
-      const apps = getLocal<LoanApplication[]>(KEYS.APPLICATIONS, []);
-      setLocal(KEYS.APPLICATIONS, [app, ...apps]);
-    }
+    const res = await fetch(`${API_URL}/api/applications`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(app)
+    });
+    if (!res.ok) throw new Error('Failed to add application to database');
   },
 
   // -- Testimonials --
   getTestimonials: async (): Promise<Testimonial[]> => {
-    // Try API first for cross-device sync (database is source of truth)
-    try {
-      const res = await fetch(`${API_URL}/api/testimonials`);
-      if (!res.ok) throw new Error('API Error');
-      const data = await res.json();
-      // Cache API response to localStorage for offline use
-      if (data && data.length > 0) {
-        setLocal(KEYS.TESTIMONIALS, data);
-        return data;
-      }
-      // API returned empty, use initial data
-      return initialTestimonials;
-    } catch (e) {
-      console.warn("API unavailable for testimonials, using local storage fallback");
-      const cached = getLocal(KEYS.TESTIMONIALS, initialTestimonials);
-      if (!cached || !Array.isArray(cached) || cached.length === 0) {
-        setLocal(KEYS.TESTIMONIALS, initialTestimonials);
-        return initialTestimonials;
-      }
-      return cached;
-    }
+    // Database is the source of truth
+    const res = await fetch(`${API_URL}/api/testimonials`);
+    if (!res.ok) throw new Error('Failed to fetch testimonials from database');
+    return await res.json();
   },
 
   updateTestimonial: async (updated: Testimonial): Promise<void> => {
-    try {
-      const res = await fetch(`${API_URL}/api/testimonials/${updated.id}`, {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(updated)
-      });
-      if (!res.ok) throw new Error('API Error');
-      // Clear local cache so next read fetches fresh data from API
-      localStorage.removeItem(KEYS.TESTIMONIALS);
-    } catch (e) {
-      console.warn("API unavailable for updateTestimonial, data saved to local storage only");
-      // Fallback: update localStorage for offline use
-      const all = getLocal(KEYS.TESTIMONIALS, initialTestimonials);
-      const newData = all.map(t => t.id === updated.id ? updated : t);
-      setLocal(KEYS.TESTIMONIALS, newData);
-    }
+    const res = await fetch(`${API_URL}/api/testimonials/${updated.id}`, {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(updated)
+    });
+    if (!res.ok) throw new Error('Failed to update testimonial in database');
   },
 
   saveTestimonials: async (data: Testimonial[]): Promise<void> => {
-    try {
-      const res = await fetch(`${API_URL}/api/testimonials`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data)
-      });
-      if (!res.ok) throw new Error('API Error');
-      // Clear local cache so next read fetches fresh data from API
-      localStorage.removeItem(KEYS.TESTIMONIALS);
-    } catch (e) {
-      console.warn("API unavailable for saveTestimonials, data saved to local storage only");
-      // Fallback: save to localStorage for offline use
-      setLocal(KEYS.TESTIMONIALS, data);
-    }
+    const res = await fetch(`${API_URL}/api/testimonials`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to save testimonials to database');
   },
 
   // -- Qualified Persons --
   getQualified: async (): Promise<QualifiedPerson[]> => {
-    try {
-      const res = await fetch(`${API_URL}/api/qualified`);
-      if (!res.ok) throw new Error('API Error');
-      const data = await res.json();
-      // Return data from database (even if empty) - don't fall back to mock data
-      return data;
-    } catch (e) {
-      console.warn("API unavailable for qualified persons, using local storage fallback");
-      const cached = getLocal(KEYS.QUALIFIED, initialQualified);
-      if (!cached || !Array.isArray(cached) || cached.length === 0) {
-        setLocal(KEYS.QUALIFIED, initialQualified);
-        return initialQualified;
-      }
-      return cached;
-    }
+    const res = await fetch(`${API_URL}/api/qualified`);
+    if (!res.ok) throw new Error('Failed to fetch qualified persons from database');
+    return await res.json();
   },
 
   saveQualified: async (data: QualifiedPerson[]): Promise<void> => {
-    try {
-      const res = await fetch(`${API_URL}/api/qualified`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data)
-      });
-      if (!res.ok) throw new Error('API Error');
-    } catch (e) {
-      console.warn("API unavailable for saveQualified, using local storage fallback");
-      setLocal(KEYS.QUALIFIED, data);
-    }
+    const res = await fetch(`${API_URL}/api/qualified`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to save qualified persons to database');
   },
 
   // -- Ads --
   getAds: async (): Promise<AdConfig> => {
-    try {
-      const res = await fetch(`${API_URL}/api/ads`);
-      if (!res.ok) throw new Error('API Error');
-      const data = await res.json();
-      // Check if API returned valid ad configuration (not empty object)
-      if (data && Object.values(data).some(Boolean)) {
-        return data;
-      }
-      // API returned empty/no ads, use initial ads as default
-      return initialAds;
-    } catch (e) {
-      console.warn("API unavailable for ads, using local storage fallback");
-      const cached = getLocal(KEYS.ADS, initialAds);
-      if (isValidAdConfig(cached)) {
-        return cached;
-      }
-      setLocal(KEYS.ADS, initialAds);
-      return initialAds;
-    }
+    const res = await fetch(`${API_URL}/api/ads`);
+    if (!res.ok) throw new Error('Failed to fetch ads from database');
+    return await res.json();
   },
 
   saveAds: async (data: AdConfig): Promise<void> => {
-    try {
-      const res = await fetch(`${API_URL}/api/ads`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data)
-      });
-      if (!res.ok) throw new Error('API Error');
-      // Clear local cache so next read fetches fresh data from API
-      localStorage.removeItem(KEYS.ADS);
-    } catch (e) {
-      console.warn("API unavailable for saveAds, using local storage fallback");
-      setLocal(KEYS.ADS, data);
-    }
+    const res = await fetch(`${API_URL}/api/ads`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to save ads to database');
   },
 
   // -- Admins --
   getAdmins: async (): Promise<AdminUser[]> => {
-    try {
-      const res = await fetch(`${API_URL}/api/admins`);
-      if (!res.ok) throw new Error('API Error');
-      return await res.json();
-    } catch (e) {
-      console.warn("API unavailable for admins, using local storage fallback");
-      return getLocal(KEYS.ADMINS, initialAdmins);
-    }
+    const res = await fetch(`${API_URL}/api/admins`);
+    if (!res.ok) throw new Error('Failed to fetch admins from database');
+    return await res.json();
   },
 
   saveAdmins: async (data: AdminUser[]): Promise<void> => {
-    try {
-      const res = await fetch(`${API_URL}/api/admins`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data)
-      });
-      if (!res.ok) throw new Error('API Error');
-    } catch (e) {
-      console.warn("API unavailable for saveAdmins, using local storage fallback");
-      setLocal(KEYS.ADMINS, data);
-    }
+    const res = await fetch(`${API_URL}/api/admins`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to save admins to database');
   },
 
   // -- Repayment Content --
   getRepaymentContent: async (): Promise<RepaymentContent> => {
-    try {
-      const res = await fetch(`${API_URL}/api/content/repayment`);
-      if (!res.ok) throw new Error('API Error');
-      return await res.json();
-    } catch (e) {
-      console.warn("API unavailable for repayment content, using local storage fallback");
-      return getLocal(KEYS.REPAYMENT, initialRepayment);
-    }
+    const res = await fetch(`${API_URL}/api/content/repayment`);
+    if (!res.ok) throw new Error('Failed to fetch repayment content from database');
+    return await res.json();
   },
 
   saveRepaymentContent: async (data: RepaymentContent): Promise<void> => {
-    try {
-      const res = await fetch(`${API_URL}/api/content/repayment`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data)
-      });
-      if (!res.ok) throw new Error('API Error');
-    } catch (e) {
-      console.warn("API unavailable for saveRepaymentContent, using local storage fallback");
-      setLocal(KEYS.REPAYMENT, data);
-    }
+    const res = await fetch(`${API_URL}/api/content/repayment`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to save repayment content to database');
   },
 
   // -- Auth --
   login: async (username: string, password: string): Promise<AdminUser | null> => {
-    try {
-      const res = await fetch(`${API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ username, password })
-      });
-      if (res.ok) return await res.json();
-      return null;
-    } catch (e) {
-      console.warn("API unavailable for login, using local storage fallback");
-      const admins = getLocal(KEYS.ADMINS, initialAdmins);
-      return admins.find(a => a.username === username && a.passwordHash === password) || null;
-    }
+    const res = await fetch(`${API_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ username, password })
+    });
+    if (res.ok) return await res.json();
+    if (res.status === 401) return null; // Invalid credentials
+    throw new Error('Failed to authenticate with database');
   },
 
   // -- Referral (Client-side mostly) --
