@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { ApiService } from '../services/storage';
-import { Send, Zap, Loader2 } from 'lucide-react';
+import { Send, Zap, Loader2, AlertCircle } from 'lucide-react';
 import { RepaymentContent } from '../types';
 import { formatNaira } from '../utils/currency';
 
 export const Repayment: React.FC = () => {
   const location = useLocation();
   const [content, setContent] = useState<RepaymentContent | null>(null);
-  const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [ftForm, setFtForm] = useState({
     name: '',
     phone: '',
@@ -21,10 +21,17 @@ export const Repayment: React.FC = () => {
       try {
         const data = await ApiService.getRepaymentContent();
         setContent(data);
-        setError('');
+        setLoadError(null);
       } catch (e) {
-        console.error("Failed to load repayment content", e);
-        setError('Failed to load content. Please check your connection and try again.');
+        console.error("Failed to load repayment content from database", e);
+        // Provide more specific error messages based on error type
+        if (e instanceof TypeError && e.message.includes('fetch')) {
+          setLoadError("Unable to connect to the server. Please check your internet connection and try again.");
+        } else if (e instanceof Error && e.message.includes('database')) {
+          setLoadError("Database error: Unable to retrieve content. Please try again later or contact support.");
+        } else {
+          setLoadError("Unable to load content. Please check your connection and try again.");
+        }
       }
     };
     loadContent();
@@ -82,15 +89,16 @@ ${ftForm.name}`;
   // Consistent dark input style
   const inputClass = "w-full p-2 border border-gray-600 rounded bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-grantify-gold outline-none";
 
-  if (error) {
+  if (loadError) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
-          <h2 className="text-xl font-bold text-red-800 mb-2">Connection Error</h2>
-          <p className="text-red-600 mb-4">{error}</p>
-          <button
+      <div className="min-h-[400px] flex flex-col items-center justify-center">
+        <div className="max-w-md w-full bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Unable to Load Content</h2>
+          <p className="text-gray-600 mb-4">{loadError}</p>
+          <button 
             onClick={() => window.location.reload()}
-            className="bg-grantify-green text-white px-6 py-2 rounded hover:bg-green-800"
+            className="bg-grantify-green text-white px-6 py-2 rounded hover:bg-green-800 transition"
           >
             Retry
           </button>
