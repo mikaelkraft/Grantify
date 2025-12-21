@@ -33,11 +33,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     
     loadAds();
     
-    // Check local storage for initial compliance acceptance
-    const hasSeenCompliance = localStorage.getItem('grantify_compliance_seen');
-    if (!hasSeenCompliance) {
-      setShowCompliance(true);
-    }
+    // Always show compliance modal on first page load (no localStorage)
+    setShowCompliance(true);
 
     // Adblock Detection - run after a delay to ensure page is loaded
     const detectAdBlock = () => {
@@ -138,7 +135,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       const confirm = window.confirm("If you are using an adblocker, the loan application form may fail to submit. Are you sure you want to proceed?");
       if (!confirm) return;
     }
-    localStorage.setItem('grantify_compliance_seen', 'true');
+    // Just dismiss the modal (no localStorage)
     setShowCompliance(false);
   };
 

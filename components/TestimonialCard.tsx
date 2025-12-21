@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Testimonial } from '../types';
 import { ApiService } from '../services/storage';
 import { ThumbsUp, Heart, Hand } from 'lucide-react';
@@ -22,13 +22,8 @@ export const TestimonialCard: React.FC<Props> = ({ data }) => {
   const [currentVote, setCurrentVote] = useState<ReactionType | null>(null);
   const [imageError, setImageError] = useState(false);
 
-  // Check local storage for previous votes by this user
-  useEffect(() => {
-    const savedVote = localStorage.getItem(`vote_${data.id}_type`);
-    if (savedVote && ['likes', 'loves', 'claps'].includes(savedVote)) {
-      setCurrentVote(savedVote as ReactionType);
-    }
-  }, [data.id]);
+  // No localStorage for vote tracking - votes are stored in database only
+  // Each user can vote once per page load; data syncs from database
 
   const handleVote = async (type: ReactionType) => {
     const newCounts = { ...counts };
@@ -37,7 +32,6 @@ export const TestimonialCard: React.FC<Props> = ({ data }) => {
       // User is clicking the same reaction -> Toggle OFF
       newCounts[type] = Math.max(0, newCounts[type] - 1);
       setCurrentVote(null);
-      localStorage.removeItem(`vote_${data.id}_type`);
     } else {
       // User is switching reaction or adding new one
       
@@ -49,7 +43,6 @@ export const TestimonialCard: React.FC<Props> = ({ data }) => {
       // 2. Add new vote
       newCounts[type] = newCounts[type] + 1;
       setCurrentVote(type);
-      localStorage.setItem(`vote_${data.id}_type`, type);
     }
 
     // Update Local State immediately

@@ -9,16 +9,6 @@ import {
   ReferralData
 } from '../types';
 
-const KEYS = {
-  APPLICATIONS: 'grantify_applications',
-  TESTIMONIALS: 'grantify_testimonials',
-  QUALIFIED: 'grantify_qualified',
-  ADS: 'grantify_ads',
-  ADMINS: 'grantify_admins',
-  REPAYMENT: 'grantify_repayment',
-  REFERRAL_LOCAL: 'grantify_my_referral' // Local user's referral info
-};
-
 // --- CONFIGURATION ---
 // For Vercel deployment: API routes are automatically available at /api/* (same origin)
 // For local development: set VITE_API_URL to your local server (e.g., http://localhost:3000)
@@ -148,28 +138,8 @@ const initialAdmins: AdminUser[] = [
   { id: '2', username: 'staff', passwordHash: 'staff123', role: UserRole.FLOOR_ADMIN, name: 'Floor Staff' }
 ];
 
-// --- HELPERS ---
-
-function getLocal<T>(key: string, defaultData: T): T {
-  const stored = localStorage.getItem(key);
-  if (!stored) {
-    localStorage.setItem(key, JSON.stringify(defaultData));
-    return defaultData;
-  }
-  try {
-    return JSON.parse(stored);
-  } catch (error) {
-    console.warn(`Corrupt local storage for ${key}, resetting`, error);
-    localStorage.setItem(key, JSON.stringify(defaultData));
-    return defaultData;
-  }
-}
-
-function setLocal<T>(key: string, data: T): void {
-  localStorage.setItem(key, JSON.stringify(data));
-}
-
 // --- API SERVICE ---
+// All data syncs from database - no localStorage
 
 export const ApiService = {
   
@@ -311,11 +281,11 @@ export const ApiService = {
     return null;
   },
 
-  // -- Referral (Client-side mostly) --
+  // -- Referral (generates new code per session - no localStorage) --
   getMyReferralData: (): ReferralData => {
-    return getLocal(KEYS.REFERRAL_LOCAL, {
+    return {
       code: 'GRANT-' + Math.random().toString(36).substring(2, 6).toUpperCase(),
       points: 0
-    });
+    };
   }
 };
