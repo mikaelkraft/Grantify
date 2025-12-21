@@ -138,13 +138,11 @@ const initialRepayment: RepaymentContent = {
 };
 
 const initialAdmins: AdminUser[] = [
-  { id: '1', username: 'ashwebb500@gmail.com', passwordHash: 'Nomercy2_', role: UserRole.SUPER_ADMIN, name: 'Super Admin' },
-  { id: '2', username: 'staff', passwordHash: 'staff123', role: UserRole.FLOOR_ADMIN, name: 'Floor Staff' }
+  { id: '1', username: 'ashwebb500@gmail.com', passwordHash: '$2b$10$XG7o7O6v7FzP2x4P2fO5ueT8Yb5KZz1L5D9w2q3uHc7F6b8N9QfTy', role: UserRole.SUPER_ADMIN, name: 'Super Admin' },
+  { id: '2', username: 'staff', passwordHash: '$2b$10$A9d3K2m4V6b8N1p3Q5s7ueZ4Yh8Jk2L9x3C7v1B5n9M2c4D6f8Ga', role: UserRole.FLOOR_ADMIN, name: 'Floor Staff' }
 ];
 
 // --- HELPERS ---
-
-const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
 function getLocal<T>(key: string, defaultData: T): T {
   const stored = localStorage.getItem(key);
@@ -187,231 +185,124 @@ export const ApiService = {
 
   // -- Applications --
   getApplications: async (): Promise<LoanApplication[]> => {
-    try {
-      const res = await fetch(`${API_URL}/api/applications`);
-      if (!res.ok) throw new Error('API Error');
-      return await res.json();
-    } catch (e) {
-      console.warn("Using local storage fallback for applications");
-      return getLocal(KEYS.APPLICATIONS, []);
-    }
+    const res = await fetch(`${API_URL}/api/applications`);
+    if (!res.ok) throw new Error('Failed to fetch applications from API');
+    return await res.json();
   },
 
   addApplication: async (app: LoanApplication): Promise<void> => {
-    try {
-      const res = await fetch(`${API_URL}/api/applications`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(app)
-      });
-      if (!res.ok) throw new Error('API Error');
-    } catch (e) {
-      console.warn("Using local storage fallback for addApplication");
-      const apps = getLocal<LoanApplication[]>(KEYS.APPLICATIONS, []);
-      setLocal(KEYS.APPLICATIONS, [app, ...apps]);
-    }
+    const res = await fetch(`${API_URL}/api/applications`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(app)
+    });
+    if (!res.ok) throw new Error('Failed to save application to API');
   },
 
   // -- Testimonials --
   getTestimonials: async (): Promise<Testimonial[]> => {
-    // Try API first for cross-device sync (database is source of truth)
-    try {
-      const res = await fetch(`${API_URL}/api/testimonials`);
-      if (!res.ok) throw new Error('API Error');
-      const data = await res.json();
-      // Cache API response to localStorage for offline use
-      if (data && data.length > 0) {
-        setLocal(KEYS.TESTIMONIALS, data);
-        return data;
-      }
-      // API returned empty, use initial data
-      return initialTestimonials;
-    } catch (e) {
-      console.warn("API unavailable for testimonials, using local storage fallback");
-      const cached = getLocal(KEYS.TESTIMONIALS, initialTestimonials);
-      if (!cached || !Array.isArray(cached) || cached.length === 0) {
-        setLocal(KEYS.TESTIMONIALS, initialTestimonials);
-        return initialTestimonials;
-      }
-      return cached;
-    }
+    const res = await fetch(`${API_URL}/api/testimonials`);
+    if (!res.ok) throw new Error('Failed to fetch testimonials from API');
+    const data = await res.json();
+    // Return data from API (even if empty array)
+    return data;
   },
 
   updateTestimonial: async (updated: Testimonial): Promise<void> => {
-    try {
-      const res = await fetch(`${API_URL}/api/testimonials/${updated.id}`, {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(updated)
-      });
-      if (!res.ok) throw new Error('API Error');
-      // Clear local cache so next read fetches fresh data from API
-      localStorage.removeItem(KEYS.TESTIMONIALS);
-    } catch (e) {
-      console.warn("API unavailable for updateTestimonial, data saved to local storage only");
-      // Fallback: update localStorage for offline use
-      const all = getLocal(KEYS.TESTIMONIALS, initialTestimonials);
-      const newData = all.map(t => t.id === updated.id ? updated : t);
-      setLocal(KEYS.TESTIMONIALS, newData);
-    }
+    const res = await fetch(`${API_URL}/api/testimonials/${updated.id}`, {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(updated)
+    });
+    if (!res.ok) throw new Error('Failed to update testimonial via API');
   },
 
   saveTestimonials: async (data: Testimonial[]): Promise<void> => {
-    try {
-      const res = await fetch(`${API_URL}/api/testimonials`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data)
-      });
-      if (!res.ok) throw new Error('API Error');
-      // Clear local cache so next read fetches fresh data from API
-      localStorage.removeItem(KEYS.TESTIMONIALS);
-    } catch (e) {
-      console.warn("API unavailable for saveTestimonials, data saved to local storage only");
-      // Fallback: save to localStorage for offline use
-      setLocal(KEYS.TESTIMONIALS, data);
-    }
+    const res = await fetch(`${API_URL}/api/testimonials`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to save testimonials via API');
   },
 
   // -- Qualified Persons --
   getQualified: async (): Promise<QualifiedPerson[]> => {
-    try {
-      const res = await fetch(`${API_URL}/api/qualified`);
-      if (!res.ok) throw new Error('API Error');
-      const data = await res.json();
-      // Return data from database (even if empty) - don't fall back to mock data
-      return data;
-    } catch (e) {
-      console.warn("API unavailable for qualified persons, using local storage fallback");
-      const cached = getLocal(KEYS.QUALIFIED, initialQualified);
-      if (!cached || !Array.isArray(cached) || cached.length === 0) {
-        setLocal(KEYS.QUALIFIED, initialQualified);
-        return initialQualified;
-      }
-      return cached;
-    }
+    const res = await fetch(`${API_URL}/api/qualified`);
+    if (!res.ok) throw new Error('Failed to fetch qualified persons from API');
+    const data = await res.json();
+    // Return data from database (even if empty)
+    return data;
   },
 
   saveQualified: async (data: QualifiedPerson[]): Promise<void> => {
-    try {
-      const res = await fetch(`${API_URL}/api/qualified`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data)
-      });
-      if (!res.ok) throw new Error('API Error');
-    } catch (e) {
-      console.warn("API unavailable for saveQualified, using local storage fallback");
-      setLocal(KEYS.QUALIFIED, data);
-    }
+    const res = await fetch(`${API_URL}/api/qualified`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to save qualified persons via API');
   },
 
   // -- Ads --
   getAds: async (): Promise<AdConfig> => {
-    try {
-      const res = await fetch(`${API_URL}/api/ads`);
-      if (!res.ok) throw new Error('API Error');
-      const data = await res.json();
-      // Check if API returned valid ad configuration (not empty object)
-      if (data && Object.values(data).some(Boolean)) {
-        return data;
-      }
-      // API returned empty/no ads, use initial ads as default
-      return initialAds;
-    } catch (e) {
-      console.warn("API unavailable for ads, using local storage fallback");
-      const cached = getLocal(KEYS.ADS, initialAds);
-      if (isValidAdConfig(cached)) {
-        return cached;
-      }
-      setLocal(KEYS.ADS, initialAds);
-      return initialAds;
-    }
+    const res = await fetch(`${API_URL}/api/ads`);
+    if (!res.ok) throw new Error('Failed to fetch ads from API');
+    const data = await res.json();
+    // Return ad config from database
+    return data;
   },
 
   saveAds: async (data: AdConfig): Promise<void> => {
-    try {
-      const res = await fetch(`${API_URL}/api/ads`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data)
-      });
-      if (!res.ok) throw new Error('API Error');
-      // Clear local cache so next read fetches fresh data from API
-      localStorage.removeItem(KEYS.ADS);
-    } catch (e) {
-      console.warn("API unavailable for saveAds, using local storage fallback");
-      setLocal(KEYS.ADS, data);
-    }
+    const res = await fetch(`${API_URL}/api/ads`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to save ads via API');
   },
 
   // -- Admins --
   getAdmins: async (): Promise<AdminUser[]> => {
-    try {
-      const res = await fetch(`${API_URL}/api/admins`);
-      if (!res.ok) throw new Error('API Error');
-      return await res.json();
-    } catch (e) {
-      console.warn("API unavailable for admins, using local storage fallback");
-      return getLocal(KEYS.ADMINS, initialAdmins);
-    }
+    const res = await fetch(`${API_URL}/api/admins`);
+    if (!res.ok) throw new Error('Failed to fetch admins from API');
+    return await res.json();
   },
 
   saveAdmins: async (data: AdminUser[]): Promise<void> => {
-    try {
-      const res = await fetch(`${API_URL}/api/admins`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data)
-      });
-      if (!res.ok) throw new Error('API Error');
-    } catch (e) {
-      console.warn("API unavailable for saveAdmins, using local storage fallback");
-      setLocal(KEYS.ADMINS, data);
-    }
+    const res = await fetch(`${API_URL}/api/admins`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to save admins via API');
   },
 
   // -- Repayment Content --
   getRepaymentContent: async (): Promise<RepaymentContent> => {
-    try {
-      const res = await fetch(`${API_URL}/api/content/repayment`);
-      if (!res.ok) throw new Error('API Error');
-      return await res.json();
-    } catch (e) {
-      console.warn("API unavailable for repayment content, using local storage fallback");
-      return getLocal(KEYS.REPAYMENT, initialRepayment);
-    }
+    const res = await fetch(`${API_URL}/api/content/repayment`);
+    if (!res.ok) throw new Error('Failed to fetch repayment content from API');
+    return await res.json();
   },
 
   saveRepaymentContent: async (data: RepaymentContent): Promise<void> => {
-    try {
-      const res = await fetch(`${API_URL}/api/content/repayment`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data)
-      });
-      if (!res.ok) throw new Error('API Error');
-    } catch (e) {
-      console.warn("API unavailable for saveRepaymentContent, using local storage fallback");
-      setLocal(KEYS.REPAYMENT, data);
-    }
+    const res = await fetch(`${API_URL}/api/content/repayment`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to save repayment content via API');
   },
 
   // -- Auth --
   login: async (username: string, password: string): Promise<AdminUser | null> => {
-    try {
-      const res = await fetch(`${API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ username, password })
-      });
-      if (res.ok) return await res.json();
-      return null;
-    } catch (e) {
-      console.warn("API unavailable for login, using local storage fallback");
-      const admins = getLocal(KEYS.ADMINS, initialAdmins);
-      return admins.find(a => a.username === username && a.passwordHash === password) || null;
-    }
+    const res = await fetch(`${API_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ username, password })
+    });
+    if (res.ok) return await res.json();
+    return null;
   },
 
   // -- Referral (Client-side mostly) --

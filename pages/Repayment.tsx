@@ -8,6 +8,7 @@ import { formatNaira } from '../utils/currency';
 export const Repayment: React.FC = () => {
   const location = useLocation();
   const [content, setContent] = useState<RepaymentContent | null>(null);
+  const [error, setError] = useState('');
   const [ftForm, setFtForm] = useState({
     name: '',
     phone: '',
@@ -17,8 +18,14 @@ export const Repayment: React.FC = () => {
 
   useEffect(() => {
     const loadContent = async () => {
-      const data = await ApiService.getRepaymentContent();
-      setContent(data);
+      try {
+        const data = await ApiService.getRepaymentContent();
+        setContent(data);
+        setError('');
+      } catch (e) {
+        console.error("Failed to load repayment content", e);
+        setError('Failed to load content. Please check your connection and try again.');
+      }
     };
     loadContent();
   }, []);
@@ -74,6 +81,23 @@ ${ftForm.name}`;
 
   // Consistent dark input style
   const inputClass = "w-full p-2 border border-gray-600 rounded bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-grantify-gold outline-none";
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-8">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
+          <h2 className="text-xl font-bold text-red-800 mb-2">Connection Error</h2>
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-grantify-green text-white px-6 py-2 rounded hover:bg-green-800"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!content) {
     return (
