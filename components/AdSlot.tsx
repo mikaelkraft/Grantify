@@ -164,7 +164,19 @@ export const AdSlot: React.FC<AdSlotProps> = ({ htmlContent, className = "", lab
         console.log('Propeller Ads script loaded');
       }
 
-      // Generic ad refresh
+      // Advertica Ads
+      if (scriptSrc.includes('advertica')) {
+        // Advertica ads typically auto-initialize
+        console.log('Advertica Ads script loaded');
+      }
+
+      // Yllix Ads
+      if (scriptSrc.includes('yllix')) {
+        // Yllix ads typically auto-initialize
+        console.log('Yllix Ads script loaded');
+      }
+
+      // Generic ad refresh - works for all ad networks
       setTimeout(() => {
         // Check if there are any ins elements for AdSense
         const adsenseElements = containerRef.current?.querySelectorAll('ins.adsbygoogle');
