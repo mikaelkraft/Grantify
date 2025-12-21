@@ -76,8 +76,8 @@ export const Admin: React.FC = () => {
         `Failed to load admin data.\n\nDetails: ${message}\n\nThis may indicate a network or database connection issue.\n\nWould you like to try loading the data again?`
       );
       if (retry) {
-        // Fire-and-forget retry so this call can complete and clear its loading state
-        refreshData();
+        // Reload the page to retry loading data
+        window.location.reload();
       } else {
         window.alert(
           'Admin data could not be loaded. Some information may be incomplete until the connection is restored.'

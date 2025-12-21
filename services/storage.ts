@@ -137,6 +137,9 @@ const initialRepayment: RepaymentContent = {
   fastTrackNote: "Fast-track loans support larger capital requirements with a longer repayment duration."
 };
 
+// Note: These are seed data with bcrypt-format placeholder hashes.
+// Actual password hashing and verification is handled by the API backend.
+// In production, the API should hash passwords before storing them in the database.
 const initialAdmins: AdminUser[] = [
   { id: '1', username: 'ashwebb500@gmail.com', passwordHash: '$2b$10$XG7o7O6v7FzP2x4P2fO5ueT8Yb5KZz1L5D9w2q3uHc7F6b8N9QfTy', role: UserRole.SUPER_ADMIN, name: 'Super Admin' },
   { id: '2', username: 'staff', passwordHash: '$2b$10$A9d3K2m4V6b8N1p3Q5s7ueZ4Yh8Jk2L9x3C7v1B5n9M2c4D6f8Ga', role: UserRole.FLOOR_ADMIN, name: 'Floor Staff' }
