@@ -24,7 +24,14 @@ export const Repayment: React.FC = () => {
         setLoadError(null);
       } catch (e) {
         console.error("Failed to load repayment content from database", e);
-        setLoadError("Unable to load content from the database. Please check your connection and try again.");
+        // Provide more specific error messages based on error type
+        if (e instanceof TypeError && e.message.includes('fetch')) {
+          setLoadError("Unable to connect to the server. Please check your internet connection and try again.");
+        } else if (e instanceof Error && e.message.includes('database')) {
+          setLoadError("Database error: Unable to retrieve content. Please try again later or contact support.");
+        } else {
+          setLoadError("Unable to load content. Please check your connection and try again.");
+        }
       }
     };
     loadContent();
