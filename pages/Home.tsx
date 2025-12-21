@@ -52,8 +52,10 @@ export const Home: React.FC = () => {
         setAds(fetchedAds);
         setAllTestimonials(fetchedTestimonials);
         setQualifiedPersons(fetchedQualified.slice(0, 10)); // Top 10
+        setError(''); // Clear any previous errors
       } catch (e) {
         console.error("Failed to load home data", e);
+        setError('Failed to load data. Please check your connection and try again.');
       } finally {
         setIsLoading(false);
       }
@@ -245,6 +247,22 @@ export const Home: React.FC = () => {
       <div className="min-h-[500px] flex flex-col items-center justify-center text-grantify-green">
         <Loader2 className="animate-spin w-12 h-12 mb-4" />
         <p>Loading Grantify...</p>
+      </div>
+    );
+  }
+
+  if (error && !ads) {
+    return (
+      <div className="min-h-[500px] flex flex-col items-center justify-center text-center p-8">
+        <AlertCircle className="w-16 h-16 text-red-600 mb-4" />
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Connection Error</h2>
+        <p className="text-gray-600 mb-6 max-w-md">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="bg-grantify-green text-white px-6 py-2 rounded hover:bg-green-800"
+        >
+          Retry
+        </button>
       </div>
     );
   }

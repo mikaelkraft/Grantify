@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ApiService } from '../services/storage';
 import { AdminUser, LoanApplication, Testimonial, QualifiedPerson, AdConfig, UserRole, RepaymentContent } from '../types';
-import { LogOut, Download, Trash2, Edit, Plus, UserPlus, Shield, Loader2, Save } from 'lucide-react';
+import { LogOut, Download, Trash2, Plus, UserPlus, Shield, Loader2, Save } from 'lucide-react';
 import { formatNaira } from '../utils/currency';
 
 const ADMIN_SESSION_KEY = 'grantify_admin_session';
@@ -68,6 +68,21 @@ export const Admin: React.FC = () => {
       setAdmins(adminList);
     } catch (e) {
       console.error("Failed to load admin data", e);
+      const message =
+        e instanceof Error && e.message
+          ? e.message
+          : 'An unexpected error occurred while loading admin data.';
+      const retry = window.confirm(
+        `Failed to load admin data.\n\nDetails: ${message}\n\nThis may indicate a network or database connection issue.\n\nWould you like to try loading the data again?`
+      );
+      if (retry) {
+        // Reload the page to retry loading data
+        window.location.reload();
+      } else {
+        window.alert(
+          'Admin data could not be loaded. Some information may be incomplete until the connection is restored.'
+        );
+      }
     } finally {
       setIsLoading(false);
     }
