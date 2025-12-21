@@ -20,6 +20,7 @@ export const Home: React.FC = () => {
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [loanType, setLoanType] = useState<LoanType>(LoanType.STANDARD);
   
@@ -52,8 +53,10 @@ export const Home: React.FC = () => {
         setAds(fetchedAds);
         setAllTestimonials(fetchedTestimonials);
         setQualifiedPersons(fetchedQualified.slice(0, 10)); // Top 10
+        setLoadError(null);
       } catch (e) {
-        console.error("Failed to load home data", e);
+        console.error("Failed to load home data from database", e);
+        setLoadError("Unable to load data from the database. Please check your connection and try again.");
       } finally {
         setIsLoading(false);
       }
@@ -245,6 +248,24 @@ export const Home: React.FC = () => {
       <div className="min-h-[500px] flex flex-col items-center justify-center text-grantify-green">
         <Loader2 className="animate-spin w-12 h-12 mb-4" />
         <p>Loading Grantify...</p>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-[500px] flex flex-col items-center justify-center">
+        <div className="max-w-md w-full bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Unable to Load Data</h2>
+          <p className="text-gray-600 mb-4">{loadError}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="bg-grantify-green text-white px-6 py-2 rounded hover:bg-green-800 transition"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
