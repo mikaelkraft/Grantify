@@ -11,13 +11,17 @@ const DEFAULT_AVATAR_FALLBACK = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.
 export const Admin: React.FC = () => {
   const [user, setUser] = useState<AdminUser | null>(() => {
     // Initialize from localStorage if available
-    const stored = localStorage.getItem(ADMIN_SESSION_KEY);
-    if (stored) {
-      try {
-        return JSON.parse(stored);
-      } catch {
-        return null;
+    try {
+      const stored = localStorage.getItem(ADMIN_SESSION_KEY);
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch {
+          return null;
+        }
       }
+    } catch (error) {
+      console.warn('localStorage not available:', error);
     }
     return null;
   });
@@ -96,7 +100,11 @@ export const Admin: React.FC = () => {
       if (admin) {
         setUser(admin);
         // Persist session to localStorage
-        localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(admin));
+        try {
+          localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(admin));
+        } catch (error) {
+          console.warn('localStorage not available:', error);
+        }
       } else {
         alert('Invalid credentials');
       }
@@ -108,7 +116,11 @@ export const Admin: React.FC = () => {
   const handleLogout = () => {
     setUser(null);
     // Clear persisted session
-    localStorage.removeItem(ADMIN_SESSION_KEY);
+    try {
+      localStorage.removeItem(ADMIN_SESSION_KEY);
+    } catch (error) {
+      console.warn('localStorage not available:', error);
+    }
   };
 
   const exportApplicationsCSV = () => {

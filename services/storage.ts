@@ -150,23 +150,49 @@ const initialAdmins: AdminUser[] = [
 
 // --- HELPERS ---
 
+// Safe localStorage wrapper that handles cases where localStorage is unavailable
+function safeLocalStorageGet(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch (error) {
+    console.warn('localStorage not available:', error);
+    return null;
+  }
+}
+
+function safeLocalStorageSet(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch (error) {
+    console.warn('localStorage not available:', error);
+  }
+}
+
+function safeLocalStorageRemove(key: string): void {
+  try {
+    localStorage.removeItem(key);
+  } catch (error) {
+    console.warn('localStorage not available:', error);
+  }
+}
+
 function getLocal<T>(key: string, defaultData: T): T {
-  const stored = localStorage.getItem(key);
+  const stored = safeLocalStorageGet(key);
   if (!stored) {
-    localStorage.setItem(key, JSON.stringify(defaultData));
+    safeLocalStorageSet(key, JSON.stringify(defaultData));
     return defaultData;
   }
   try {
     return JSON.parse(stored);
   } catch (error) {
     console.warn(`Corrupt local storage for ${key}, resetting`, error);
-    localStorage.setItem(key, JSON.stringify(defaultData));
+    safeLocalStorageSet(key, JSON.stringify(defaultData));
     return defaultData;
   }
 }
 
 function setLocal<T>(key: string, data: T): void {
-  localStorage.setItem(key, JSON.stringify(data));
+  safeLocalStorageSet(key, JSON.stringify(data));
 }
 
 // --- API SERVICE ---

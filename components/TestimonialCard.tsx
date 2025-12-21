@@ -24,9 +24,13 @@ export const TestimonialCard: React.FC<Props> = ({ data }) => {
 
   // Check local storage for previous votes by this user
   useEffect(() => {
-    const savedVote = localStorage.getItem(`vote_${data.id}_type`);
-    if (savedVote && ['likes', 'loves', 'claps'].includes(savedVote)) {
-      setCurrentVote(savedVote as ReactionType);
+    try {
+      const savedVote = localStorage.getItem(`vote_${data.id}_type`);
+      if (savedVote && ['likes', 'loves', 'claps'].includes(savedVote)) {
+        setCurrentVote(savedVote as ReactionType);
+      }
+    } catch (error) {
+      console.warn('localStorage not available:', error);
     }
   }, [data.id]);
 
@@ -37,7 +41,11 @@ export const TestimonialCard: React.FC<Props> = ({ data }) => {
       // User is clicking the same reaction -> Toggle OFF
       newCounts[type] = Math.max(0, newCounts[type] - 1);
       setCurrentVote(null);
-      localStorage.removeItem(`vote_${data.id}_type`);
+      try {
+        localStorage.removeItem(`vote_${data.id}_type`);
+      } catch (error) {
+        console.warn('localStorage not available:', error);
+      }
     } else {
       // User is switching reaction or adding new one
       
@@ -49,7 +57,11 @@ export const TestimonialCard: React.FC<Props> = ({ data }) => {
       // 2. Add new vote
       newCounts[type] = newCounts[type] + 1;
       setCurrentVote(type);
-      localStorage.setItem(`vote_${data.id}_type`, type);
+      try {
+        localStorage.setItem(`vote_${data.id}_type`, type);
+      } catch (error) {
+        console.warn('localStorage not available:', error);
+      }
     }
 
     // Update Local State immediately

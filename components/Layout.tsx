@@ -34,8 +34,13 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     loadAds();
     
     // Check local storage for initial compliance acceptance
-    const hasSeenCompliance = localStorage.getItem('grantify_compliance_seen');
-    if (!hasSeenCompliance) {
+    try {
+      const hasSeenCompliance = localStorage.getItem('grantify_compliance_seen');
+      if (!hasSeenCompliance) {
+        setShowCompliance(true);
+      }
+    } catch (error) {
+      console.warn('localStorage not available:', error);
       setShowCompliance(true);
     }
 
@@ -138,7 +143,11 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       const confirm = window.confirm("If you are using an adblocker, the loan application form may fail to submit. Are you sure you want to proceed?");
       if (!confirm) return;
     }
-    localStorage.setItem('grantify_compliance_seen', 'true');
+    try {
+      localStorage.setItem('grantify_compliance_seen', 'true');
+    } catch (error) {
+      console.warn('localStorage not available:', error);
+    }
     setShowCompliance(false);
   };
 
