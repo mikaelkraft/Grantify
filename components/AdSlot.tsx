@@ -194,16 +194,19 @@ export const AdSlot: React.FC<AdSlotProps> = ({ htmlContent, className = "", lab
     <div className={`my-4 flex flex-col items-center justify-center ${className}`}>
       <span className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">{label}</span>
       <div 
-        ref={containerRef}
-        className="w-full overflow-hidden min-h-[50px] flex items-center justify-center"
-        style={{ position: 'relative' }}
+        className="w-full overflow-hidden min-h-[50px] flex items-center justify-center relative"
       >
         {isLoading && !hasError && (
-          <div className="text-gray-400 text-xs">Loading...</div>
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
+            <div className="text-gray-400 text-xs">Loading...</div>
+          </div>
         )}
         {hasError && (
-          <div className="text-red-400 text-xs">Ad failed to load</div>
+           <div className="absolute inset-0 flex items-center justify-center bg-red-50 z-10">
+            <div className="text-red-400 text-xs">Ad failed to load</div>
+          </div>
         )}
+        <div ref={containerRef} className="w-full" />
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
--- Granti Database Schema for Neon PostgreSQL
+-- Grantify Database Schema for Neon PostgreSQL
 -- This schema includes all tables for managing loan applications, testimonials, 
 -- qualified persons, advertising, admin users, and content management.
 
