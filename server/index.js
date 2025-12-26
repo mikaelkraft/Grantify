@@ -4,7 +4,7 @@ const cors = require('cors');
 const { Pool } = require('pg');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors());
@@ -29,7 +29,7 @@ const toCamelCase = (row) => {
 // --- ROUTES ---
 
 // 1. Applications
-app.get('/applications', async (req, res) => {
+app.get('/api/applications', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM applications ORDER BY created_at DESC');
     res.json(result.rows.map(toCamelCase));
@@ -38,7 +38,7 @@ app.get('/applications', async (req, res) => {
   }
 });
 
-app.post('/applications', async (req, res) => {
+app.post('/api/applications', async (req, res) => {
   const { id, fullName, phoneNumber, email, country, amount, purpose, type, repaymentAmount, durationMonths, status, dateApplied, referralCode } = req.body;
   try {
     await pool.query(
@@ -53,7 +53,7 @@ app.post('/applications', async (req, res) => {
 });
 
 // 2. Testimonials
-app.get('/testimonials', async (req, res) => {
+app.get('/api/testimonials', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM testimonials ORDER BY created_at DESC');
     res.json(result.rows.map(toCamelCase));
@@ -62,14 +62,13 @@ app.get('/testimonials', async (req, res) => {
   }
 });
 
-app.put('/testimonials/:id', async (req, res) => {
+app.put('/api/testimonials/:id', async (req, res) => {
   const { id } = req.params;
-  const { likes, loves, claps, name, content, amount } = req.body;
+  const { likes, loves, claps, name, content, amount, status, image, date } = req.body;
   try {
-    // We update everything provided
     await pool.query(
-      `UPDATE testimonials SET likes=$1, loves=$2, claps=$3, name=$4, content=$5, amount=$6 WHERE id=$7`,
-      [likes, loves, claps, name, content, amount, id]
+      `UPDATE testimonials SET likes=$1, loves=$2, claps=$3, name=$4, content=$5, amount=$6, status=$7, image=$8, date=$9 WHERE id=$10`,
+      [likes, loves, claps, name, content, amount, status || null, image, date, id]
     );
     res.json({ success: true });
   } catch (err) {
@@ -78,7 +77,7 @@ app.put('/testimonials/:id', async (req, res) => {
 });
 
 // Bulk Save Testimonials (Wipe and Replace - Simple sync pattern)
-app.post('/testimonials', async (req, res) => {
+app.post('/api/testimonials', async (req, res) => {
   const items = req.body; // Array
   if (!Array.isArray(items)) return res.status(400).json({error: "Expected array"});
   
@@ -88,9 +87,9 @@ app.post('/testimonials', async (req, res) => {
     await client.query('DELETE FROM testimonials');
     for (const t of items) {
       await client.query(
-        `INSERT INTO testimonials (id, name, image, amount, content, likes, loves, claps, date)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-        [t.id, t.name, t.image, t.amount, t.content, t.likes, t.loves, t.claps, t.date]
+        `INSERT INTO testimonials (id, name, image, amount, content, likes, loves, claps, date, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        [t.id, t.name, t.image, t.amount, t.content, t.likes, t.loves, t.claps, t.date, t.status || null]
       );
     }
     await client.query('COMMIT');
@@ -104,7 +103,7 @@ app.post('/testimonials', async (req, res) => {
 });
 
 // 3. Qualified Persons
-app.get('/qualified', async (req, res) => {
+app.get('/api/qualified', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM qualified_persons');
     res.json(result.rows.map(toCamelCase));
@@ -114,7 +113,7 @@ app.get('/qualified', async (req, res) => {
 });
 
 // Bulk Save Qualified
-app.post('/qualified', async (req, res) => {
+app.post('/api/qualified', async (req, res) => {
   const items = req.body;
   const client = await pool.connect();
   try {
@@ -137,7 +136,7 @@ app.post('/qualified', async (req, res) => {
 });
 
 // 4. Ads (Single Row ID=1)
-app.get('/ads', async (req, res) => {
+app.get('/api/ads', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM ads WHERE id=1');
     if (result.rows.length > 0) res.json(toCamelCase(result.rows[0]));
@@ -147,7 +146,7 @@ app.get('/ads', async (req, res) => {
   }
 });
 
-app.post('/ads', async (req, res) => {
+app.post('/api/ads', async (req, res) => {
   const { head, header, body, sidebar, footer } = req.body;
   try {
     await pool.query(
@@ -164,7 +163,7 @@ app.post('/ads', async (req, res) => {
 });
 
 // 5. Admins
-app.get('/admins', async (req, res) => {
+app.get('/api/admins', async (req, res) => {
   try {
     const result = await pool.query('SELECT id, username, role, name, password_hash FROM admin_users');
     res.json(result.rows.map(r => ({
@@ -179,7 +178,7 @@ app.get('/admins', async (req, res) => {
   }
 });
 
-app.post('/admins', async (req, res) => {
+app.post('/api/admins', async (req, res) => {
   const items = req.body;
   const client = await pool.connect();
   try {
@@ -201,7 +200,7 @@ app.post('/admins', async (req, res) => {
   }
 });
 
-app.post('/auth/login', async (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   const { username, password } = req.body;
   try {
     const result = await pool.query('SELECT * FROM admin_users WHERE username = $1 AND password_hash = $2', [username, password]);
@@ -223,7 +222,7 @@ app.post('/auth/login', async (req, res) => {
 });
 
 // 6. Repayment Content
-app.get('/content/repayment', async (req, res) => {
+app.get('/api/content/repayment', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM repayment_content WHERE id=1');
     if (result.rows.length > 0) {
@@ -240,7 +239,7 @@ app.get('/content/repayment', async (req, res) => {
   }
 });
 
-app.post('/content/repayment', async (req, res) => {
+app.post('/api/content/repayment', async (req, res) => {
   const { introText, standardNote, fastTrackNote } = req.body;
   try {
     await pool.query(
@@ -258,7 +257,7 @@ app.post('/content/repayment', async (req, res) => {
 
 // 7. Database Seeding Endpoint
 // This endpoint seeds the database with initial mock data if tables are empty
-app.post('/seed', async (req, res) => {
+app.post('/api/seed', async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
