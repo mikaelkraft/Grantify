@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "vite",
     "dev:all": "concurrently \"npm run server\" \"npm run dev\"",
+    "seed": "node --env-file=.env scripts/manual-seed.js",
     "server": "node server/index.js",
     "build": "vite build",
     "preview": "vite preview"
