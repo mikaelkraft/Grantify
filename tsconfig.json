@@ -1,4 +1,6 @@
 {
+  "include": ["src", "api", "types.ts", "components", "pages", "App.tsx", "main.tsx", "vite.config.ts"],
+  "exclude": ["node_modules", "server", "dist"],
   "compilerOptions": {
     "target": "ES2022",
     "experimentalDecorators": true,
