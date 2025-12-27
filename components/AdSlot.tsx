@@ -49,13 +49,15 @@ export const AdSlot: React.FC<AdSlotProps> = ({ htmlContent, className = "", lab
     temp.innerHTML = htmlContent;
 
     // Find all script elements and handle them specially
-    const scripts = temp.getElementsByTagName('script');
-    const scriptsArray = Array.from(scripts);
+    // const scripts = temp.getElementsByTagName('script');
+    // const scriptsArray = Array.from(scripts); 
+    // MOVED: We need to find them in the REAL DOM to replace them.
 
-    // Remove scripts from temp (they'll be added separately)
-    scriptsArray.forEach(script => script.remove());
+    // Remove scripts from temp? NO. Leave them so they are added to DOM.
+    // They won't execute yet because we are adding via innerHTML/Fragment.
+    // scriptsArray.forEach(script => script.remove());
 
-    // Add non-script content first
+    // Add content (including dead scripts) first
     if (temp.innerHTML.trim()) {
       const range = document.createRange();
       range.selectNode(containerRef.current);
@@ -69,6 +71,8 @@ export const AdSlot: React.FC<AdSlotProps> = ({ htmlContent, className = "", lab
     }
 
     // Load scripts sequentially to maintain execution order
+    const scripts = containerRef.current.getElementsByTagName('script');
+    const scriptsArray = Array.from(scripts);
     loadScriptsSequentially(scriptsArray);
   };
 
@@ -85,11 +89,7 @@ export const AdSlot: React.FC<AdSlotProps> = ({ htmlContent, className = "", lab
 
   const loadSingleScript = (originalScript: HTMLScriptElement): Promise<void> => {
     return new Promise((resolve, reject) => {
-      if (!containerRef.current) {
-        resolve();
-        return;
-      }
-
+      // Create new script element
       const newScript = document.createElement('script');
       
       // Copy all attributes
@@ -101,15 +101,9 @@ export const AdSlot: React.FC<AdSlotProps> = ({ htmlContent, className = "", lab
       if (originalScript.src) {
         const scriptSrc = originalScript.src;
         
-        // Check if this script was already loaded globally
-        if (scriptsLoadedRef.current.has(scriptSrc)) {
-          // Script already loaded, try to re-initialize if needed
-          triggerAdRefresh(scriptSrc);
-          resolve();
-          return;
-        }
-
-        // Set up load handlers
+        // Simple dedupe for global libraries if needed
+        // For nested ads, we might want to re-run them if they are specific to the slot
+        
         newScript.onload = () => {
           scriptsLoadedRef.current.add(scriptSrc);
           triggerAdRefresh(scriptSrc);
@@ -121,11 +115,10 @@ export const AdSlot: React.FC<AdSlotProps> = ({ htmlContent, className = "", lab
           reject(new Error(`Script load failed: ${scriptSrc}`));
         };
 
-        // For async scripts, don't wait
+        // For async scripts, don't wait but still execute
         if (newScript.hasAttribute('async')) {
-          containerRef.current?.appendChild(newScript);
-          resolve();
-          return;
+           // We resolve immediately for async so next scripts don't wait
+           resolve();
         }
       } else {
         // Inline script - copy content
@@ -134,11 +127,17 @@ export const AdSlot: React.FC<AdSlotProps> = ({ htmlContent, className = "", lab
         }
       }
       
-      // Append script to trigger execution
+      // CRITICAL CHANGE: Replace the original script IN PLACE
+      // This preserves the DOM hierarchy (e.g. script inside <ins>)
       try {
-        containerRef.current?.appendChild(newScript);
+        if (originalScript.parentNode) {
+          originalScript.parentNode.replaceChild(newScript, originalScript);
+        } else {
+          // Fallback if somehow detached (shouldn't happen with current logic)
+          containerRef.current?.appendChild(newScript);
+        }
         
-        // For inline scripts and defer scripts, resolve immediately
+        // For inline/defer, resolve quickly
         if (!originalScript.src || newScript.hasAttribute('defer')) {
           setTimeout(resolve, 50);
         }
