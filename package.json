@@ -19,7 +19,10 @@
     "pg": "^8.13.1",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "react-router-dom": "^7.10.1"
+    "react-router-dom": "^7.10.1",
+    "express": "^4.21.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
