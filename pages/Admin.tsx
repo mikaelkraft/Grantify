@@ -8,8 +8,16 @@ import { formatNaira } from '../utils/currency';
 const DEFAULT_AVATAR_FALLBACK = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="50" fill="%23006400"/%3E%3Ctext x="50" y="55" font-size="40" text-anchor="middle" fill="white"%3E%3F%3C/text%3E%3C/svg%3E';
 
 export const Admin: React.FC = () => {
-  // Admin session is not persisted - require login each time
-  const [user, setUser] = useState<AdminUser | null>(null);
+  // Admin session persisted via localStorage
+  const [user, setUser] = useState<AdminUser | null>(() => {
+    try {
+      const saved = localStorage.getItem('admin_session');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      console.error('Failed to restore session', e);
+      return null;
+    }
+  });
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   
@@ -84,7 +92,8 @@ export const Admin: React.FC = () => {
       const admin = await ApiService.login(loginForm.username, loginForm.password);
       if (admin) {
         setUser(admin);
-        // Session stored in React state only (no localStorage)
+        setUser(admin);
+        localStorage.setItem('admin_session', JSON.stringify(admin));
       } else {
         alert('Invalid credentials');
       }
@@ -95,7 +104,8 @@ export const Admin: React.FC = () => {
 
   const handleLogout = () => {
     setUser(null);
-    // Session cleared from React state (no localStorage)
+    setUser(null);
+    localStorage.removeItem('admin_session');
   };
 
   const exportApplicationsCSV = () => {
