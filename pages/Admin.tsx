@@ -702,7 +702,7 @@ export const Admin: React.FC = () => {
                     </div>
                   )}
                   <div className="space-y-4">
-                    {Object.keys(ads).map((key) => (
+                    {Object.keys(ads).filter(key => key !== 'id').map((key) => (
                       <div key={key}>
                         <label className="block text-sm font-bold uppercase text-gray-600 mb-1">{key} Code</label>
                         <textarea 
