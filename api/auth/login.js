@@ -1,4 +1,4 @@
-// API: POST /api/auth/login - Admin login
+// API: POST /api/auth/login - Admins login
 
 import pool from '../_db.js';
 
