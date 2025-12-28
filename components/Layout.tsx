@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AdSlot } from './AdSlot';
+import { AdverticaBanner } from './AdverticaBanner';
 import { ApiService } from '../services/storage';
 import { AdConfig } from '../types';
 import { Menu, X, Banknote, AlertTriangle, ShieldAlert, RefreshCw, HelpCircle } from 'lucide-react';
@@ -154,6 +155,17 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 relative">
       
+      {/* Floating Promo Button (Advertica Direct Link) */}
+      <a 
+        href="https://data527.click/eccd43ec29181253638a/951b5a4643/?placementName=default"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 animate-pulse flex items-center gap-2"
+      >
+        <span>🎁</span>
+        <span>Claim Free Bonus!</span>
+      </a>
+
       {/* Compliance Warning Modal */}
       {showCompliance && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
@@ -307,14 +319,12 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             {children}
         </div>
         
-        {/* Sidebar Ad (Only on larger screens for layout logic) */}
-        {ads && ads.sidebar && (
-          <aside className="hidden lg:block w-[300px] flex-shrink-0">
-             <div className="sticky top-24">
-                <AdSlot htmlContent={ads.sidebar} />
-             </div>
-          </aside>
-        )}
+        {/* Sidebar Ad (Only on larger screens) */}
+        <aside className="hidden lg:block w-[300px] flex-shrink-0">
+           <div className="sticky top-24">
+              <AdverticaBanner />
+           </div>
+        </aside>
       </main>
 
       {/* Footer Ad */}
