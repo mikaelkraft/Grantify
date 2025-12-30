@@ -341,11 +341,19 @@ export const Home: React.FC = () => {
         
         <div className="md:col-span-3 space-y-6">
           
+          {/* Advertica Responsive Banner (Pre-Form) */}
+          <AdverticaResponsiveBanner placement="home_pre_form" />
+
           {/* Loan Application Form */}
           <div className="bg-white p-6 md:p-8 rounded-xl shadow-md border-t-4 border-grantify-green">
             <div className="flex items-center gap-2 mb-6">
               <Calculator className="text-grantify-green" />
               <h2 className="text-2xl font-bold font-heading text-gray-800">Loan Application</h2>
+            </div>
+            
+            {/* Advertica Banner Inside Form Header */}
+            <div className="mb-6 flex justify-center">
+               <AdverticaBanner />
             </div>
             
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -686,6 +694,11 @@ export const Home: React.FC = () => {
           {/* Advertica Banner Slot 3 (Home Page Bottom) */}
           <div className="mt-8 flex justify-center bg-white/10 p-4 rounded-xl backdrop-blur-sm">
             <AdverticaBanner />
+          </div>
+          
+          {/* Final Bottom Responsive Impact */}
+          <div className="mt-4">
+             <AdverticaResponsiveBanner placement="home_bottom_final" />
           </div>
 
           <p className="mt-6 text-xs text-blue-200 opacity-80">

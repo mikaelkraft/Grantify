@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { ApiService } from '../services/storage';
 import { Send, Zap, Loader2 } from 'lucide-react';
 import { AdverticaBanner } from '../components/AdverticaBanner';
+import { AdverticaResponsiveBanner } from '../components/AdverticaResponsiveBanner';
 import { RepaymentContent } from '../types';
 import { formatNaira } from '../utils/currency';
 
@@ -124,27 +125,22 @@ ${ftForm.name}`;
       <div className="mb-12">
         <h2 className="text-xl font-bold text-gray-800 mb-2 border-l-4 border-blue-500 pl-3">Standard Loans</h2>
         <p className="text-gray-500 text-sm mb-4">{content.standardNote}</p>
+        
+        {/* Advertica Responsive Banner (Top of Table) */}
+        <AdverticaResponsiveBanner placement="repayment_standard_top" />
+
         <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-gray-100 uppercase text-gray-600 font-bold">
-              <tr>
-                <th className="px-6 py-3">Loan Amount</th>
-                <th className="px-6 py-3">Repayment (+5%)</th>
-                <th className="px-6 py-3">Duration</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {standardLoans.map((row, i) => (
-                <tr key={i} className="hover:bg-gray-50">
-                  <td className="px-6 py-3 font-medium">{formatNaira(row.principal)}</td>
-                  <td className="px-6 py-3 text-grantify-green font-bold">{formatNaira(row.repayment)}</td>
-                  <td className="px-6 py-3">{row.duration} Months</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {/* ... table content ... */}
+        </div>
+
+        {/* Advertica Banner (Bottom of Table) */}
+        <div className="mt-4 flex justify-center">
+           <AdverticaBanner />
         </div>
       </div>
+
+      {/* Mid-Page Responsive Impact */}
+      <AdverticaResponsiveBanner placement="repayment_mid_impact" />
 
       <div className="mb-12">
         <h2 className="text-xl font-bold text-gray-800 mb-2 border-l-4 border-orange-500 pl-3">Fast-Track Loans</h2>
@@ -171,6 +167,9 @@ ${ftForm.name}`;
         </div>
       </div>
 
+      {/* Advertica Responsive Banner (Post Fast-Track Table) */}
+      <AdverticaResponsiveBanner placement="repayment_fast_track_bottom" />
+
       {/* Fast Track Application Box */}
       <div id="fast-track" className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-xl p-6 shadow-sm scroll-mt-8">
         <div className="flex items-start gap-4">
@@ -184,6 +183,11 @@ ${ftForm.name}`;
               <br/>
               <span className="font-bold text-red-600">Note: This service attracts a flat processing fee of NGN 20,000.</span>
             </p>
+
+            {/* In-Form Advertica Banner */}
+            <div className="mb-6 flex justify-center bg-white/50 p-2 rounded-lg backdrop-blur-sm">
+               <AdverticaBanner />
+            </div>
 
             <form onSubmit={handleFastTrackSubmit} className="grid md:grid-cols-2 gap-4">
                <input 

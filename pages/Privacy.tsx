@@ -1,5 +1,6 @@
 import React from 'react';
 import { AdverticaBanner } from '../components/AdverticaBanner';
+import { AdverticaResponsiveBanner } from '../components/AdverticaResponsiveBanner';
 
 export const Privacy: React.FC = () => {
   return (
@@ -12,6 +13,9 @@ export const Privacy: React.FC = () => {
       </div>
 
       <div className="space-y-6 text-gray-700 text-sm leading-relaxed">
+        {/* Advertica Responsive Impact (Top of Privacy) */}
+        <AdverticaResponsiveBanner placement="privacy_top_impact" />
+        
         <section>
           <h2 className="text-lg font-bold text-gray-900 mb-2">1. Data Collection</h2>
           <p>At Grantify, we prioritize the protection of your personal data. We collect information necessary to process your loan applications and verify your identity, including:</p>

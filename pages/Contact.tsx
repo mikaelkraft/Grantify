@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Send, Mail, Phone, MapPin, CheckCircle } from 'lucide-react';
 import { AdverticaBanner } from '../components/AdverticaBanner';
+import { AdverticaResponsiveBanner } from '../components/AdverticaResponsiveBanner';
 
 export const Contact: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -99,7 +100,15 @@ Sent from Grantify Contact Form`;
         </div>
       </div>
 
+      {/* Advertica Responsive Banner (Pre-Form) */}
+      <AdverticaResponsiveBanner placement="contact_pre_form" />
+
       <div className="max-w-2xl mx-auto">
+         {/* Advertica Banner within contact area */}
+         <div className="mb-6 flex justify-center border-b border-gray-100 pb-4">
+            <AdverticaBanner />
+         </div>
+
         <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-xl p-6 shadow-sm">
           <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
             <Send size={20} className="text-grantify-green" />

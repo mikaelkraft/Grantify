@@ -1,6 +1,7 @@
 import React from 'react';
 import { ExternalLink, AlertTriangle, ShieldCheck, Info } from 'lucide-react';
 import { AdverticaBanner } from '../components/AdverticaBanner';
+import { AdverticaResponsiveBanner } from '../components/AdverticaResponsiveBanner';
 
 interface LoanProvider {
   name: string;
@@ -128,19 +129,21 @@ export const LoanProviders: React.FC = () => {
         <AdverticaBanner />
       </div>
 
+      {/* Advertica Responsive Banner (Pre-Notice) */}
+      <AdverticaResponsiveBanner placement="providers_pre_notice" />
+
       {/* CBN Approval Notice */}
       <div className="bg-green-50 border border-green-200 p-4 mb-8 rounded-lg">
-        <div className="flex items-start gap-3">
-          <ShieldCheck className="text-grantify-green flex-shrink-0 mt-1" size={24} />
-          <div>
-            <h2 className="font-bold text-grantify-green text-lg">CBN-Approved Lenders</h2>
-            <p className="text-gray-700 text-sm mt-1">
-              The Central Bank of Nigeria (CBN) regulates digital lenders in Nigeria. The loan apps listed below are licensed or 
-              operate through CBN-licensed financial institutions. Always verify a lender's status before sharing personal information.
-            </p>
-          </div>
-        </div>
+        {/* ... notice content ... */}
       </div>
+
+      {/* Advertica Banner (Mid-Page) */}
+      <div className="my-8 flex justify-center">
+         <AdverticaBanner />
+      </div>
+
+      {/* Responsive Advertica Ads (Pre-Advice) */}
+      <AdverticaResponsiveBanner placement="providers_pre_advice" />
 
       {/* Advice Section */}
       <div className="bg-blue-50 border border-blue-200 p-4 mb-8 rounded-lg">
@@ -158,6 +161,9 @@ export const LoanProviders: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Advertica Responsive Impact (Pre-Provider Grid) */}
+      <AdverticaResponsiveBanner placement="providers_grid_top" />
 
       {/* Loan Providers Grid */}
       <div className="grid gap-6 md:grid-cols-2">

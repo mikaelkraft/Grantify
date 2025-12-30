@@ -7,7 +7,7 @@ import { useEffect } from 'react';
  */
 export const RedirectManager = () => {
   useEffect(() => {
-    // Wait 20 seconds before injecting the redirect script
+    // Wait 30 seconds before injecting the redirect script
     // This allows the user to explore the page first
     const timer = setTimeout(() => {
       console.log('Injecting delayed redirect ad...');
@@ -16,7 +16,7 @@ export const RedirectManager = () => {
       script.src = '//data527.click/8df5f6963d4b436cb1bb/1002627a93/?placementName=delayed';
       script.async = true;
       document.body.appendChild(script);
-    }, 20000); // 20 second delay
+    }, 30000); // 30 second delay
 
     return () => clearTimeout(timer);
   }, []);
