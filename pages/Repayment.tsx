@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { ApiService } from '../services/storage';
 import { Send, Zap, Loader2 } from 'lucide-react';
+import { AdverticaBanner } from '../components/AdverticaBanner';
 import { RepaymentContent } from '../types';
 import { formatNaira } from '../utils/currency';
 
@@ -115,6 +116,11 @@ ${ftForm.name}`;
         {content.introText}
       </p>
 
+      {/* Advertica Banner Slot 1 */}
+      <div className="my-8 flex justify-center">
+        <AdverticaBanner />
+      </div>
+
       <div className="mb-12">
         <h2 className="text-xl font-bold text-gray-800 mb-2 border-l-4 border-blue-500 pl-3">Standard Loans</h2>
         <p className="text-gray-500 text-sm mb-4">{content.standardNote}</p>
@@ -221,6 +227,12 @@ ${ftForm.name}`;
             </p>
           </div>
         </div>
+      </div>
+
+
+      {/* Advertica Banner Slot 2 */}
+      <div className="mt-12 flex justify-center bg-gray-50 p-4 rounded-xl">
+        <AdverticaBanner />
       </div>
 
     </div>

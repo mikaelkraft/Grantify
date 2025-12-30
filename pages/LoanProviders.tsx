@@ -1,5 +1,6 @@
 import React from 'react';
 import { ExternalLink, AlertTriangle, ShieldCheck, Info } from 'lucide-react';
+import { AdverticaBanner } from '../components/AdverticaBanner';
 
 interface LoanProvider {
   name: string;
@@ -122,6 +123,11 @@ export const LoanProviders: React.FC = () => {
         </div>
       </div>
 
+      {/* Advertica Banner Slot 1 */}
+      <div className="my-8 flex justify-center">
+        <AdverticaBanner />
+      </div>
+
       {/* CBN Approval Notice */}
       <div className="bg-green-50 border border-green-200 p-4 mb-8 rounded-lg">
         <div className="flex items-start gap-3">
@@ -197,6 +203,11 @@ export const LoanProviders: React.FC = () => {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Advertica Banner Slot 2 */}
+      <div className="my-10 flex justify-center bg-gray-50 p-4 rounded-xl">
+        <AdverticaBanner />
       </div>
 
       {/* Final Notes */}

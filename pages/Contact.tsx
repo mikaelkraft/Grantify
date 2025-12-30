@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Send, Mail, Phone, MapPin, CheckCircle } from 'lucide-react';
+import { AdverticaBanner } from '../components/AdverticaBanner';
 
 export const Contact: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -60,6 +61,11 @@ Sent from Grantify Contact Form`;
       <p className="text-lg text-gray-700 mb-8 max-w-3xl">
         Have questions about our loan services or need assistance? We're here to help! Fill out the form below and our team will get back to you as soon as possible.
       </p>
+
+      {/* Advertica Banner Slot 1 */}
+      <div className="my-8 flex justify-center">
+        <AdverticaBanner />
+      </div>
 
       <div className="grid md:grid-cols-3 gap-8 mb-10">
         <div className="flex items-start gap-4 p-4 bg-green-50 rounded-lg border border-green-100">
@@ -181,6 +187,12 @@ Sent from Grantify Contact Form`;
           </form>
         </div>
       </div>
+      
+      {/* Advertica Banner Slot 2 */}
+      <div className="mt-12 flex justify-center bg-gray-50 p-4 rounded-xl">
+        <AdverticaBanner />
+      </div>
+
     </div>
   );
 };

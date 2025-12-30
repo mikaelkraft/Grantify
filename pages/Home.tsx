@@ -302,12 +302,37 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* Advertica Banner for Mobile & Desktop visibility */}
+      {/* Advertica Banner Slot 1 */}
       <div className="flex justify-center -my-4">
         <AdverticaBanner />
       </div>
 
-      {/* Loan Form & Sidebar */}
+      {/* Stats Section */}
+      <section className="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="text-center p-4 border-r border-gray-100 last:border-0">
+               <div className="text-2xl md:text-3xl font-bold text-grantify-green">50k+</div>
+               <div className="text-xs text-gray-500 uppercase tracking-wider">Active Users</div>
+            </div>
+            <div className="text-center p-4 border-r border-gray-100 last:border-0">
+               <div className="text-2xl md:text-3xl font-bold text-grantify-green">N1.2B+</div>
+               <div className="text-xs text-gray-500 uppercase tracking-wider">Disbursed</div>
+            </div>
+            <div className="text-center p-4 border-r border-gray-100 last:border-0">
+               <div className="text-2xl md:text-3xl font-bold text-grantify-green">98%</div>
+               <div className="text-xs text-gray-500 uppercase tracking-wider">Satisfaction</div>
+            </div>
+            <div className="text-center p-4">
+               <div className="text-2xl md:text-3xl font-bold text-grantify-green">24/7</div>
+               <div className="text-xs text-gray-500 uppercase tracking-wider">Support</div>
+            </div>
+         </div>
+      </section>
+
+      {/* Advertica Banner Slot 2 */}
+      <div className="flex justify-center">
+        <AdverticaBanner />
+      </div>
       <section id="apply" className="grid md:grid-cols-5 gap-8">
         
         <div className="md:col-span-3 space-y-6">
@@ -650,6 +675,12 @@ export const Home: React.FC = () => {
               <ExternalLink size={18} /> View Loan Providers
             </Link>
           </div>
+
+          {/* Advertica Banner Slot 3 (Home Page Bottom) */}
+          <div className="mt-8 flex justify-center bg-white/10 p-4 rounded-xl backdrop-blur-sm">
+            <AdverticaBanner />
+          </div>
+
           <p className="mt-6 text-xs text-blue-200 opacity-80">
             <Info size={12} className="inline mr-1" />
             Grantify does not offer loans directly. We help you find legitimate options for informational purposes.

@@ -1,10 +1,16 @@
 import React from 'react';
+import { AdverticaBanner } from '../components/AdverticaBanner';
 
 export const Terms: React.FC = () => {
   return (
     <div className="bg-white p-8 rounded-lg shadow-sm max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold font-heading text-grantify-green mb-6">Terms and Conditions</h1>
       
+      {/* Advertica Banner Slot 1 */}
+      <div className="my-8 flex justify-center">
+        <AdverticaBanner />
+      </div>
+
       <div className="space-y-6 text-gray-700 text-sm leading-relaxed">
         <section>
           <h2 className="text-lg font-bold text-gray-900 mb-2">1. Introduction</h2>
@@ -57,6 +63,12 @@ export const Terms: React.FC = () => {
           <p className="text-xs text-gray-500">Last Updated: June 2025</p>
         </div>
       </div>
+
+      {/* Advertica Banner Slot 2 */}
+      <div className="mt-12 flex justify-center bg-gray-50 p-4 rounded-xl">
+        <AdverticaBanner />
+      </div>
+
     </div>
   );
 };
