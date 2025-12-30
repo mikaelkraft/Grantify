@@ -150,38 +150,12 @@ export const AdSlot: React.FC<AdSlotProps> = ({ htmlContent, className = "", lab
   // Trigger ad network refresh/initialization
   const triggerAdRefresh = (scriptSrc: string) => {
     try {
-      // Google AdSense
-      if (scriptSrc.includes('adsbygoogle')) {
-        if (window.adsbygoogle) {
-          window.adsbygoogle.push({});
-        }
-      }
-      
-      // Propeller Ads
-      if (scriptSrc.includes('propellerads') || scriptSrc.includes('propeller')) {
-        // Propeller ads typically auto-initialize
-        console.log('Propeller Ads script loaded');
+      // Propeller Ads / Generic Refresh
+      if (scriptSrc.includes('propellerads') || scriptSrc.includes('propeller') || scriptSrc.includes('advertica')) {
+        console.log('Ad script loaded successfully');
       }
 
-      // Generic ad refresh
-      setTimeout(() => {
-        // Check if there are any ins elements for AdSense
-        const adsenseElements = containerRef.current?.querySelectorAll('ins.adsbygoogle');
-        if (adsenseElements && adsenseElements.length > 0) {
-          adsenseElements.forEach((el) => {
-            const adElement = el as HTMLElement;
-            if (!adElement.getAttribute('data-adsbygoogle-status')) {
-              try {
-                if (window.adsbygoogle) {
-                  window.adsbygoogle.push({});
-                }
-              } catch (e) {
-                console.warn('AdSense push failed:', e);
-              }
-            }
-          });
-        }
-      }, 100);
+      // Add other network-specific refresh triggers here if needed
     } catch (error) {
       console.warn('Error triggering ad refresh:', error);
     }

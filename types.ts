@@ -81,6 +81,6 @@ export interface ReferralData {
 // Ad network type definitions for window object
 declare global {
   interface Window {
-    adsbygoogle?: any[];
+    // Custom window properties if needed
   }
 }
