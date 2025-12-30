@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AdSlot } from './AdSlot';
 import { AdverticaBanner } from './AdverticaBanner';
+import { AdverticaResponsiveBanner } from './AdverticaResponsiveBanner';
 import { AdSenseMultiplex } from './AdSenseMultiplex';
+import { RedirectManager } from './RedirectManager';
 import { ApiService } from '../services/storage';
 import { AdConfig } from '../types';
 import { Menu, X, Banknote, AlertTriangle, ShieldAlert, RefreshCw, HelpCircle } from 'lucide-react';
@@ -153,6 +155,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 relative">
+      <RedirectManager />
       
       {/* Floating Promo Button (Advertica Direct Link) */}
       <a 
@@ -328,6 +331,9 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
       {/* AdSense Multiplex Ad (Native style) */}
       <AdSenseMultiplex />
+
+      {/* Responsive Advertica Banner (Footer area) */}
+      <AdverticaResponsiveBanner placement="layout_footer" />
 
       {/* Footer Ad */}
       {ads && <AdSlot htmlContent={ads.footer} className="bg-gray-900" label="Sponsor" />}

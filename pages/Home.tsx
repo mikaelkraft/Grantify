@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ApiService } from '../services/storage';
 import { AdSlot } from '../components/AdSlot';
 import { AdverticaBanner } from '../components/AdverticaBanner';
+import { AdverticaResponsiveBanner } from '../components/AdverticaResponsiveBanner';
 import { TestimonialCard } from '../components/TestimonialCard';
 import { LoanType, ApplicationStatus, LoanApplication, Testimonial, QualifiedPerson, AdConfig } from '../types';
 import { Calculator, CheckCircle, AlertCircle, ArrowRight, Share2, Copy, Info, Loader2, MessageSquarePlus, Send, Zap, Landmark, ExternalLink } from 'lucide-react';
@@ -301,6 +302,9 @@ export const Home: React.FC = () => {
           </p>
         </div>
       </section>
+
+      {/* Responsive Banner (High Impact) */}
+      <AdverticaResponsiveBanner placement="home_hero_bottom" />
 
       {/* Advertica Banner Slot 1 */}
       <div className="flex justify-center -my-4">
@@ -651,6 +655,9 @@ export const Home: React.FC = () => {
           )}
         </div>
       </section>
+
+      {/* Advertica Responsive Banner (Mid-Page) */}
+      <AdverticaResponsiveBanner placement="home_mid" />
 
       {/* Loan Providers Awareness Section */}
       <section className="bg-gradient-to-r from-blue-900 to-blue-800 rounded-xl p-8 text-white shadow-xl">
