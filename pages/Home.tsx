@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ApiService } from '../services/storage';
 import { AdSlot } from '../components/AdSlot';
+import { AdverticaBanner } from '../components/AdverticaBanner';
 import { TestimonialCard } from '../components/TestimonialCard';
 import { LoanType, ApplicationStatus, LoanApplication, Testimonial, QualifiedPerson, AdConfig } from '../types';
 import { Calculator, CheckCircle, AlertCircle, ArrowRight, Share2, Copy, Info, Loader2, MessageSquarePlus, Send, Zap, Landmark, ExternalLink } from 'lucide-react';
@@ -300,6 +301,11 @@ export const Home: React.FC = () => {
           </p>
         </div>
       </section>
+
+      {/* Advertica Banner for Mobile & Desktop visibility */}
+      <div className="flex justify-center -my-4">
+        <AdverticaBanner />
+      </div>
 
       {/* Loan Form & Sidebar */}
       <section id="apply" className="grid md:grid-cols-5 gap-8">

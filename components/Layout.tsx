@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AdSlot } from './AdSlot';
 import { AdverticaBanner } from './AdverticaBanner';
+import { AdSenseMultiplex } from './AdSenseMultiplex';
 import { ApiService } from '../services/storage';
 import { AdConfig } from '../types';
 import { Menu, X, Banknote, AlertTriangle, ShieldAlert, RefreshCw, HelpCircle } from 'lucide-react';
@@ -34,9 +35,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     
     loadAds();
     
-    // Always show compliance modal on first page load (no localStorage)
-    setShowCompliance(true);
-
+    // Modal only shows if adblocker/VPN detected (not on every page load)
     // Adblock Detection - run after a delay to ensure page is loaded
     const detectAdBlock = () => {
       const bait = document.createElement('div');
@@ -326,6 +325,9 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
            </div>
         </aside>
       </main>
+
+      {/* AdSense Multiplex Ad (Native style) */}
+      <AdSenseMultiplex />
 
       {/* Footer Ad */}
       {ads && <AdSlot htmlContent={ads.footer} className="bg-gray-900" label="Sponsor" />}
