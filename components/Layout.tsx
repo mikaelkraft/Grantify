@@ -3,7 +3,6 @@ import { Link, useLocation } from 'react-router-dom';
 import { AdSlot } from './AdSlot';
 import { AdverticaBanner } from './AdverticaBanner';
 import { AdverticaResponsiveBanner } from './AdverticaResponsiveBanner';
-import { RedirectManager } from './RedirectManager';
 import { ApiService } from '../services/storage';
 import { AdConfig } from '../types';
 import { Menu, X, Banknote, AlertTriangle, ShieldAlert, RefreshCw, HelpCircle } from 'lucide-react';
@@ -154,7 +153,6 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 relative">
-      <RedirectManager />
       
       {/* Floating Promo Button (Advertica Direct Link) */}
       <a 
@@ -340,16 +338,6 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
       {/* Responsive Advertica Banner (Footer area) */}
       <AdverticaResponsiveBanner placement="layout_footer" />
-
-      {/* Sticky Bottom Ad Overlay */}
-      <div className="fixed bottom-0 left-0 right-0 z-[60] flex justify-center pointer-events-none">
-         <div className="bg-white/90 backdrop-blur shadow-[0_-4px_10px_rgba(0,0,0,0.1)] p-2 rounded-t-xl border-x border-t border-gray-200 pointer-events-auto max-w-full overflow-x-auto">
-            <div className="flex flex-col items-center">
-               <span className="text-[9px] text-gray-400 uppercase mb-1">Sponsored</span>
-               <AdverticaBanner />
-            </div>
-         </div>
-      </div>
 
       {/* Footer Ad */}
       {ads && <AdSlot htmlContent={ads.footer} className="bg-gray-900" label="Sponsor" />}
