@@ -40,9 +40,9 @@ export const AdverticaBanner: React.FC = () => {
   }, []);
 
   return (
-    <div className="my-4 flex flex-col items-center justify-center">
+    <div className="my-4 flex flex-col items-center justify-center w-full overflow-hidden">
       <span className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Advertisement</span>
-      <div ref={containerRef} style={{minWidth: '300px', minHeight: '250px'}} />
+      <div ref={containerRef} className="max-w-full flex justify-center" style={{minHeight: '250px'}} />
     </div>
   );
 };

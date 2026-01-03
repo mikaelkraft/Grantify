@@ -110,7 +110,7 @@ ${ftForm.name}`;
   }
 
   return (
-    <div className="bg-white p-8 rounded-lg shadow-sm">
+    <div className="bg-white p-4 md:p-8 rounded-lg shadow-sm">
       <h1 className="text-3xl font-bold font-heading text-grantify-green mb-6">Repayment Plan</h1>
       
       <p className="text-lg text-gray-700 mb-8 max-w-3xl">

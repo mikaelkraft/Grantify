@@ -273,7 +273,7 @@ export const Home: React.FC = () => {
     <div className="space-y-12 animate-in fade-in duration-500">
       
       {/* Hero */}
-      <section className="bg-grantify-green text-white rounded-2xl p-8 md:p-12 text-center shadow-xl relative overflow-hidden">
+      <section className="bg-grantify-green text-white rounded-2xl p-4 md:p-12 text-center shadow-xl relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
         <div className="relative z-10">
           <h1 className="text-3xl md:text-5xl font-bold font-heading mb-4 text-grantify-gold">
@@ -345,7 +345,7 @@ export const Home: React.FC = () => {
           <AdverticaResponsiveBanner placement="home_pre_form" />
 
           {/* Loan Application Form */}
-          <div className="bg-white p-6 md:p-8 rounded-xl shadow-md border-t-4 border-grantify-green">
+          <div className="bg-white p-4 md:p-8 rounded-xl shadow-md border-t-4 border-grantify-green">
             <div className="flex items-center gap-2 mb-6">
               <Calculator className="text-grantify-green" />
               <h2 className="text-2xl font-bold font-heading text-gray-800">Loan Application</h2>
@@ -537,7 +537,7 @@ export const Home: React.FC = () => {
       </section>
 
       {/* Testimonials */}
-      <section className="bg-green-50 rounded-xl p-8">
+      <section className="bg-green-50 rounded-xl p-4 md:p-8">
         <h2 className="text-2xl font-bold font-heading text-center text-grantify-green mb-8">Success Stories</h2>
         <div className="grid md:grid-cols-3 gap-6">
           {visibleTestimonials.map(t => (
@@ -559,7 +559,7 @@ export const Home: React.FC = () => {
       </section>
 
       {/* Share Your Story Form */}
-      <section className="bg-white rounded-xl p-8 shadow-md border-t-4 border-grantify-gold">
+      <section className="bg-white rounded-xl p-4 md:p-8 shadow-md border-t-4 border-grantify-gold">
         <div className="max-w-2xl mx-auto">
           <div className="flex items-center gap-3 mb-6">
             <MessageSquarePlus className="text-grantify-gold" size={28} />
@@ -668,7 +668,7 @@ export const Home: React.FC = () => {
       <AdverticaResponsiveBanner placement="home_mid" />
 
       {/* Loan Providers Awareness Section */}
-      <section className="bg-gradient-to-r from-blue-900 to-blue-800 rounded-xl p-8 text-white shadow-xl">
+      <section className="bg-gradient-to-r from-blue-900 to-blue-800 rounded-xl p-4 md:p-8 text-white shadow-xl">
         <div className="max-w-4xl mx-auto text-center">
           <div className="flex justify-center mb-4">
             <div className="bg-white/10 p-4 rounded-full">
