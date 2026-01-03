@@ -497,7 +497,7 @@ export const Home: React.FC = () => {
                <p className="text-xs text-green-200">Earn bonus points for every successful referral to increase your loan approval chances.</p>
              </div>
              <div className="flex items-center gap-2 bg-black/20 p-2 rounded border border-white/10">
-               <code className="font-mono text-grantify-gold font-bold tracking-wider">{referralData.code}</code>
+               <code className="font-mono text-grantify-gold font-bold tracking-wider break-all">{referralData.code}</code>
                <button onClick={copyReferralLink} className="p-1 hover:text-yellow-300 transition" title="Copy Link">
                  <Copy size={16} />
                </button>

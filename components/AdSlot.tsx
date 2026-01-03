@@ -21,19 +21,15 @@ export const AdSlot: React.FC<AdSlotProps> = ({ htmlContent, className = "", lab
     setIsLoading(true);
     setHasError(false);
 
-    // Use a small delay to ensure DOM is ready
-    const timeoutId = setTimeout(() => {
-      try {
-        loadAdContent();
-      } catch (error) {
-        console.error('Error loading ad content:', error);
-        setHasError(true);
-        setIsLoading(false);
-      }
-    }, 100);
+    try {
+      loadAdContent();
+    } catch (error) {
+      console.error('Error loading ad content:', error);
+      setHasError(true);
+      setIsLoading(false);
+    }
 
     return () => {
-      clearTimeout(timeoutId);
       // Don't clear content on unmount to avoid interrupting ad loading
     };
   }, [htmlContent]);
@@ -77,13 +73,23 @@ export const AdSlot: React.FC<AdSlotProps> = ({ htmlContent, className = "", lab
   };
 
   const loadScriptsSequentially = async (scripts: HTMLScriptElement[]) => {
+    const promises: Promise<void>[] = [];
     for (const originalScript of scripts) {
-      try {
-        await loadSingleScript(originalScript);
-      } catch (error) {
-        console.error('Error loading ad script:', error);
+      const isAsync = originalScript.hasAttribute('async');
+      const promise = loadSingleScript(originalScript);
+      
+      if (!isAsync) {
+        try {
+          await promise;
+        } catch (error) {
+          console.error('Error loading ad script:', error);
+        }
+      } else {
+        promises.push(promise.catch(e => console.error('Async ad script error:', e)));
       }
     }
+    // Still wait for all (including async) before setting loading to false
+    await Promise.all(promises);
     setIsLoading(false);
   };
 

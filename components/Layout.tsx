@@ -21,12 +21,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         const adData = await ApiService.getAds();
         setAds(adData);
         
-        // Inject head scripts (e.g., Google AdSense, analytics) after a small delay
-        // to ensure DOM is fully ready
         if (adData?.head) {
-          setTimeout(() => {
-            injectHeadScripts(adData.head);
-          }, 200);
+          injectHeadScripts(adData.head);
         }
       } catch (error) {
         console.error('Error loading ads:', error);
