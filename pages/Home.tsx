@@ -528,7 +528,7 @@ export const Home: React.FC = () => {
            </div>
 
            {/* In-body Ad */}
-           {ads && <AdSlot htmlContent={ads.body} />}
+           {ads?.body && <AdSlot htmlContent={ads.body} className="my-6" />}
         </div>
       </section>
 

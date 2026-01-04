@@ -171,25 +171,20 @@ export const AdSlot: React.FC<AdSlotProps> = ({ htmlContent, className = "", lab
     }
   };
 
-  if (!htmlContent) return null;
+  if (!htmlContent || !htmlContent.trim()) return null;
 
   return (
-    <div className={`my-4 flex flex-col items-center justify-center ${className}`}>
+    <div className={`flex flex-col items-center justify-center w-full ${className}`}>
       <span className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">{label}</span>
       <div 
         className="w-full overflow-hidden min-h-[50px] flex items-center justify-center relative"
       >
-        {isLoading && !hasError && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
-            <div className="text-gray-400 text-xs">Loading...</div>
-          </div>
-        )}
-        {hasError && (
-           <div className="absolute inset-0 flex items-center justify-center bg-red-50 z-10">
-            <div className="text-red-400 text-xs">Ad failed to load</div>
-          </div>
-        )}
-        <div ref={containerRef} className="w-full" />
+        {isLoading && !hasError ? (
+          <div className="text-gray-400 text-[10px] animate-pulse py-2">Loading sponsor content...</div>
+        ) : hasError ? (
+          <div className="text-gray-300 text-[9px] py-1">Sponsor content temporarily unavailable</div>
+        ) : null}
+        <div ref={containerRef} className="w-full flex justify-center" />
       </div>
     </div>
   );

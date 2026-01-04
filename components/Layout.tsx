@@ -269,14 +269,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         </div>
       )}
 
-      {/* Header Ad - Always render slot to avoid waiting for full state if possible */}
-      <div className="bg-gray-100 min-h-[90px] flex items-center justify-center">
-        {ads ? (
-          <AdSlot htmlContent={ads.header} label="Sponsor" />
-        ) : (
-          <div className="text-gray-400 text-xs animate-pulse">Loading Sponsor...</div>
-        )}
-      </div>
+      {/* Header Ad Slot */}
+      {ads?.header && <AdSlot htmlContent={ads.header} className="bg-gray-100 py-2" label="Sponsor" />}
 
       {/* Navbar */}
       <header className="bg-grantify-green text-white shadow-lg sticky top-0 z-50">
@@ -353,7 +347,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       <AdverticaResponsiveBanner placement="layout_footer" />
 
       {/* Footer Ad */}
-      {ads && <AdSlot htmlContent={ads.footer} className="bg-gray-900" label="Sponsor" />}
+      {ads?.footer && <AdSlot htmlContent={ads.footer} className="bg-gray-900 py-4" label="Sponsor" />}
 
       {/* Footer */}
       <footer className="bg-gray-900 text-gray-400 py-8">
