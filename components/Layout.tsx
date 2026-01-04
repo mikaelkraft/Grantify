@@ -269,8 +269,14 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         </div>
       )}
 
-      {/* Header Ad */}
-      {ads && <AdSlot htmlContent={ads.header} className="bg-gray-100" label="Sponsor" />}
+      {/* Header Ad - Always render slot to avoid waiting for full state if possible */}
+      <div className="bg-gray-100 min-h-[90px] flex items-center justify-center">
+        {ads ? (
+          <AdSlot htmlContent={ads.header} label="Sponsor" />
+        ) : (
+          <div className="text-gray-400 text-xs animate-pulse">Loading Sponsor...</div>
+        )}
+      </div>
 
       {/* Navbar */}
       <header className="bg-grantify-green text-white shadow-lg sticky top-0 z-50">

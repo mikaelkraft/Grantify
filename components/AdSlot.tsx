@@ -137,6 +137,10 @@ export const AdSlot: React.FC<AdSlotProps> = ({ htmlContent, className = "", lab
       // This preserves the DOM hierarchy (e.g. script inside <ins>)
       try {
         if (originalScript.parentNode) {
+          // Set fetchpriority for external scripts
+          if (originalScript.src) {
+             newScript.setAttribute('fetchpriority', 'high');
+          }
           originalScript.parentNode.replaceChild(newScript, originalScript);
         } else {
           // Fallback if somehow detached (shouldn't happen with current logic)

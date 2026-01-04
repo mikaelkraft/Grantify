@@ -25,6 +25,7 @@ export const AdverticaResponsiveBanner: React.FC<{ placement?: string }> = ({ pl
     const script = document.createElement('script');
     script.src = '//data527.click/js/responsive.js';
     script.async = true;
+    script.setAttribute('fetchpriority', 'high');
 
     ins.appendChild(script);
     containerRef.current.appendChild(ins);

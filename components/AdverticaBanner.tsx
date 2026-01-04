@@ -23,6 +23,7 @@ export const AdverticaBanner: React.FC = () => {
     const script = document.createElement('script');
     script.src = '//data527.click/js/responsive.js';
     script.async = true;
+    script.setAttribute('fetchpriority', 'high');
     script.onload = () => {
       console.log('Advertica banner script loaded');
     };
