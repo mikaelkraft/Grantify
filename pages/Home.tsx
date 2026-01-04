@@ -313,22 +313,18 @@ export const Home: React.FC = () => {
 
       {/* Stats Section */}
       <section className="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
-         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="text-center p-4 border-b sm:border-b-0 sm:border-r border-gray-100 last:border-0">
-               <div className="text-sm md:text-base font-bold text-grantify-green leading-tight">Widely recognized by Nigerians nationwide</div>
-               <div className="text-[10px] text-gray-500 uppercase tracking-wider mt-2">Community Trust</div>
+         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            <div className="text-center p-4 border-r border-gray-100 last:border-0">
+               <div className="text-xs md:text-sm font-bold text-gray-600 uppercase tracking-widest">Community Trust</div>
             </div>
-            <div className="text-center p-4 border-b sm:border-b-0 lg:border-r border-gray-100 last:border-0">
-               <div className="text-sm md:text-base font-bold text-grantify-green leading-tight">Transparent and secure fund allocation</div>
-               <div className="text-[10px] text-gray-500 uppercase tracking-wider mt-2">Verified Success</div>
+            <div className="text-center p-4 border-r border-gray-100 md:last:border-r last:border-0">
+               <div className="text-xs md:text-sm font-bold text-gray-600 uppercase tracking-widest">Verified Success</div>
             </div>
-            <div className="text-center p-4 border-b sm:border-b-0 sm:border-r border-gray-100 last:border-0">
-               <div className="text-sm md:text-base font-bold text-grantify-green leading-tight">Consistently supporting families & SMEs</div>
-               <div className="text-[10px] text-gray-500 uppercase tracking-wider mt-2">Beneficiary Growth</div>
+            <div className="text-center p-4 border-r border-gray-100 last:border-0">
+               <div className="text-xs md:text-sm font-bold text-gray-600 uppercase tracking-widest">Beneficiary Growth</div>
             </div>
             <div className="text-center p-4">
-               <div className="text-sm md:text-base font-bold text-grantify-green leading-tight">Always available to guide your journey</div>
-               <div className="text-[10px] text-gray-500 uppercase tracking-wider mt-2">Reliable Support</div>
+               <div className="text-xs md:text-sm font-bold text-gray-600 uppercase tracking-widest">Reliable Support</div>
             </div>
          </div>
       </section>
