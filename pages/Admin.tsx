@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ApiService } from '../services/storage';
 import { AdminUser, LoanApplication, Testimonial, QualifiedPerson, AdConfig, UserRole, RepaymentContent } from '../types';
-import { LogOut, Download, Trash2, Plus, UserPlus, Shield, Loader2, Save } from 'lucide-react';
+import { LogOut, Download, Trash2, Plus, UserPlus, Shield, Loader2, Save, Zap } from 'lucide-react';
 import { formatNaira } from '../utils/currency';
 
 // Default fallback avatar (green circle with question mark) for broken/missing images

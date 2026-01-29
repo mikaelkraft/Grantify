@@ -257,11 +257,10 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         </div>
       )}
 
-      {/* Header Ad Slot */}
-      {ads?.header && <AdSlot htmlContent={ads.header} className="bg-gray-100 py-2" label="Sponsor" />}
+      {/* Header Ad Slot - REMOVED for cleaner site header */}
 
       {/* Navbar */}
-      <header className="bg-grantify-green text-white shadow-lg sticky top-0 z-50">
+      <header className="bg-grantify-green text-white shadow-lg sticky top-0 z-[60]">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <Link to="/" className="flex items-center gap-2 text-2xl font-bold font-heading text-grantify-gold">
             <Banknote className="w-8 h-8" />
@@ -283,8 +282,12 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
           {/* Mobile Menu Toggle */}
           <button 
-            className="md:hidden text-white"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="md:hidden text-white p-2"
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              setIsMobileMenuOpen(!isMobileMenuOpen);
+            }}
           >
             {isMobileMenuOpen ? <X /> : <Menu />}
           </button>
@@ -298,7 +301,10 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 key={link.to} 
                 to={link.to} 
                 className="block text-white py-2 px-4 hover:bg-green-700 rounded"
-                onClick={() => setIsMobileMenuOpen(false)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsMobileMenuOpen(false);
+                }}
               >
                 {link.label}
               </Link>
@@ -308,17 +314,10 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       </header>
 
       {/* Main Content */}
-      <main className="flex-grow container mx-auto px-4 py-8 flex flex-col md:flex-row gap-8">
-        <div className="flex-grow w-full">
+      <main className="flex-grow container mx-auto px-4 py-8 max-w-5xl">
+        <div className="w-full">
             {children}
         </div>
-        
-        {/* Sidebar Ad (Only on larger screens) */}
-        <aside className="hidden lg:block w-[300px] flex-shrink-0">
-           <div className="sticky top-24">
-              {ads?.sidebar && <AdSlot htmlContent={ads.sidebar} label="Sponsor" />}
-           </div>
-        </aside>
       </main>
 
       {/* Body Ad */}
