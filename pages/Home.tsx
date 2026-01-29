@@ -2,11 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ApiService } from '../services/storage';
 import { AdSlot } from '../components/AdSlot';
-import { AdverticaBanner } from '../components/AdverticaBanner';
-import { AdverticaResponsiveBanner } from '../components/AdverticaResponsiveBanner';
 import { TestimonialCard } from '../components/TestimonialCard';
 import { LoanType, ApplicationStatus, LoanApplication, Testimonial, QualifiedPerson, AdConfig } from '../types';
-import { Calculator, CheckCircle, AlertCircle, ArrowRight, Share2, Copy, Info, Loader2, MessageSquarePlus, Send, Zap, Landmark, ExternalLink } from 'lucide-react';
+import { Calculator, CheckCircle, AlertCircle, ArrowRight, Share2, Copy, Info, Loader2, MessageSquarePlus, Send, Zap, Landmark, ExternalLink, ShieldCheck } from 'lucide-react';
 import { formatNaira, formatNairaCompact } from '../utils/currency';
 
 export const Home: React.FC = () => {
@@ -158,7 +156,7 @@ export const Home: React.FC = () => {
     e.preventDefault();
     setError('');
     
-    const amount = parseInt(formData.amount);
+    const amountNum = parseInt(formData.amount);
     
     // Validation
     const phoneRegex = /^(0|(\+234))[0-9]{10}$/;
@@ -167,12 +165,12 @@ export const Home: React.FC = () => {
       return;
     }
 
-    if (!amount || isNaN(amount)) {
+    if (!amountNum || isNaN(amountNum)) {
       setError('Invalid amount.');
       return;
     }
 
-    const type = getLoanTerms(amount);
+    const type = getLoanTerms(amountNum);
     if (!type) {
       setError(`Amount must be between NGN 50,000 - NGN 500,000 (Standard) or NGN 1M - NGN 5M (Fast-Track).`);
       return;
@@ -186,10 +184,10 @@ export const Home: React.FC = () => {
       phoneNumber: formData.phone,
       email: formData.email,
       country: formData.country,
-      amount: amount,
+      amount: amountNum,
       purpose: formData.purpose,
       type: type,
-      repaymentAmount: calculateRepayment(amount),
+      repaymentAmount: calculateRepayment(amountNum),
       durationMonths: duration,
       status: ApplicationStatus.PENDING,
       dateApplied: new Date().toISOString().split('T')[0],
@@ -223,13 +221,13 @@ export const Home: React.FC = () => {
           {loanType === LoanType.FAST_TRACK && (
              <p className="text-xs text-orange-600 mt-2 font-bold bg-orange-50 p-1 rounded border border-orange-100">
                <Info size={12} className="inline mr-1"/>
-               NOTE: Fast-track loans attract processing fee.
+               NOTE: Fast-track loans require critical verification for priority disbursement.
              </p>
           )}
         </div>
         <p className="text-sm text-gray-500 mb-6 italic">
           <Info size={14} className="inline mr-1"/>
-          Please note: If your application is selected, you will be required to provide your NIN for identity verification.
+          Please note: Our team will contact you for verification once your application is processed.
         </p>
         <button 
           onClick={() => { setSubmitted(false); setFormData({...formData, amount: ''}); }}
@@ -303,13 +301,12 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* Responsive Banner (High Impact) */}
-      <AdverticaResponsiveBanner placement="home_hero_bottom" />
-
-      {/* Advertica Banner Slot 1 */}
-      <div className="flex justify-center -my-4">
-        <AdverticaBanner />
-      </div>
+      {/* Hero Ad Slot */}
+      {ads?.header && (
+        <div className="flex justify-center -my-4">
+          <AdSlot htmlContent={ads.header} label="Sponsor" />
+        </div>
+      )}
 
       {/* Stats Section */}
       <section className="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
@@ -329,17 +326,16 @@ export const Home: React.FC = () => {
          </div>
       </section>
 
-      {/* Advertica Banner Slot 2 */}
-      <div className="flex justify-center">
-        <AdverticaBanner />
-      </div>
+      {/* Mid Section Ad Slot */}
+      {ads?.body && (
+        <div className="flex justify-center">
+          <AdSlot htmlContent={ads.body} label="Sponsor" />
+        </div>
+      )}
       <section id="apply" className="grid md:grid-cols-5 gap-8">
         
         <div className="md:col-span-3 space-y-6">
           
-          {/* Advertica Responsive Banner (Pre-Form) */}
-          <AdverticaResponsiveBanner placement="home_pre_form" />
-
           {/* Loan Application Form */}
           <div className="bg-white p-4 md:p-8 rounded-xl shadow-md border-t-4 border-grantify-green">
             <div className="flex items-center gap-2 mb-6">
@@ -347,10 +343,12 @@ export const Home: React.FC = () => {
               <h2 className="text-2xl font-bold font-heading text-gray-800">Loan Application</h2>
             </div>
             
-            {/* Advertica Banner Inside Form Header */}
-            <div className="mb-6 flex justify-center">
-               <AdverticaBanner />
-            </div>
+            {/* Form Header Ad Slot */}
+            {ads?.header && (
+              <div className="mb-6 flex justify-center">
+                <AdSlot htmlContent={ads.header} label="Sponsor" />
+              </div>
+            )}
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
@@ -360,6 +358,7 @@ export const Home: React.FC = () => {
                     className={inputClass}
                     value={formData.country}
                     onChange={e => setFormData({...formData, country: e.target.value})}
+                    aria-label="Select Country"
                   >
                     <option value="Nigeria">Nigeria</option>
                     <option value="Ghana" disabled>Ghana (Coming Soon)</option>
@@ -385,6 +384,7 @@ export const Home: React.FC = () => {
                   className={inputClass}
                   value={formData.fullName}
                   onChange={e => setFormData({...formData, fullName: e.target.value})}
+                  placeholder="Your Full Name"
                   required
                 />
               </div>
@@ -410,6 +410,7 @@ export const Home: React.FC = () => {
                   className={inputClass}
                   value={formData.amount}
                   onChange={e => handleAmountChange(e.target.value)}
+                  placeholder="50000"
                   required
                 />
               </div>
@@ -431,7 +432,7 @@ export const Home: React.FC = () => {
                     </div>
                     {loanType === LoanType.FAST_TRACK && (
                        <div className="mt-2 text-xs text-orange-700 bg-orange-100 p-2 rounded border border-orange-200">
-                         <strong>Notice:</strong> A NGN 20,000 processing fee applies for Fast-Track loans.
+                         <strong>Notice:</strong> Fast-Track loans undergo priority verification for immediate processing.
                        </div>
                     )}
                 </div>
@@ -444,6 +445,7 @@ export const Home: React.FC = () => {
                   className={inputClass}
                   value={formData.purpose}
                   onChange={e => setFormData({...formData, purpose: e.target.value})}
+                  placeholder="What is the loan for?"
                   required
                 />
               </div>
@@ -466,8 +468,11 @@ export const Home: React.FC = () => {
                 </div>
               )}
 
-              <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded border border-gray-100 mb-2">
-                 <span className="font-bold text-gray-700">Notice:</span> If selected, you will be required to provide your National Identification Number (NIN) for verification purposes.
+              <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded border border-gray-100 mb-2 flex items-start gap-2">
+                 <ShieldCheck size={16} className="text-green-600 flex-shrink-0 mt-0.5" />
+                 <div>
+                   <span className="font-bold text-gray-700">Secure Application:</span> Your data is encrypted and used solely for identity verification via secured channels. <strong>No upfront fees required.</strong>
+                 </div>
               </div>
 
               <button 
@@ -660,8 +665,6 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* Advertica Responsive Banner (Mid-Page) */}
-      <AdverticaResponsiveBanner placement="home_mid" />
 
       {/* Loan Providers Awareness Section */}
       <section className="bg-gradient-to-r from-blue-900 to-blue-800 rounded-xl p-4 md:p-8 text-white shadow-xl">
@@ -687,15 +690,12 @@ export const Home: React.FC = () => {
             </Link>
           </div>
 
-          {/* Advertica Banner Slot 3 (Home Page Bottom) */}
-          <div className="mt-8 flex justify-center bg-white/10 p-4 rounded-xl backdrop-blur-sm">
-            <AdverticaBanner />
-          </div>
-          
-          {/* Final Bottom Responsive Impact */}
-          <div className="mt-4">
-             <AdverticaResponsiveBanner placement="home_bottom_final" />
-          </div>
+          {/* Bottom Ad Slot */}
+          {ads?.footer && (
+            <div className="mt-8 flex justify-center bg-white/10 p-4 rounded-xl backdrop-blur-sm">
+              <AdSlot htmlContent={ads.footer} label="Sponsor" />
+            </div>
+          )}
 
           <p className="mt-6 text-xs text-blue-200 opacity-80">
             <Info size={12} className="inline mr-1" />

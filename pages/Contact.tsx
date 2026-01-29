@@ -1,9 +1,16 @@
 import React, { useState } from 'react';
 import { Send, Mail, Phone, MapPin, CheckCircle } from 'lucide-react';
-import { AdverticaBanner } from '../components/AdverticaBanner';
-import { AdverticaResponsiveBanner } from '../components/AdverticaResponsiveBanner';
+import { ApiService } from '../services/storage';
+import { AdSlot } from '../components/AdSlot';
+import { AdConfig } from '../types';
 
 export const Contact: React.FC = () => {
+  const [ads, setAds] = React.useState<AdConfig | null>(null);
+
+  React.useEffect(() => {
+    ApiService.getAds().then(setAds).catch(console.error);
+  }, []);
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -63,10 +70,12 @@ Sent from Grantify Contact Form`;
         Have questions about our loan services or need assistance? We're here to help! Fill out the form below and our team will get back to you as soon as possible.
       </p>
 
-      {/* Advertica Banner Slot 1 */}
-      <div className="my-8 flex justify-center">
-        <AdverticaBanner />
-      </div>
+      {/* Header Ad Slot */}
+      {ads?.header && (
+        <div className="my-8 flex justify-center">
+          <AdSlot htmlContent={ads.header} label="Sponsor" />
+        </div>
+      )}
 
       <div className="grid md:grid-cols-3 gap-8 mb-10">
         <div className="flex items-start gap-4 p-4 bg-green-50 rounded-lg border border-green-100">
@@ -100,14 +109,15 @@ Sent from Grantify Contact Form`;
         </div>
       </div>
 
-      {/* Advertica Responsive Banner (Pre-Form) */}
-      <AdverticaResponsiveBanner placement="contact_pre_form" />
+      {/* Pre-Form Ad Slot */}
+      {ads?.body && (
+        <div className="my-8 flex justify-center">
+          <AdSlot htmlContent={ads.body} label="Sponsor" />
+        </div>
+      )}
 
       <div className="max-w-2xl mx-auto">
-         {/* Advertica Banner within contact area */}
-         <div className="mb-6 flex justify-center border-b border-gray-100 pb-4">
-            <AdverticaBanner />
-         </div>
+         {/* Ad slot within contact area removed to keep it cleaner */}
 
         <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-xl p-6 shadow-sm">
           <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
@@ -159,6 +169,7 @@ Sent from Grantify Contact Form`;
                   className={inputClass}
                   value={formData.subject}
                   onChange={e => setFormData({...formData, subject: e.target.value})}
+                  aria-label="Message Subject"
                 >
                   <option value="">Select a subject</option>
                   <option value="Loan Inquiry">Loan Inquiry</option>
@@ -197,10 +208,12 @@ Sent from Grantify Contact Form`;
         </div>
       </div>
       
-      {/* Advertica Banner Slot 2 */}
-      <div className="mt-12 flex justify-center bg-gray-50 p-4 rounded-xl">
-        <AdverticaBanner />
-      </div>
+      {/* Footer Ad Slot */}
+      {ads?.footer && (
+        <div className="mt-12 flex justify-center bg-gray-50 p-4 rounded-xl">
+          <AdSlot htmlContent={ads.footer} label="Sponsor" />
+        </div>
+      )}
 
     </div>
   );

@@ -1,15 +1,25 @@
 import React from 'react';
-import { AdverticaBanner } from '../components/AdverticaBanner';
+import { ApiService } from '../services/storage';
+import { AdSlot } from '../components/AdSlot';
+import { AdConfig } from '../types';
 
 export const Terms: React.FC = () => {
+  const [ads, setAds] = React.useState<AdConfig | null>(null);
+
+  React.useEffect(() => {
+    ApiService.getAds().then(setAds).catch(console.error);
+  }, []);
+
   return (
     <div className="bg-white p-8 rounded-lg shadow-sm max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold font-heading text-grantify-green mb-6">Terms and Conditions</h1>
       
-      {/* Advertica Banner Slot 1 */}
-      <div className="my-8 flex justify-center">
-        <AdverticaBanner />
-      </div>
+      {/* Header Ad Slot */}
+      {ads?.header && (
+        <div className="my-8 flex justify-center">
+          <AdSlot htmlContent={ads.header} label="Sponsor" />
+        </div>
+      )}
 
       <div className="space-y-6 text-gray-700 text-sm leading-relaxed">
         <section>
@@ -38,15 +48,15 @@ export const Terms: React.FC = () => {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-gray-900 mb-2">4. Fast-Track Processing Fee</h2>
+          <h2 className="text-lg font-bold text-gray-900 mb-2">4. Critical Verification</h2>
           <p>
-            Users opting for the "Fast-Track" service acknowledge that a <strong>non-refundable processing fee of NGN 20,000</strong> is applicable. This fee covers priority verification and expedited disbursement processing. Payment of this fee does not guarantee approval if verification fails.
+            Applicants acknowledge that all loans undergo a <strong>comprehensive verification process</strong>. This ensures the safety of our platform and protects both lenders and borrowers. Verification may include identity confirmation and income assessment.
           </p>
         </section>
 
         <section>
           <h2 className="text-lg font-bold text-gray-900 mb-2">5. User Obligations</h2>
-          <p>You agree to provide accurate, current, and complete information during the application process. Providing false information (e.g., incorrect Name, NIN, or Phone Number) constitutes fraud and will lead to immediate disqualification and potential blacklisting.</p>
+          <p>You agree to provide accurate, current, and complete information during the application process. Providing false information constitutes fraud and will lead to immediate disqualification and potential blacklisting.</p>
         </section>
 
         <section>
@@ -64,10 +74,12 @@ export const Terms: React.FC = () => {
         </div>
       </div>
 
-      {/* Advertica Banner Slot 2 */}
-      <div className="mt-12 flex justify-center bg-gray-50 p-4 rounded-xl">
-        <AdverticaBanner />
-      </div>
+      {/* Footer Ad Slot */}
+      {ads?.footer && (
+        <div className="mt-12 flex justify-center bg-gray-50 p-4 rounded-xl">
+          <AdSlot htmlContent={ads.footer} label="Sponsor" />
+        </div>
+      )}
 
     </div>
   );

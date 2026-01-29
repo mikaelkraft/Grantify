@@ -108,17 +108,19 @@ const initialAds: AdConfig = {
   body: '<div style="background:#f0fdf4; border:1px dashed #006400; padding:20px; text-align:center; color:#006400;">Sponsored Content Space</div>',
   sidebar: '<div style="background:#eee; height:250px; display:flex; align-items:center; justify-content:center; color:#666;">Sidebar Ad (300x250)</div>',
   footer: '<div style="background:#333; color:#fff; padding:10px; text-align:center;">Footer Ad Space</div>',
+  promo1Link: 'https://data527.click/eccd43ec29181253638a/951b5a4643/?placementName=default',
+  promo1Text: '🔥 Hot Offer!',
+  promo2Link: 'https://data527.click/eccd43ec29181253638a/951b5a4643/?placementName=unit2',
+  promo2Text: '🎁 Claim Free Bonus!'
 };
 
-const adFields: (keyof AdConfig)[] = ['head', 'header', 'body', 'sidebar', 'footer'];
+const adFields: (keyof AdConfig)[] = ['head', 'header', 'body', 'sidebar', 'footer', 'promo1Link', 'promo1Text', 'promo2Link', 'promo2Text'];
 
 const isValidAdConfig = (value: unknown): value is AdConfig => {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
   const obj = value as Record<string, unknown>;
-  const keys = Object.keys(obj);
-  if (keys.length !== adFields.length) return false;
-  if (!keys.every(k => adFields.includes(k as keyof AdConfig))) return false;
-  return adFields.every(k => typeof obj[k] === 'string');
+  // Allow subset of fields too for backward compatibility during transitions
+  return Object.keys(obj).every(k => adFields.includes(k as keyof AdConfig));
 };
 
 const initialRepayment: RepaymentContent = {

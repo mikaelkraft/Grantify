@@ -52,6 +52,10 @@ export interface AdConfig {
   body: string;
   sidebar: string;
   footer: string;
+  promo1Link?: string;
+  promo1Text?: string;
+  promo2Link?: string;
+  promo2Text?: string;
 }
 
 export enum UserRole {

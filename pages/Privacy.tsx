@@ -1,20 +1,33 @@
 import React from 'react';
-import { AdverticaBanner } from '../components/AdverticaBanner';
-import { AdverticaResponsiveBanner } from '../components/AdverticaResponsiveBanner';
+import { ApiService } from '../services/storage';
+import { AdSlot } from '../components/AdSlot';
+import { AdConfig } from '../types';
 
 export const Privacy: React.FC = () => {
+  const [ads, setAds] = React.useState<AdConfig | null>(null);
+
+  React.useEffect(() => {
+    ApiService.getAds().then(setAds).catch(console.error);
+  }, []);
+
   return (
     <div className="bg-white p-8 rounded-lg shadow-sm max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold font-heading text-grantify-green mb-6">Privacy Policy</h1>
       
-      {/* Advertica Banner Slot 1 */}
-      <div className="my-8 flex justify-center">
-        <AdverticaBanner />
-      </div>
+      {/* Header Ad Slot */}
+      {ads?.header && (
+        <div className="my-8 flex justify-center">
+          <AdSlot htmlContent={ads.header} label="Sponsor" />
+        </div>
+      )}
 
       <div className="space-y-6 text-gray-700 text-sm leading-relaxed">
-        {/* Advertica Responsive Impact (Top of Privacy) */}
-        <AdverticaResponsiveBanner placement="privacy_top_impact" />
+        {/* Body Ad Slot */}
+        {ads?.body && (
+          <div className="my-8 flex justify-center">
+            <AdSlot htmlContent={ads.body} label="Sponsor" />
+          </div>
+        )}
         
         <section>
           <h2 className="text-lg font-bold text-gray-900 mb-2">1. Data Collection</h2>
@@ -22,7 +35,7 @@ export const Privacy: React.FC = () => {
           <ul className="list-disc ml-5 mt-2 space-y-1">
             <li>Personal identification (Name, Age, Address).</li>
             <li>Contact details (Phone Number, Email Address).</li>
-            <li>Government-issued ID numbers (NIN, BVN - strictly for verification).</li>
+            <li>Secure verification data (strictly for identity confirmation).</li>
             <li>Financial information regarding your business or income source.</li>
           </ul>
         </section>
@@ -43,7 +56,7 @@ export const Privacy: React.FC = () => {
           <p>We do not sell your personal data. However, we may share your information with:</p>
           <ul className="list-disc ml-5 mt-2 space-y-1">
             <li>Credit Bureaus: To check credit history or report defaults.</li>
-            <li>Verification Services: To authenticate your NIN and identity.</li>
+            <li>Verification Services: To authenticate your identity.</li>
             <li>Law Enforcement: If required by law or to prevent fraud.</li>
           </ul>
         </section>
@@ -93,10 +106,12 @@ export const Privacy: React.FC = () => {
         </div>
       </div>
 
-      {/* Advertica Banner Slot 2 */}
-      <div className="mt-12 flex justify-center bg-gray-50 p-4 rounded-xl">
-        <AdverticaBanner />
-      </div>
+      {/* Footer Ad Slot */}
+      {ads?.footer && (
+        <div className="mt-12 flex justify-center bg-gray-50 p-4 rounded-xl">
+          <AdSlot htmlContent={ads.footer} label="Sponsor" />
+        </div>
+      )}
 
     </div>
   );

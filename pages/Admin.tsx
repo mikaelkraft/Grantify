@@ -526,6 +526,7 @@ export const Admin: React.FC = () => {
                             className={inputClassSmall}
                             value={q.status}
                             onChange={(e) => handleUpdateQualifiedLocal(q.id, 'status', e.target.value)}
+                            aria-label="Application Status"
                           >
                             <option value="Pending">Pending</option>
                             <option value="Contacted">Contacted</option>
@@ -537,7 +538,7 @@ export const Admin: React.FC = () => {
                             onChange={(e) => handleUpdateQualifiedLocal(q.id, 'notes', e.target.value)} 
                             placeholder="Public Note (Optional)"
                           />
-                          <button onClick={() => handleDeleteQualifiedLocal(q.id)} className="text-red-500 p-2 hover:bg-red-100 rounded"><Trash2 size={16}/></button>
+                          <button onClick={() => handleDeleteQualifiedLocal(q.id)} className="text-red-500 p-2 hover:bg-red-100 rounded" title="Delete Person"><Trash2 size={16}/></button>
                       </div>
                     ))}
                   </div>
@@ -615,6 +616,8 @@ export const Admin: React.FC = () => {
                               className={inputClassSmall + " w-full"}
                               value={t.name}
                               onChange={(e) => handleUpdateTestimonialLocal(t.id, 'name', e.target.value)}
+                              placeholder="Guest Name"
+                              aria-label="Guest Name"
                             />
                           </div>
                           <div className="flex-1">
@@ -624,6 +627,8 @@ export const Admin: React.FC = () => {
                               className={inputClassSmall + " w-full"}
                               value={t.amount}
                               onChange={(e) => handleUpdateTestimonialLocal(t.id, 'amount', parseInt(e.target.value))}
+                              placeholder="Amount Received"
+                              aria-label="Amount Received"
                             />
                           </div>
                           <div className="flex-1">
@@ -633,6 +638,8 @@ export const Admin: React.FC = () => {
                               className={inputClassSmall + " w-full"}
                               value={t.date}
                               onChange={(e) => handleUpdateTestimonialLocal(t.id, 'date', e.target.value)}
+                              placeholder="Date"
+                              aria-label="Date of Testimonial"
                             />
                           </div>
                         </div>
@@ -644,6 +651,8 @@ export const Admin: React.FC = () => {
                             className={inputClassSmall + " w-full"}
                             value={t.content}
                             onChange={(e) => handleUpdateTestimonialLocal(t.id, 'content', e.target.value)}
+                            placeholder="Testimonial Content"
+                            aria-label="Testimonial Content"
                           />
                         </div>
 
@@ -702,16 +711,84 @@ export const Admin: React.FC = () => {
                     </div>
                   )}
                   <div className="space-y-4">
-                    {Object.keys(ads).filter(key => key !== 'id').map((key) => (
-                      <div key={key}>
-                        <label className="block text-sm font-bold uppercase text-gray-600 mb-1">{key} Code</label>
-                        <textarea 
-                          className="w-full border border-gray-600 p-2 rounded font-mono text-xs h-24 bg-gray-800 text-white focus:ring-2 focus:ring-grantify-gold outline-none"
-                          value={ads[key as keyof AdConfig]}
-                          onChange={(e) => handleAdChange(key as keyof AdConfig, e.target.value)}
-                        />
+                    {/* Ad Slots Group */}
+                    <div className="space-y-4">
+                      {['header', 'body', 'sidebar', 'footer', 'head'].map((key) => (
+                        <div key={key}>
+                          <label className="block text-sm font-bold uppercase text-gray-600 mb-1">{key} Code</label>
+                          <textarea 
+                            className="w-full border border-gray-600 p-2 rounded font-mono text-xs h-24 bg-gray-800 text-white focus:ring-2 focus:ring-grantify-gold outline-none"
+                            value={ads[key as keyof AdConfig]}
+                            onChange={(e) => handleAdChange(key as keyof AdConfig, e.target.value)}
+                            placeholder={`Paste ${key} ad code here...`}
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                    <hr className="my-8 border-gray-200" />
+                    
+                    {/* Promotional Buttons Group */}
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-6">
+                      <h4 className="font-bold text-gray-700 flex items-center gap-2">
+                        <Zap size={18} className="text-orange-500" /> Floating Promotional Buttons
+                      </h4>
+                      
+                      <div className="grid md:grid-cols-2 gap-6">
+                        {/* Promo 1 */}
+                        <div className="space-y-3">
+                          <label className="block text-xs font-bold uppercase text-orange-600">Primary Button (Left)</label>
+                          <div>
+                            <label className="text-[10px] text-gray-500 uppercase">Button Label</label>
+                            <input 
+                              type="text"
+                              className={inputClass}
+                              value={ads.promo1Text}
+                              onChange={(e) => handleAdChange('promo1Text', e.target.value)}
+                              placeholder="e.g., Claim NGN 50k"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-gray-500 uppercase">Destination URL</label>
+                            <input 
+                              type="text"
+                              className={inputClass}
+                              value={ads.promo1Link}
+                              onChange={(e) => handleAdChange('promo1Link', e.target.value)}
+                              placeholder="https://..."
+                            />
+                          </div>
+                        </div>
+
+                        {/* Promo 2 */}
+                        <div className="space-y-3">
+                          <label className="block text-xs font-bold uppercase text-blue-600">Secondary Button (Right)</label>
+                          <div>
+                            <label className="text-[10px] text-gray-500 uppercase">Button Label</label>
+                            <input 
+                              type="text"
+                              className={inputClass}
+                              value={ads.promo2Text}
+                              onChange={(e) => handleAdChange('promo2Text', e.target.value)}
+                              placeholder="e.g., Fast-Track Now"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-gray-500 uppercase">Destination URL</label>
+                            <input 
+                              type="text"
+                              className={inputClass}
+                              value={ads.promo2Link}
+                              onChange={(e) => handleAdChange('promo2Link', e.target.value)}
+                              placeholder="https://..."
+                            />
+                          </div>
+                        </div>
                       </div>
-                    ))}
+                      <p className="text-[10px] text-gray-400">
+                        Leave the Link field empty to hide the button. Text changes are applied instantly after saving.
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -741,6 +818,8 @@ export const Admin: React.FC = () => {
                           className={inputClass}
                           value={repayment.introText}
                           onChange={(e) => handleRepaymentUpdateLocal({...repayment, introText: e.target.value})}
+                          placeholder="Introductory Text"
+                          aria-label="Introductory Text"
                         />
                       </div>
                       <div>
@@ -749,6 +828,8 @@ export const Admin: React.FC = () => {
                           className={inputClass}
                           value={repayment.standardNote}
                           onChange={(e) => handleRepaymentUpdateLocal({...repayment, standardNote: e.target.value})}
+                          placeholder="Standard Loan Note"
+                          aria-label="Standard Loan Note"
                         />
                       </div>
                       <div>
@@ -757,6 +838,8 @@ export const Admin: React.FC = () => {
                           className={inputClass}
                           value={repayment.fastTrackNote}
                           onChange={(e) => handleRepaymentUpdateLocal({...repayment, fastTrackNote: e.target.value})}
+                          placeholder="Fast-Track Loan Note"
+                          aria-label="Fast-Track Loan Note"
                         />
                       </div>
                     </div>
@@ -798,6 +881,7 @@ export const Admin: React.FC = () => {
                               className={inputClassSmall + " flex-grow"}
                               value={newAdmin.role}
                               onChange={e => setNewAdmin({...newAdmin, role: e.target.value as UserRole})}
+                              aria-label="Admin Role"
                             >
                               <option value={UserRole.FLOOR_ADMIN}>Floor Admin</option>
                               <option value={UserRole.SUPER_ADMIN}>Super Admin</option>

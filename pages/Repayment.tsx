@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { ApiService } from '../services/storage';
 import { Send, Zap, Loader2 } from 'lucide-react';
-import { AdverticaBanner } from '../components/AdverticaBanner';
-import { AdverticaResponsiveBanner } from '../components/AdverticaResponsiveBanner';
-import { RepaymentContent } from '../types';
+import { AdSlot } from '../components/AdSlot';
+import { RepaymentContent, AdConfig } from '../types';
 import { formatNaira } from '../utils/currency';
 
 export const Repayment: React.FC = () => {
   const location = useLocation();
   const [content, setContent] = useState<RepaymentContent | null>(null);
+  const [ads, setAds] = useState<AdConfig | null>(null);
   const [error, setError] = useState('');
   const [ftForm, setFtForm] = useState({
     name: '',
@@ -19,17 +19,21 @@ export const Repayment: React.FC = () => {
   });
 
   useEffect(() => {
-    const loadContent = async () => {
+    const loadData = async () => {
       try {
-        const data = await ApiService.getRepaymentContent();
-        setContent(data);
+        const [repaymentData, adsData] = await Promise.all([
+          ApiService.getRepaymentContent(),
+          ApiService.getAds()
+        ]);
+        setContent(repaymentData);
+        setAds(adsData);
         setError('');
       } catch (e) {
-        console.error("Failed to load repayment content", e);
+        console.error("Failed to load repayment data", e);
         setError('Failed to load content. Please check your connection and try again.');
       }
     };
-    loadContent();
+    loadData();
   }, []);
 
   // Handle scrolling to anchor from hash
@@ -72,7 +76,7 @@ Phone: ${ftForm.phone}
 Email: ${ftForm.email}
 Requested Amount: ${formatNaira(parseInt(ftForm.amount))}
 
-I understand that this request attracts a processing fee of NGN 20,000 and I am ready to proceed.
+I understand that this request is subject to critical verification and I am ready to proceed.
 
 Regards,
 ${ftForm.name}`;
@@ -117,30 +121,38 @@ ${ftForm.name}`;
         {content.introText}
       </p>
 
-      {/* Advertica Banner Slot 1 */}
-      <div className="my-8 flex justify-center">
-        <AdverticaBanner />
-      </div>
+      {/* Header Ad Slot */}
+      {ads?.header && (
+        <div className="my-8 flex justify-center">
+          <AdSlot htmlContent={ads.header} label="Sponsor" />
+        </div>
+      )}
 
       <div className="mb-12">
         <h2 className="text-xl font-bold text-gray-800 mb-2 border-l-4 border-blue-500 pl-3">Standard Loans</h2>
         <p className="text-gray-500 text-sm mb-4">{content.standardNote}</p>
         
-        {/* Advertica Responsive Banner (Top of Table) */}
-        <AdverticaResponsiveBanner placement="repayment_standard_top" />
-
         <div className="overflow-x-auto">
-          {/* ... table content ... */}
-        </div>
-
-        {/* Advertica Banner (Bottom of Table) */}
-        <div className="mt-4 flex justify-center">
-           <AdverticaBanner />
+          <table className="min-w-full text-left text-sm">
+            <thead className="bg-gray-100 uppercase text-gray-600 font-bold">
+              <tr>
+                <th className="px-6 py-3">Loan Amount</th>
+                <th className="px-6 py-3">Repayment (+5%)</th>
+                <th className="px-6 py-3">Duration</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {standardLoans.map((row, i) => (
+                <tr key={i} className="hover:bg-gray-50">
+                  <td className="px-6 py-3 font-medium">{formatNaira(row.principal)}</td>
+                  <td className="px-6 py-3 text-grantify-green font-bold">{formatNaira(row.repayment)}</td>
+                  <td className="px-6 py-3">{row.duration} Months</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
-
-      {/* Mid-Page Responsive Impact */}
-      <AdverticaResponsiveBanner placement="repayment_mid_impact" />
 
       <div className="mb-12">
         <h2 className="text-xl font-bold text-gray-800 mb-2 border-l-4 border-orange-500 pl-3">Fast-Track Loans</h2>
@@ -167,9 +179,6 @@ ${ftForm.name}`;
         </div>
       </div>
 
-      {/* Advertica Responsive Banner (Post Fast-Track Table) */}
-      <AdverticaResponsiveBanner placement="repayment_fast_track_bottom" />
-
       {/* Fast Track Application Box */}
       <div id="fast-track" className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-xl p-6 shadow-sm scroll-mt-8">
         <div className="flex items-start gap-4">
@@ -179,15 +188,10 @@ ${ftForm.name}`;
           <div className="flex-grow">
             <h2 className="text-xl font-bold text-gray-900 mb-2">Request Fast-Track Processing</h2>
             <p className="text-sm text-gray-700 mb-4">
-              Need funds urgently? You can request a manual Fast-Track review. 
+              Need funds urgently? You can request a manual Fast-Track review for priority processing. 
               <br/>
-              <span className="font-bold text-red-600">Note: This service attracts a flat processing fee of NGN 20,000.</span>
+              <span className="font-bold text-green-600">Note: This service involves a comprehensive verification process.</span>
             </p>
-
-            {/* In-Form Advertica Banner */}
-            <div className="mb-6 flex justify-center bg-white/50 p-2 rounded-lg backdrop-blur-sm">
-               <AdverticaBanner />
-            </div>
 
             <form onSubmit={handleFastTrackSubmit} className="grid md:grid-cols-2 gap-4">
                <input 
@@ -233,11 +237,12 @@ ${ftForm.name}`;
         </div>
       </div>
 
-
-      {/* Advertica Banner Slot 2 */}
-      <div className="mt-12 flex justify-center bg-gray-50 p-4 rounded-xl">
-        <AdverticaBanner />
-      </div>
+      {/* Body Ad Slot */}
+      {ads?.body && (
+        <div className="mt-12 flex justify-center bg-gray-50 p-4 rounded-xl">
+          <AdSlot htmlContent={ads.body} label="Sponsor" />
+        </div>
+      )}
 
     </div>
   );

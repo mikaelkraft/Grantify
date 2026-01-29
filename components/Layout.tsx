@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AdSlot } from './AdSlot';
-import { AdverticaBanner } from './AdverticaBanner';
-import { AdverticaResponsiveBanner } from './AdverticaResponsiveBanner';
 import { ApiService } from '../services/storage';
 import { AdConfig } from '../types';
 import { Menu, X, Banknote, AlertTriangle, ShieldAlert, RefreshCw, HelpCircle } from 'lucide-react';
@@ -126,15 +124,6 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     });
   };
 
-  const handleDismissCompliance = () => {
-    if (blockerDetected) {
-      const confirm = window.confirm("If you are using an adblocker, the loan application form may fail to submit. Are you sure you want to proceed?");
-      if (!confirm) return;
-    }
-    // Just dismiss the modal (no localStorage)
-    setShowCompliance(false);
-  };
-
   const handleReload = () => {
     window.location.reload();
   };
@@ -150,27 +139,31 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 relative">
       
-      {/* Floating Promo Button 1 (Advertica Direct Link) */}
-      <a 
-        href="https://data527.click/eccd43ec29181253638a/951b5a4643/?placementName=default"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-24 right-6 z-50 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 animate-bounce flex items-center gap-2"
-      >
-        <span>🔥</span>
-        <span>Hot Offer!</span>
-      </a>
+      {/* Floating Promo Button 1 (Admin Configurable) */}
+      {ads?.promo1Link && (
+        <a 
+          href={ads.promo1Link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed bottom-24 right-6 z-50 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 animate-bounce flex items-center gap-2"
+        >
+          <span>🔥</span>
+          <span>{ads.promo1Text || 'Offer'}</span>
+        </a>
+      )}
 
-      {/* Floating Promo Button 2 (Previously existing) */}
-      <a 
-        href="https://data527.click/eccd43ec29181253638a/951b5a4643/?placementName=unit2"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 animate-pulse flex items-center gap-2"
-      >
-        <span>🎁</span>
-        <span>Claim Free Bonus!</span>
-      </a>
+      {/* Floating Promo Button 2 (Admin Configurable) */}
+      {ads?.promo2Link && (
+        <a 
+          href={ads.promo2Link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 animate-pulse flex items-center gap-2"
+        >
+          <span>🎁</span>
+          <span>{ads.promo2Text || 'Bonus'}</span>
+        </a>
+      )}
 
       {/* Compliance Warning Modal */}
       {showCompliance && (
@@ -241,29 +234,24 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
             <div className="mt-6 space-y-3">
               {blockerDetected ? (
-                <button 
-                  onClick={handleReload}
-                  className="w-full bg-red-600 text-white font-bold py-3 rounded-lg hover:bg-red-700 transition shadow-lg flex items-center justify-center gap-2"
-                >
-                  <RefreshCw size={18} /> Refresh Page
-                </button>
+                <div className="space-y-3">
+                  <p className="text-gray-500 italic">Please consider disabling adblockers to support our free service.</p>
+                  <button 
+                    onClick={() => setShowCompliance(false)}
+                    className="w-full bg-grantify-green text-white font-bold py-3 rounded-lg hover:bg-green-800 transition shadow-lg"
+                  >
+                    Continue to Site
+                  </button>
+                </div>
               ) : (
                 <button 
-                  onClick={handleDismissCompliance}
-                  className="w-full bg-red-600 text-white font-bold py-3 rounded-lg hover:bg-red-700 transition shadow-lg"
+                  onClick={() => setShowCompliance(false)}
+                  className="w-full bg-grantify-green text-white font-bold py-3 rounded-lg hover:bg-green-800 transition shadow-lg"
                 >
                   I Understand & Agree
                 </button>
               )}
 
-              {blockerDetected && (
-                <button 
-                  onClick={handleDismissCompliance}
-                  className="w-full text-gray-400 text-xs hover:text-gray-600 underline text-center"
-                >
-                  I am not using an adblocker (Continue anyway)
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -328,23 +316,18 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         {/* Sidebar Ad (Only on larger screens) */}
         <aside className="hidden lg:block w-[300px] flex-shrink-0">
            <div className="sticky top-24">
-              <AdverticaBanner />
+              {ads?.sidebar && <AdSlot htmlContent={ads.sidebar} label="Sponsor" />}
            </div>
         </aside>
       </main>
 
-      {/* Advertica Banner Replacing AdSense */}
-      <div className="my-12 flex justify-center">
-        <AdverticaBanner />
-      </div>
+      {/* Body Ad */}
+      {ads?.body && (
+        <div className="my-12 flex justify-center">
+          <AdSlot htmlContent={ads.body} label="Sponsor" />
+        </div>
+      )}
 
-      {/* Responsive Advertica Ads (Bottom Impact) */}
-      <div className="w-full bg-gray-100 py-6 border-y border-gray-200">
-         <AdverticaResponsiveBanner placement="layout_bottom_impact" />
-      </div>
-
-      {/* Responsive Advertica Banner (Footer area) */}
-      <AdverticaResponsiveBanner placement="layout_footer" />
 
       {/* Footer Ad */}
       {ads?.footer && <AdSlot htmlContent={ads.footer} className="bg-gray-900 py-4" label="Sponsor" />}
