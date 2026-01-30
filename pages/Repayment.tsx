@@ -179,59 +179,29 @@ ${ftForm.name}`;
         </div>
       </div>
 
-      {/* Fast Track Application Box */}
+      {/* Fast Track Info Box */}
       <div id="fast-track" className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-xl p-6 shadow-sm scroll-mt-8">
         <div className="flex items-start gap-4">
           <div className="bg-orange-500 text-white p-3 rounded-full hidden md:block">
             <Zap size={24} fill="currentColor" />
           </div>
-          <div className="flex-grow">
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Request Fast-Track Processing</h2>
-            <p className="text-sm text-gray-700 mb-4">
-              Need funds urgently? You can request a manual Fast-Track review for priority processing. 
+          <div className="flex-grow text-center md:text-left">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Need Larger Amounts Fast?</h2>
+            <p className="text-sm text-gray-700 mb-6">
+              Our Fast-Track processing is currently integrated with our verified third-party partners to provide you with even larger credit limits and faster disbursement.
               <br/>
-              <span className="font-bold text-green-600">Note: This service involves a comprehensive verification process.</span>
+              <span className="font-bold text-green-700">Explore our curated list of loan providers to find the perfect fit for your needs.</span>
             </p>
 
-            <form onSubmit={handleFastTrackSubmit} className="grid md:grid-cols-2 gap-4">
-               <input 
-                 type="text" 
-                 placeholder="Your Full Name" 
-                 required
-                 className={inputClass}
-                 value={ftForm.name}
-                 onChange={e => setFtForm({...ftForm, name: e.target.value})}
-               />
-               <input 
-                 type="text" 
-                 placeholder="Phone Number" 
-                 required
-                 className={inputClass}
-                 value={ftForm.phone}
-                 onChange={e => setFtForm({...ftForm, phone: e.target.value})}
-               />
-               <input 
-                 type="email" 
-                 placeholder="Email Address" 
-                 required
-                 className={inputClass}
-                 value={ftForm.email}
-                 onChange={e => setFtForm({...ftForm, email: e.target.value})}
-               />
-               <input 
-                 type="number" 
-                 placeholder="Amount (NGN)" 
-                 required
-                 className={inputClass}
-                 value={ftForm.amount}
-                 onChange={e => setFtForm({...ftForm, amount: e.target.value})}
-               />
-               <button type="submit" className="md:col-span-2 bg-orange-600 text-white font-bold py-2 rounded hover:bg-orange-700 flex items-center justify-center gap-2 shadow-lg">
-                 <Send size={16} /> Send Fast-Track Request
-               </button>
-            </form>
-            <p className="text-xs text-gray-500 mt-2">
-              * Clicking send will open your email client to complete the request.
+            <a 
+              href="/loan-providers" 
+              className="inline-flex items-center justify-center gap-2 bg-orange-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-orange-700 transition-colors shadow-lg"
+            >
+              <Send size={18} className="-rotate-45" /> View Verified Providers
+            </a>
+            
+            <p className="text-xs text-gray-500 mt-4 italic">
+              * Most providers on our list offer instant disbursement upon verification.
             </p>
           </div>
         </div>

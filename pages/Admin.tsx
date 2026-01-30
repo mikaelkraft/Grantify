@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ApiService } from '../services/storage';
-import { AdminUser, LoanApplication, Testimonial, QualifiedPerson, AdConfig, UserRole, RepaymentContent } from '../types';
+import { AdminUser, LoanApplication, Testimonial, QualifiedPerson, AdConfig, UserRole, RepaymentContent, LoanProvider } from '../types';
 import { LogOut, Download, Trash2, Plus, UserPlus, Shield, Loader2, Save, Zap } from 'lucide-react';
 import { formatNaira } from '../utils/currency';
 
@@ -31,6 +31,7 @@ export const Admin: React.FC = () => {
   const [ads, setAds] = useState<AdConfig | null>(null);
   const [repayment, setRepayment] = useState<RepaymentContent | null>(null);
   const [admins, setAdmins] = useState<AdminUser[]>([]);
+  const [loanProviders, setLoanProviders] = useState<LoanProvider[]>([]);
 
   // New Admin Form
   const [newAdmin, setNewAdmin] = useState({ name: '', username: '', password: '', role: UserRole.FLOOR_ADMIN });
@@ -40,6 +41,7 @@ export const Admin: React.FC = () => {
   const [hasUnsavedQualified, setHasUnsavedQualified] = useState(false);
   const [hasUnsavedAds, setHasUnsavedAds] = useState(false);
   const [hasUnsavedRepayment, setHasUnsavedRepayment] = useState(false);
+  const [hasUnsavedProviders, setHasUnsavedProviders] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -49,13 +51,14 @@ export const Admin: React.FC = () => {
   const refreshData = async () => {
     setIsLoading(true);
     try {
-      const [apps, tests, qual, adConfig, repay, adminList] = await Promise.all([
+      const [apps, tests, qual, adConfig, repay, adminList, providers] = await Promise.all([
         ApiService.getApplications(),
         ApiService.getTestimonials(),
         ApiService.getQualified(),
         ApiService.getAds(),
         ApiService.getRepaymentContent(),
-        ApiService.getAdmins()
+        ApiService.getAdmins(),
+        ApiService.getLoanProviders()
       ]);
       setApplications(apps);
       setTestimonials(tests);
@@ -63,6 +66,7 @@ export const Admin: React.FC = () => {
       setAds(adConfig);
       setRepayment(repay);
       setAdmins(adminList);
+      setLoanProviders(providers);
     } catch (e) {
       console.error("Failed to load admin data", e);
       const message =
@@ -137,6 +141,48 @@ export const Admin: React.FC = () => {
       alert('Ad settings saved successfully!');
     } catch (e) {
       console.error('Failed to save ads', e);
+      alert('Failed to save changes. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // --- Loan Providers Logic ---
+  const handleUpdateProviderLocal = (id: number, field: keyof LoanProvider, value: any) => {
+    const newData = loanProviders.map(p => p.id === id ? { ...p, [field]: value } : p);
+    setLoanProviders(newData);
+    setHasUnsavedProviders(true);
+  };
+
+  const handleAddProvider = () => {
+    const newProvider: LoanProvider = {
+      id: Date.now(), // Temporary ID for client-side tracking
+      name: 'New Provider',
+      description: 'Describe the provider...',
+      loanRange: 'NGN 1,000 - NGN 1,000,000',
+      interestRange: '5% - 15% monthly',
+      tenure: '1 - 6 months',
+      website: 'https://...',
+    };
+    setLoanProviders([...loanProviders, newProvider]);
+    setHasUnsavedProviders(true);
+  };
+
+  const handleDeleteProviderLocal = (id: number) => {
+    if (!window.confirm("Are you sure you want to delete this provider?")) return;
+    setLoanProviders(loanProviders.filter(p => p.id !== id));
+    setHasUnsavedProviders(true);
+  };
+
+  const handleSaveProviders = async () => {
+    setIsSaving(true);
+    try {
+      await ApiService.saveLoanProviders(loanProviders);
+      setHasUnsavedProviders(false);
+      alert('Providers saved successfully!');
+      refreshData(); // Refresh to get proper IDs from DB
+    } catch (e) {
+      console.error('Failed to save providers', e);
       alert('Failed to save changes. Please try again.');
     } finally {
       setIsSaving(false);
@@ -332,6 +378,8 @@ export const Admin: React.FC = () => {
     }
   };
 
+
+
   const handleRepaymentUpdateLocal = (newContent: RepaymentContent) => {
     setRepayment(newContent);
     setHasUnsavedRepayment(true);
@@ -413,6 +461,7 @@ export const Admin: React.FC = () => {
              {id: 'qualified', label: 'Qualified Persons'},
              {id: 'testimonials', label: 'Testimonials'},
              {id: 'ads', label: 'Ad Management'},
+             {id: 'providers', label: 'Loan Providers'},
              {id: 'content', label: 'Page Content'}
            ].map(tab => (
              <button
@@ -796,53 +845,158 @@ export const Admin: React.FC = () => {
               {/* Content Tab */}
               {activeTab === 'content' && repayment && (
                 <div>
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-xl font-bold">Repayment Page Content</h3>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold">Repayment Page Content</h3>
+                    <button 
+                      onClick={handleSaveRepayment} 
+                      disabled={!hasUnsavedRepayment || isSaving}
+                      className={`flex items-center gap-2 px-3 py-1 rounded text-sm ${hasUnsavedRepayment ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                    >
+                      <Save size={16} /> {isSaving ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
+                  {hasUnsavedRepayment && (
+                    <div className="mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm">
+                      You have unsaved changes. Click "Save Changes" to sync with the database.
+                    </div>
+                  )}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium">Intro Text</label>
+                      <textarea 
+                        className={inputClass}
+                        value={repayment.introText}
+                        onChange={(e) => handleRepaymentUpdateLocal({...repayment, introText: e.target.value})}
+                        placeholder="Introductory Text"
+                        aria-label="Introductory Text"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium">Standard Loan Note</label>
+                      <input 
+                        className={inputClass}
+                        value={repayment.standardNote}
+                        onChange={(e) => handleRepaymentUpdateLocal({...repayment, standardNote: e.target.value})}
+                        placeholder="Standard Loan Note"
+                        aria-label="Standard Loan Note"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium">Fast-Track Loan Note</label>
+                      <input 
+                        className={inputClass}
+                        value={repayment.fastTrackNote}
+                        onChange={(e) => handleRepaymentUpdateLocal({...repayment, fastTrackNote: e.target.value})}
+                        placeholder="Fast-Track Loan Note"
+                        aria-label="Fast-Track Loan Note"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Providers Tab */}
+              {activeTab === 'providers' && (
+                <div>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold">Loan Providers ({loanProviders.length})</h3>
+                    <div className="flex gap-2">
+                      <button onClick={handleAddProvider} className="flex items-center gap-2 bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">
+                        <Plus size={16} /> Add New Provider
+                      </button>
                       <button 
-                        onClick={handleSaveRepayment} 
-                        disabled={!hasUnsavedRepayment || isSaving}
-                        className={`flex items-center gap-2 px-3 py-1 rounded text-sm ${hasUnsavedRepayment ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                        onClick={handleSaveProviders} 
+                        disabled={!hasUnsavedProviders || isSaving}
+                        className={`flex items-center gap-2 px-3 py-1 rounded text-sm ${hasUnsavedProviders ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
                       >
                         <Save size={16} /> {isSaving ? 'Saving...' : 'Save Changes'}
                       </button>
                     </div>
-                    {hasUnsavedRepayment && (
-                      <div className="mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm">
-                        You have unsaved changes. Click "Save Changes" to sync with the database.
-                      </div>
-                    )}
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium">Intro Text</label>
-                        <textarea 
-                          className={inputClass}
-                          value={repayment.introText}
-                          onChange={(e) => handleRepaymentUpdateLocal({...repayment, introText: e.target.value})}
-                          placeholder="Introductory Text"
-                          aria-label="Introductory Text"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium">Standard Loan Note</label>
-                        <input 
-                          className={inputClass}
-                          value={repayment.standardNote}
-                          onChange={(e) => handleRepaymentUpdateLocal({...repayment, standardNote: e.target.value})}
-                          placeholder="Standard Loan Note"
-                          aria-label="Standard Loan Note"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium">Fast-Track Loan Note</label>
-                        <input 
-                          className={inputClass}
-                          value={repayment.fastTrackNote}
-                          onChange={(e) => handleRepaymentUpdateLocal({...repayment, fastTrackNote: e.target.value})}
-                          placeholder="Fast-Track Loan Note"
-                          aria-label="Fast-Track Loan Note"
-                        />
-                      </div>
+                  </div>
+                  {hasUnsavedProviders && (
+                    <div className="mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm">
+                      You have unsaved changes. Click "Save Changes" to sync with the database.
                     </div>
+                  )}
+                  <div className="space-y-6">
+                    {loanProviders.map((p) => (
+                      <div key={p.id || 'new'} className="border p-4 rounded bg-gray-50 space-y-3">
+                        <div className="flex justify-between items-start">
+                          <input 
+                            className="text-lg font-bold bg-transparent border-none focus:ring-0 p-0 w-full"
+                            value={p.name}
+                            onChange={(e) => handleUpdateProviderLocal(p.id!, 'name', e.target.value)}
+                            placeholder="Provider Name"
+                            aria-label="Provider Name"
+                          />
+                          <button 
+                            onClick={() => handleDeleteProviderLocal(p.id!)} 
+                            className="text-red-500 hover:bg-red-100 p-1 rounded"
+                            title="Delete Provider"
+                            aria-label="Delete Provider"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-[10px] text-gray-500 uppercase block mb-1">Description</label>
+                            <textarea 
+                              className={inputClassSmall + " w-full h-20"}
+                              value={p.description}
+                              onChange={(e) => handleUpdateProviderLocal(p.id!, 'description', e.target.value)}
+                              placeholder="Describe the provider..."
+                              aria-label="Provider Description"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <div>
+                              <label className="text-[10px] text-gray-500 uppercase block mb-1">Loan Range</label>
+                              <input 
+                                className={inputClassSmall + " w-full"}
+                                value={p.loanRange}
+                                onChange={(e) => handleUpdateProviderLocal(p.id!, 'loanRange', e.target.value)}
+                                placeholder="NGN 1,000 - NGN 500,000"
+                                aria-label="Loan Range"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-gray-500 uppercase block mb-1">Interest Range</label>
+                              <input 
+                                className={inputClassSmall + " w-full"}
+                                value={p.interestRange}
+                                onChange={(e) => handleUpdateProviderLocal(p.id!, 'interestRange', e.target.value)}
+                                placeholder="5% - 15% monthly"
+                                aria-label="Interest Range"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-[10px] text-gray-500 uppercase block mb-1">Tenure</label>
+                            <input 
+                              className={inputClassSmall + " w-full"}
+                              value={p.tenure}
+                              onChange={(e) => handleUpdateProviderLocal(p.id!, 'tenure', e.target.value)}
+                              placeholder="1 - 6 months"
+                              aria-label="Tenure"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-gray-500 uppercase block mb-1">Website / Referral Link</label>
+                            <input 
+                              className={inputClassSmall + " w-full"}
+                              value={p.website}
+                              onChange={(e) => handleUpdateProviderLocal(p.id!, 'website', e.target.value)}
+                              placeholder="https://..."
+                              aria-label="Website Link"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 

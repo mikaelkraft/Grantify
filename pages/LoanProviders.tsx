@@ -1,116 +1,30 @@
-import React from 'react';
-import { ExternalLink, AlertTriangle, ShieldCheck, Info } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ExternalLink, AlertTriangle, ShieldCheck, Info, Loader2 } from 'lucide-react';
 import { ApiService } from '../services/storage';
 import { AdSlot } from '../components/AdSlot';
-import { AdConfig } from '../types';
-
-interface LoanProvider {
-  name: string;
-  description: string;
-  loanRange: string;
-  interestRange: string;
-  tenure: string;
-  website: string;
-  playStoreUrl?: string;
-}
-
-const cbnApprovedLenders: LoanProvider[] = [
-  {
-    name: "FairMoney",
-    description: "Offers instant loans without collateral. One of the leading digital banks in Nigeria with CBN approval.",
-    loanRange: "NGN 1,500 - NGN 3,000,000",
-    interestRange: "5% - 30% monthly",
-    tenure: "2 - 12 months",
-    website: "https://fairmoney.ng",
-    playStoreUrl: "https://play.google.com/store/apps/details?id=ng.com.fairmoney.fairmoney"
-  },
-  {
-    name: "Carbon (Paylater)",
-    description: "Provides quick loans, bill payments, and investment services. Formerly known as Paylater.",
-    loanRange: "NGN 2,000 - NGN 1,000,000",
-    interestRange: "5% - 15% monthly",
-    tenure: "1 - 6 months",
-    website: "https://getcarbon.co",
-    playStoreUrl: "https://play.google.com/store/apps/details?id=co.paylater.android"
-  },
-  {
-    name: "Branch",
-    description: "International lending app offering loans in Nigeria, Kenya, and other African countries.",
-    loanRange: "NGN 1,000 - NGN 500,000",
-    interestRange: "4% - 21% monthly",
-    tenure: "1 - 12 months",
-    website: "https://branch.co",
-    playStoreUrl: "https://play.google.com/store/apps/details?id=com.branch_international.branch.branch_demo_android"
-  },
-  {
-    name: "PalmCredit",
-    description: "Quick loan app with simple application process and fast disbursement.",
-    loanRange: "NGN 2,000 - NGN 500,000",
-    interestRange: "5% - 20% monthly",
-    tenure: "14 days - 6 months",
-    website: "https://palmcredit.io",
-    playStoreUrl: "https://play.google.com/store/apps/details?id=com.transsnetfinancial.palmcredit"
-  },
-  {
-    name: "Renmoney",
-    description: "Licensed lending company offering personal and business loans with competitive rates.",
-    loanRange: "NGN 50,000 - NGN 6,000,000",
-    interestRange: "2.5% - 4% monthly",
-    tenure: "3 - 24 months",
-    website: "https://renmoney.com",
-    playStoreUrl: "https://play.google.com/store/apps/details?id=com.renmoney"
-  },
-  {
-    name: "Specta",
-    description: "A product by Sterling Bank offering instant loans to salary earners and business owners.",
-    loanRange: "NGN 50,000 - NGN 5,000,000",
-    interestRange: "2% - 3% monthly",
-    tenure: "3 - 12 months",
-    website: "https://specta.com.ng"
-  },
-  {
-    name: "QuickCheck",
-    description: "AI-powered lending platform providing quick loans based on mobile data analysis.",
-    loanRange: "NGN 1,500 - NGN 500,000",
-    interestRange: "5% - 30% monthly",
-    tenure: "1 - 6 months",
-    website: "https://quickcheck.ng",
-    playStoreUrl: "https://play.google.com/store/apps/details?id=com.quickcheckng"
-  },
-  {
-    name: "Aella Credit",
-    description: "Provides salary advances and personal loans to employed individuals.",
-    loanRange: "NGN 1,500 - NGN 1,000,000",
-    interestRange: "4% - 20% monthly",
-    tenure: "1 - 12 months",
-    website: "https://aellaapp.com",
-    playStoreUrl: "https://play.google.com/store/apps/details?id=com.alohapayday.android"
-  },
-  {
-    name: "Kuda Bank",
-    description: "Digital bank offering overdraft facilities to customers based on account history.",
-    loanRange: "NGN 2,000 - NGN 100,000",
-    interestRange: "0.3% daily",
-    tenure: "Up to 30 days",
-    website: "https://kuda.com",
-    playStoreUrl: "https://play.google.com/store/apps/details?id=com.kudabank.app"
-  },
-  {
-    name: "OPay",
-    description: "Fintech platform offering OKash loans with quick approval and disbursement.",
-    loanRange: "NGN 3,000 - NGN 500,000",
-    interestRange: "5% - 14% monthly",
-    tenure: "14 days - 6 months",
-    website: "https://opay.com",
-    playStoreUrl: "https://play.google.com/store/apps/details?id=com.opay.merchant"
-  }
-];
+import { AdConfig, LoanProvider } from '../types';
 
 export const LoanProviders: React.FC = () => {
-  const [ads, setAds] = React.useState<AdConfig | null>(null);
+  const [providers, setProviders] = useState<LoanProvider[]>([]);
+  const [ads, setAds] = useState<AdConfig | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  React.useEffect(() => {
-    ApiService.getAds().then(setAds).catch(console.error);
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [providersData, adsData] = await Promise.all([
+          ApiService.getLoanProviders(),
+          ApiService.getAds()
+        ]);
+        setProviders(providersData);
+        setAds(adsData);
+      } catch (e) {
+        console.error("Failed to load loan providers", e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
   }, []);
 
   return (
@@ -138,20 +52,6 @@ export const LoanProviders: React.FC = () => {
         </div>
       )}
 
-
-      {/* CBN Approval Notice */}
-      <div className="bg-green-50 border border-green-200 p-4 mb-8 rounded-lg">
-        {/* ... notice content ... */}
-      </div>
-
-      {/* Body Ad Slot */}
-      {ads?.body && (
-        <div className="my-8 flex justify-center">
-          <AdSlot htmlContent={ads.body} label="Sponsor" />
-        </div>
-      )}
-
-
       {/* Advice Section */}
       <div className="bg-blue-50 border border-blue-200 p-4 mb-8 rounded-lg">
         <div className="flex items-start gap-3">
@@ -169,57 +69,68 @@ export const LoanProviders: React.FC = () => {
         </div>
       </div>
 
+      {isLoading ? (
+        <div className="flex justify-center items-center py-20">
+          <Loader2 className="animate-spin text-grantify-green" size={40} />
+          <span className="ml-3 text-gray-500">Finding verified lenders...</span>
+        </div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2">
+          {providers.map((provider, index) => (
+            <div key={provider.id || index} className="border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow bg-gray-50 flex flex-col">
+              <h3 className="font-bold text-lg text-grantify-green mb-2">{provider.name}</h3>
+              <p className="text-gray-600 text-sm mb-3 flex-grow">{provider.description}</p>
+              
+              <div className="space-y-2 text-sm border-t border-gray-100 pt-3">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Loan Range:</span>
+                  <span className="font-medium text-gray-800">{provider.loanRange}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Interest Rate:</span>
+                  <span className="font-medium text-gray-800">{provider.interestRange}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Tenure:</span>
+                  <span className="font-medium text-gray-800">{provider.tenure}</span>
+                </div>
+              </div>
 
-      {/* Loan Providers Grid */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {cbnApprovedLenders.map((provider, index) => (
-          <div key={index} className="border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow bg-gray-50">
-            <h3 className="font-bold text-lg text-grantify-green mb-2">{provider.name}</h3>
-            <p className="text-gray-600 text-sm mb-3">{provider.description}</p>
-            
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Loan Range:</span>
-                <span className="font-medium text-gray-800">{provider.loanRange}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Interest Rate:</span>
-                <span className="font-medium text-gray-800">{provider.interestRange}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Tenure:</span>
-                <span className="font-medium text-gray-800">{provider.tenure}</span>
-              </div>
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              <a 
-                href={provider.website} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-sm text-grantify-green hover:underline"
-              >
-                <ExternalLink size={14} /> Visit Website
-              </a>
-              {provider.playStoreUrl && (
+              <div className="mt-4 flex flex-wrap gap-4 pt-4 border-t border-gray-100">
                 <a 
-                  href={provider.playStoreUrl} 
+                  href={provider.website} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
+                  className="inline-flex items-center gap-2 bg-grantify-green text-white px-4 py-2 rounded text-sm font-bold hover:bg-green-700 transition-colors"
                 >
-                  <ExternalLink size={14} /> Play Store
+                  <ExternalLink size={16} /> Get Loan Now
                 </a>
-              )}
+                {provider.playStoreUrl && (
+                  <a 
+                    href={provider.playStoreUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-sm text-blue-600 hover:underline"
+                  >
+                    <ExternalLink size={14} /> Play Store
+                  </a>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+          
+          {providers.length === 0 && !isLoading && (
+            <div className="col-span-full py-10 text-center text-gray-500 italic">
+              No providers found. Please check back later.
+            </div>
+          )}
+        </div>
+      )}
 
-      {/* Footer Ad Slot */}
-      {ads?.footer && (
-        <div className="my-10 flex justify-center bg-gray-50 p-4 rounded-xl">
-          <AdSlot htmlContent={ads.footer} label="Sponsor" />
+      {/* Body Ad Slot */}
+      {ads?.body && (
+        <div className="my-12 flex justify-center bg-gray-50 p-4 rounded-xl">
+          <AdSlot htmlContent={ads.body} label="Sponsor" />
         </div>
       )}
 
@@ -235,7 +146,7 @@ export const LoanProviders: React.FC = () => {
 
       <div className="mt-6 pt-6 border-t text-center">
         <p className="text-gray-500 text-sm">
-          Information last updated: December 2024
+          Information last updated: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
         </p>
       </div>
     </div>

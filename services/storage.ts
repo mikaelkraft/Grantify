@@ -6,7 +6,8 @@ import {
   AdminUser, 
   UserRole,
   RepaymentContent,
-  ReferralData
+  ReferralData,
+  LoanProvider
 } from '../types';
 
 // --- CONFIGURATION ---
@@ -289,5 +290,28 @@ export const ApiService = {
       code: 'GRANT-' + Math.random().toString(36).substring(2, 6).toUpperCase(),
       points: 0
     };
+  },
+
+  // -- Loan Providers --
+  getLoanProviders: async (): Promise<LoanProvider[]> => {
+    const res = await fetch(`${API_URL}/api/loan_providers`);
+    if (!res.ok) throw new Error('Failed to fetch loan providers from API');
+    return await res.json();
+  },
+
+  saveLoanProviders: async (data: LoanProvider[]): Promise<void> => {
+    const res = await fetch(`${API_URL}/api/loan_providers`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to save loan providers via API');
+  },
+
+  deleteLoanProvider: async (id: number): Promise<void> => {
+    const res = await fetch(`${API_URL}/api/loan_providers?id=${id}`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) throw new Error('Failed to delete loan provider via API');
   }
 };

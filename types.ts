@@ -82,6 +82,17 @@ export interface ReferralData {
   points: number;
 }
 
+export interface LoanProvider {
+  id?: number;
+  name: string;
+  description: string;
+  loanRange: string;
+  interestRange: string;
+  tenure: string;
+  website: string;
+  playStoreUrl?: string;
+}
+
 // Ad network type definitions for window object
 declare global {
   interface Window {

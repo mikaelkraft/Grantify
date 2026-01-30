@@ -73,7 +73,114 @@ export default async function handler(req, res) {
       }
     ];
 
-    const seeded = { testimonials: false, qualified: false, ads: false, repayment: false, admins: false };
+    const initialProviders = [
+      {
+        name: "FairMoney",
+        description: "Offers instant loans without collateral. One of the leading digital banks in Nigeria with CBN approval.",
+        loan_range: "NGN 1,500 - NGN 3,000,000",
+        interest_range: "5% - 30% monthly",
+        tenure: "2 - 12 months",
+        website: "https://fairmoney.ng",
+        play_store_url: "https://play.google.com/store/apps/details?id=ng.com.fairmoney.fairmoney"
+      },
+      {
+        name: "Carbon (Paylater)",
+        description: "Provides quick loans, bill payments, and investment services. Formerly known as Paylater.",
+        loan_range: "NGN 2,000 - NGN 1,000,000",
+        interest_range: "5% - 15% monthly",
+        tenure: "1 - 6 months",
+        website: "https://getcarbon.co",
+        play_store_url: "https://play.google.com/store/apps/details?id=co.paylater.android"
+      },
+      {
+        name: "Branch",
+        description: "International lending app offering loans in Nigeria, Kenya, and other African countries.",
+        loan_range: "NGN 1,000 - NGN 500,000",
+        interest_range: "4% - 21% monthly",
+        tenure: "1 - 12 months",
+        website: "https://branch.co",
+        play_store_url: "https://play.google.com/store/apps/details?id=com.branch_international.branch.branch_demo_android"
+      },
+      {
+        name: "PalmCredit",
+        description: "Quick loan app with simple application process and fast disbursement.",
+        loan_range: "NGN 2,000 - NGN 500,000",
+        interest_range: "5% - 20% monthly",
+        tenure: "14 days - 6 months",
+        website: "https://palmcredit.io",
+        play_store_url: "https://play.google.com/store/apps/details?id=com.transsnetfinancial.palmcredit"
+      },
+      {
+        name: "Renmoney",
+        description: "Licensed lending company offering personal and business loans with competitive rates.",
+        loan_range: "NGN 50,000 - NGN 6,000,000",
+        interest_range: "2.5% - 4% monthly",
+        tenure: "3 - 24 months",
+        website: "https://renmoney.com",
+        play_store_url: "https://play.google.com/store/apps/details?id=com.renmoney"
+      },
+      {
+        name: "Specta",
+        description: "A product by Sterling Bank offering instant loans to salary earners and business owners.",
+        loan_range: "NGN 50,000 - NGN 5,000,000",
+        interest_range: "2% - 3% monthly",
+        tenure: "3 - 12 months",
+        website: "https://specta.com.ng"
+      },
+      {
+        name: "QuickCheck",
+        description: "AI-powered lending platform providing quick loans based on mobile data analysis.",
+        loan_range: "NGN 1,500 - NGN 500,000",
+        interest_range: "5% - 30% monthly",
+        tenure: "1 - 6 months",
+        website: "https://quickcheck.ng",
+        play_store_url: "https://play.google.com/store/apps/details?id=com.quickcheckng"
+      },
+      {
+        name: "Aella Credit",
+        description: "Provides salary advances and personal loans to employed individuals.",
+        loan_range: "NGN 1,500 - NGN 1,000,000",
+        interest_range: "4% - 20% monthly",
+        tenure: "1 - 12 months",
+        website: "https://aellaapp.com",
+        play_store_url: "https://play.google.com/store/apps/details?id=com.alohapayday.android"
+      },
+      {
+        name: "Kuda Bank",
+        description: "Digital bank offering overdraft facilities to customers based on account history.",
+        loan_range: "NGN 2,000 - NGN 100,000",
+        interest_range: "0.3% daily",
+        tenure: "Up to 30 days",
+        website: "https://kuda.com",
+        play_store_url: "https://play.google.com/store/apps/details?id=com.kudabank.app"
+      },
+      {
+        name: "OPay",
+        description: "Fintech platform offering OKash loans with quick approval and disbursement.",
+        loan_range: "NGN 3,000 - NGN 500,000",
+        interest_range: "5% - 14% monthly",
+        tenure: "14 days - 6 months",
+        website: "https://opay.com",
+        play_store_url: "https://play.google.com/store/apps/details?id=com.opay.merchant"
+      }
+    ];
+
+    const seeded = { testimonials: false, qualified: false, ads: false, repayment: false, admins: false, providers: false };
+
+    // Create loan_providers table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS loan_providers (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        loan_range TEXT,
+        interest_range TEXT,
+        tenure TEXT,
+        website TEXT,
+        play_store_url TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
     // Seed Testimonials if empty
     const testimonialsCount = await client.query('SELECT COUNT(*) FROM testimonials');
@@ -136,6 +243,19 @@ export default async function handler(req, res) {
         );
       }
       seeded.admins = true;
+    }
+
+    // Seed Loan Providers if empty
+    const providersCount = await client.query('SELECT COUNT(*) FROM loan_providers');
+    if (parseInt(providersCount.rows[0].count) === 0) {
+      for (const p of initialProviders) {
+        await client.query(
+          `INSERT INTO loan_providers (name, description, loan_range, interest_range, tenure, website, play_store_url)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [p.name, p.description, p.loan_range, p.interest_range, p.tenure, p.website, p.play_store_url]
+        );
+      }
+      seeded.providers = true;
     }
 
     await client.query('COMMIT');
