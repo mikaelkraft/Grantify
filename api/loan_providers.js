@@ -25,7 +25,11 @@ export default async function handler(req, res) {
         interestRange: row.interest_range,
         tenure: row.tenure,
         website: row.website,
-        playStoreUrl: row.play_store_url
+        playStoreUrl: row.play_store_url,
+        tag: row.tag,
+        rating: row.rating ? parseFloat(row.rating) : 0,
+        requirements: row.requirements,
+        isRecommended: row.is_recommended
       }));
       return res.status(200).json(providers);
     } 
@@ -38,16 +42,13 @@ export default async function handler(req, res) {
 
       await client.query('BEGIN');
       
-      // For simplicity, we'll clear and re-insert if the array is large, 
-      // or we could handle individual updates. Given the context of the other endpoints,
-      // they seem to overwrite.
       await client.query('DELETE FROM loan_providers');
       
       for (const p of providers) {
         await client.query(
-          `INSERT INTO loan_providers (name, description, loan_range, interest_range, tenure, website, play_store_url)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-          [p.name, p.description, p.loanRange, p.interestRange, p.tenure, p.website, p.playStoreUrl]
+          `INSERT INTO loan_providers (name, description, loan_range, interest_range, tenure, website, play_store_url, tag, rating, requirements, is_recommended)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+          [p.name, p.description, p.loanRange, p.interestRange, p.tenure, p.website, p.playStoreUrl, p.tag, p.rating, p.requirements, p.isRecommended]
         );
       }
       

@@ -91,6 +91,20 @@ export interface LoanProvider {
   tenure: string;
   website: string;
   playStoreUrl?: string;
+  tag?: string;
+  rating?: number;
+  requirements?: string;
+  isRecommended?: boolean;
+}
+
+export interface ProviderReview {
+  id: string;
+  providerId: number;
+  name: string;
+  rating: number;
+  content: string;
+  parentId?: string;
+  createdAt: string;
 }
 
 // Ad network type definitions for window object

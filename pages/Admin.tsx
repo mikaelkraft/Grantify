@@ -32,6 +32,7 @@ export const Admin: React.FC = () => {
   const [repayment, setRepayment] = useState<RepaymentContent | null>(null);
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loanProviders, setLoanProviders] = useState<LoanProvider[]>([]);
+  const [allReviews, setAllReviews] = useState<ProviderReview[]>([]);
 
   // New Admin Form
   const [newAdmin, setNewAdmin] = useState({ name: '', username: '', password: '', role: UserRole.FLOOR_ADMIN });
@@ -51,14 +52,15 @@ export const Admin: React.FC = () => {
   const refreshData = async () => {
     setIsLoading(true);
     try {
-      const [apps, tests, qual, adConfig, repay, adminList, providers] = await Promise.all([
+      const [apps, tests, qual, adConfig, repay, adminList, providers, reviews] = await Promise.all([
         ApiService.getApplications(),
         ApiService.getTestimonials(),
         ApiService.getQualified(),
         ApiService.getAds(),
         ApiService.getRepaymentContent(),
         ApiService.getAdmins(),
-        ApiService.getLoanProviders()
+        ApiService.getLoanProviders(),
+        ApiService.getProviderReviews()
       ]);
       setApplications(apps);
       setTestimonials(tests);
@@ -67,6 +69,7 @@ export const Admin: React.FC = () => {
       setRepayment(repay);
       setAdmins(adminList);
       setLoanProviders(providers);
+      setAllReviews(reviews);
     } catch (e) {
       console.error("Failed to load admin data", e);
       const message =
@@ -160,9 +163,13 @@ export const Admin: React.FC = () => {
       name: 'New Provider',
       description: 'Describe the provider...',
       loanRange: 'NGN 1,000 - NGN 1,000,000',
-      interestRange: '5% - 15% monthly',
       tenure: '1 - 6 months',
       website: 'https://...',
+      playStoreUrl: '',
+      tag: '',
+      rating: 4.5,
+      requirements: 'NIN, BVN',
+      isRecommended: false
     };
     setLoanProviders([...loanProviders, newProvider]);
     setHasUnsavedProviders(true);
@@ -405,6 +412,16 @@ export const Admin: React.FC = () => {
     await ApiService.saveRepaymentContent(newContent);
   };
 
+  const handleDeleteReview = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this review?')) return;
+    try {
+      await ApiService.deleteProviderReview(id);
+      setAllReviews(prev => prev.filter(r => r.id !== id));
+    } catch (e) {
+      alert('Failed to delete review');
+    }
+  };
+
   // Styles
   const inputClass = "w-full p-2 border border-gray-600 rounded bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-grantify-gold outline-none";
   const inputClassSmall = "border border-gray-600 rounded bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-grantify-gold outline-none p-1";
@@ -462,6 +479,7 @@ export const Admin: React.FC = () => {
              {id: 'testimonials', label: 'Testimonials'},
              {id: 'ads', label: 'Ad Management'},
              {id: 'providers', label: 'Loan Providers'},
+             {id: 'reviews', label: 'Provider Reviews'},
              {id: 'content', label: 'Page Content'}
            ].map(tab => (
              <button
@@ -994,8 +1012,112 @@ export const Admin: React.FC = () => {
                             />
                           </div>
                         </div>
+
+                        {/* New Fields */}
+                        <div className="grid md:grid-cols-3 gap-4">
+                          <div>
+                            <label className="text-[10px] text-gray-500 uppercase block mb-1">Tag (e.g. "Fastest")</label>
+                            <input 
+                              className={inputClassSmall + " w-full"}
+                              value={p.tag || ''}
+                              onChange={(e) => handleUpdateProviderLocal(p.id!, 'tag', e.target.value)}
+                              placeholder="Fastest"
+                              aria-label="Tag"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-gray-500 uppercase block mb-1">Rating (1-5)</label>
+                            <input 
+                              type="number"
+                              step="0.1"
+                              min="1"
+                              max="5"
+                              className={inputClassSmall + " w-full"}
+                              value={p.rating || 0}
+                              onChange={(e) => handleUpdateProviderLocal(p.id!, 'rating', parseFloat(e.target.value))}
+                              placeholder="4.5"
+                              aria-label="Rating"
+                            />
+                          </div>
+                          <div className="flex items-center gap-2 pt-4">
+                            <input 
+                              type="checkbox"
+                              id={`rec-${p.id}`}
+                              className="w-4 h-4 text-grantify-green focus:ring-grantify-green"
+                              checked={p.isRecommended || false}
+                              onChange={(e) => handleUpdateProviderLocal(p.id!, 'isRecommended', e.target.checked)}
+                            />
+                            <label htmlFor={`rec-${p.id}`} className="text-xs font-bold text-gray-600 uppercase">Recommended Provider</label>
+                          </div>
+                        </div>
+
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-[10px] text-gray-500 uppercase block mb-1">Requirements (NIN, ID...)</label>
+                            <input 
+                              className={inputClassSmall + " w-full"}
+                              value={p.requirements || ''}
+                              onChange={(e) => handleUpdateProviderLocal(p.id!, 'requirements', e.target.value)}
+                              placeholder="NIN, BVN, Valid ID"
+                              aria-label="Requirements"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-gray-500 uppercase block mb-1">Play Store URL</label>
+                            <input 
+                              className={inputClassSmall + " w-full"}
+                              value={p.playStoreUrl || ''}
+                              onChange={(e) => handleUpdateProviderLocal(p.id!, 'playStoreUrl', e.target.value)}
+                              placeholder="https://play.google.com/..."
+                              aria-label="Play Store URL"
+                            />
+                          </div>
+                        </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Provider Reviews Tab */}
+              {activeTab === 'reviews' && (
+                <div>
+                   <h3 className="text-xl font-bold mb-4">Provider Reviews & Comments ({allReviews.length})</h3>
+                   <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="p-2 text-left">Provider</th>
+                          <th className="p-2 text-left">User</th>
+                          <th className="p-2 text-left">Rating</th>
+                          <th className="p-2 text-left">Content</th>
+                          <th className="p-2 text-left">Date</th>
+                          <th className="p-2 text-left">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y overflow-hidden">
+                        {allReviews.map(review => {
+                          const provider = loanProviders.find(p => p.id === review.providerId);
+                          return (
+                            <tr key={review.id} className={review.parentId ? 'bg-gray-50/50' : ''}>
+                              <td className="p-2 font-bold">{provider?.name || 'Unknown'}</td>
+                              <td className="p-2">
+                                {review.name}
+                                {review.parentId && <span className="ml-2 bg-blue-100 text-blue-600 text-[10px] px-1 rounded">Reply</span>}
+                              </td>
+                              <td className="p-2">{review.rating > 0 ? `${review.rating} ⭐` : '-'}</td>
+                              <td className="p-2 max-w-xs truncate" title={review.content}>{review.content}</td>
+                              <td className="p-2 text-gray-500">{new Date(review.createdAt).toLocaleDateString()}</td>
+                              <td className="p-2">
+                                <button onClick={() => handleDeleteReview(review.id)} className="text-red-500 hover:text-red-700">
+                                  <Trash2 size={16} />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               )}

@@ -313,5 +313,31 @@ export const ApiService = {
       method: 'DELETE'
     });
     if (!res.ok) throw new Error('Failed to delete loan provider via API');
+  },
+
+  // -- Provider Reviews --
+  getProviderReviews: async (providerId?: number): Promise<ProviderReview[]> => {
+    const url = providerId 
+      ? `${API_URL}/api/provider_reviews?providerId=${providerId}` 
+      : `${API_URL}/api/provider_reviews`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to fetch reviews from API');
+    return await res.json();
+  },
+
+  addProviderReview: async (review: Partial<ProviderReview>): Promise<void> => {
+    const res = await fetch(`${API_URL}/api/provider_reviews`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(review)
+    });
+    if (!res.ok) throw new Error('Failed to post review via API');
+  },
+
+  deleteProviderReview: async (id: string): Promise<void> => {
+    const res = await fetch(`${API_URL}/api/provider_reviews?id=${id}`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) throw new Error('Failed to delete review via API');
   }
 };

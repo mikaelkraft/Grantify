@@ -81,7 +81,11 @@ export default async function handler(req, res) {
         interest_range: "5% - 30% monthly",
         tenure: "2 - 12 months",
         website: "https://fairmoney.ng",
-        play_store_url: "https://play.google.com/store/apps/details?id=ng.com.fairmoney.fairmoney"
+        play_store_url: "https://play.google.com/store/apps/details?id=ng.com.fairmoney.fairmoney",
+        tag: "Most Popular",
+        rating: 4.8,
+        requirements: "NIN, Bank Statement, Smartphone",
+        is_recommended: true
       },
       {
         name: "Carbon (Paylater)",
@@ -90,7 +94,11 @@ export default async function handler(req, res) {
         interest_range: "5% - 15% monthly",
         tenure: "1 - 6 months",
         website: "https://getcarbon.co",
-        play_store_url: "https://play.google.com/store/apps/details?id=co.paylater.android"
+        play_store_url: "https://play.google.com/store/apps/details?id=co.paylater.android",
+        tag: "Low Interest",
+        rating: 4.5,
+        requirements: "NIN, BVN, Valid ID",
+        is_recommended: true
       },
       {
         name: "Branch",
@@ -99,7 +107,11 @@ export default async function handler(req, res) {
         interest_range: "4% - 21% monthly",
         tenure: "1 - 12 months",
         website: "https://branch.co",
-        play_store_url: "https://play.google.com/store/apps/details?id=com.branch_international.branch.branch_demo_android"
+        play_store_url: "https://play.google.com/store/apps/details?id=com.branch_international.branch.branch_demo_android",
+        tag: "International",
+        rating: 4.7,
+        requirements: "NIN, Phone Number",
+        is_recommended: false
       },
       {
         name: "PalmCredit",
@@ -108,7 +120,11 @@ export default async function handler(req, res) {
         interest_range: "5% - 20% monthly",
         tenure: "14 days - 6 months",
         website: "https://palmcredit.io",
-        play_store_url: "https://play.google.com/store/apps/details?id=com.transsnetfinancial.palmcredit"
+        play_store_url: "https://play.google.com/store/apps/details?id=com.transsnetfinancial.palmcredit",
+        tag: "Fastest Approval",
+        rating: 4.2,
+        requirements: "NIN, BVN",
+        is_recommended: false
       },
       {
         name: "Renmoney",
@@ -117,51 +133,11 @@ export default async function handler(req, res) {
         interest_range: "2.5% - 4% monthly",
         tenure: "3 - 24 months",
         website: "https://renmoney.com",
-        play_store_url: "https://play.google.com/store/apps/details?id=com.renmoney"
-      },
-      {
-        name: "Specta",
-        description: "A product by Sterling Bank offering instant loans to salary earners and business owners.",
-        loan_range: "NGN 50,000 - NGN 5,000,000",
-        interest_range: "2% - 3% monthly",
-        tenure: "3 - 12 months",
-        website: "https://specta.com.ng"
-      },
-      {
-        name: "QuickCheck",
-        description: "AI-powered lending platform providing quick loans based on mobile data analysis.",
-        loan_range: "NGN 1,500 - NGN 500,000",
-        interest_range: "5% - 30% monthly",
-        tenure: "1 - 6 months",
-        website: "https://quickcheck.ng",
-        play_store_url: "https://play.google.com/store/apps/details?id=com.quickcheckng"
-      },
-      {
-        name: "Aella Credit",
-        description: "Provides salary advances and personal loans to employed individuals.",
-        loan_range: "NGN 1,500 - NGN 1,000,000",
-        interest_range: "4% - 20% monthly",
-        tenure: "1 - 12 months",
-        website: "https://aellaapp.com",
-        play_store_url: "https://play.google.com/store/apps/details?id=com.alohapayday.android"
-      },
-      {
-        name: "Kuda Bank",
-        description: "Digital bank offering overdraft facilities to customers based on account history.",
-        loan_range: "NGN 2,000 - NGN 100,000",
-        interest_range: "0.3% daily",
-        tenure: "Up to 30 days",
-        website: "https://kuda.com",
-        play_store_url: "https://play.google.com/store/apps/details?id=com.kudabank.app"
-      },
-      {
-        name: "OPay",
-        description: "Fintech platform offering OKash loans with quick approval and disbursement.",
-        loan_range: "NGN 3,000 - NGN 500,000",
-        interest_range: "5% - 14% monthly",
-        tenure: "14 days - 6 months",
-        website: "https://opay.com",
-        play_store_url: "https://play.google.com/store/apps/details?id=com.opay.merchant"
+        play_store_url: "https://play.google.com/store/apps/details?id=com.renmoney",
+        tag: "High Limits",
+        rating: 4.6,
+        requirements: "Employment Letter, Bank Statement, ID",
+        is_recommended: true
       }
     ];
 
@@ -178,6 +154,10 @@ export default async function handler(req, res) {
         tenure TEXT,
         website TEXT,
         play_store_url TEXT,
+        tag TEXT,
+        rating DECIMAL(2,1),
+        requirements TEXT,
+        is_recommended BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -245,17 +225,53 @@ export default async function handler(req, res) {
       seeded.admins = true;
     }
 
+    // Create provider_reviews table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS provider_reviews (
+        id TEXT PRIMARY KEY,
+        provider_id INTEGER REFERENCES loan_providers(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        rating INTEGER,
+        content TEXT NOT NULL,
+        parent_id TEXT REFERENCES provider_reviews(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Seed Loan Providers if empty
     const providersCount = await client.query('SELECT COUNT(*) FROM loan_providers');
     if (parseInt(providersCount.rows[0].count) === 0) {
       for (const p of initialProviders) {
         await client.query(
-          `INSERT INTO loan_providers (name, description, loan_range, interest_range, tenure, website, play_store_url)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-          [p.name, p.description, p.loan_range, p.interest_range, p.tenure, p.website, p.play_store_url]
+          `INSERT INTO loan_providers (name, description, loan_range, interest_range, tenure, website, play_store_url, tag, rating, requirements, is_recommended)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+          [p.name, p.description, p.loan_range, p.interest_range, p.tenure, p.website, p.play_store_url, p.tag, p.rating, p.requirements, p.is_recommended]
         );
       }
       seeded.providers = true;
+    }
+
+    // Seed Reviews if empty
+    const reviewsCount = await client.query('SELECT COUNT(*) FROM provider_reviews');
+    if (parseInt(reviewsCount.rows[0].count) === 0) {
+      // Get the first provider's ID (FairMoney)
+      const pResult = await client.query("SELECT id FROM loan_providers WHERE name = 'FairMoney' LIMIT 1");
+      if (pResult.rows.length > 0) {
+        const pId = pResult.rows[0].id;
+        const initialReviews = [
+          { id: 'r1', providerId: pId, name: 'John Doe', rating: 5, content: 'Excellent service! Very fast disbursement.', parentId: null },
+          { id: 'r2', providerId: pId, name: 'Jane Smith', rating: 4, content: 'Competitive rates, but the app crashed once.', parentId: null },
+          { id: 'r3', providerId: pId, name: 'Support @ FairMoney', rating: 0, content: 'Hi Jane, we are sorry for the crash. We have fixed it in the latest update!', parentId: 'r2' }
+        ];
+        for (const r of initialReviews) {
+          await client.query(
+            `INSERT INTO provider_reviews (id, provider_id, name, rating, content, parent_id)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+            [r.id, r.providerId, r.name, r.rating, r.content, r.parentId]
+          );
+        }
+        seeded.reviews = true;
+      }
     }
 
     await client.query('COMMIT');
