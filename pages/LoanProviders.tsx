@@ -212,6 +212,8 @@ export const LoanProviders: React.FC = () => {
                     <button 
                       onClick={() => handleOpenReviews(provider)}
                       className="flex-1 flex items-center justify-center gap-2 bg-gray-100 text-gray-600 py-4 rounded-xl text-xs font-black hover:bg-gray-200 transition-all"
+                      aria-label="View Reviews"
+                      title="View Reviews"
                     >
                       <MessageCircle size={16} />
                     </button>
@@ -284,6 +286,8 @@ export const LoanProviders: React.FC = () => {
                     <button 
                       onClick={() => handleOpenReviews(provider)}
                       className="flex-1 inline-flex items-center justify-center bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-all"
+                      aria-label="View Reviews"
+                      title="View Reviews"
                     >
                       <MessageCircle size={18} />
                     </button>
@@ -367,6 +371,8 @@ export const LoanProviders: React.FC = () => {
             <button 
               onClick={() => setSelectedProvider(null)}
               className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+              aria-label="Close"
+              title="Close"
             >
               <X size={24} />
             </button>
@@ -438,6 +444,8 @@ export const LoanProviders: React.FC = () => {
                 <button 
                   type="submit"
                   className="absolute bottom-4 right-4 bg-grantify-green text-white p-2 rounded-lg hover:bg-green-700 transition-colors shadow-lg"
+                  aria-label="Submit Review"
+                  title="Submit Review"
                 >
                   <Send size={18} />
                 </button>

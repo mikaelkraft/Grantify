@@ -15,6 +15,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "lucide-react": "^0.561.0",
     "pg": "^8.13.1",
     "react": "^19.2.3",

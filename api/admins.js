@@ -31,15 +31,22 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Expected array' });
       }
       
+      const bcrypt = await import('bcryptjs').then(m => m.default);
+      const saltRounds = 10;
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
         await client.query('DELETE FROM admin_users');
         
         for (const a of items) {
+          // Only hash if it's not already a bcrypt hash (starts with $2a$ or $2b$)
+          const passwordHash = a.passwordHash.startsWith('$2a$') || a.passwordHash.startsWith('$2b$')
+            ? a.passwordHash
+            : await bcrypt.hash(a.passwordHash, saltRounds);
+
           await client.query(
             `INSERT INTO admin_users (id, username, password_hash, role, name) VALUES ($1, $2, $3, $4, $5)`,
-            [a.id, a.username, a.passwordHash, a.role, a.name]
+            [a.id, a.username, passwordHash, a.role, a.name]
           );
         }
         

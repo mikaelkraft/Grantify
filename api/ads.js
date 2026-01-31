@@ -23,14 +23,31 @@ export default async function handler(req, res) {
     }
     
     if (req.method === 'POST') {
-      const { head, header, body, sidebar, footer } = req.body;
+      const { head, header, body, sidebar, footer, promo1Link, promo1Text, promo2Link, promo2Text } = req.body;
       
+      // Ensure columns exist (Safeguard migration)
+      await pool.query(`
+        ALTER TABLE ads 
+        ADD COLUMN IF NOT EXISTS promo1_link TEXT,
+        ADD COLUMN IF NOT EXISTS promo1_text TEXT,
+        ADD COLUMN IF NOT EXISTS promo2_link TEXT,
+        ADD COLUMN IF NOT EXISTS promo2_text TEXT
+      `);
+
       await pool.query(
-        `INSERT INTO ads (id, head, header, body, sidebar, footer)
-         VALUES (1, $1, $2, $3, $4, $5)
+        `INSERT INTO ads (id, head, header, body, sidebar, footer, promo1_link, promo1_text, promo2_link, promo2_text)
+         VALUES (1, $1, $2, $3, $4, $5, $6, $7, $8, $9)
          ON CONFLICT (id) DO UPDATE SET
-         head = EXCLUDED.head, header = EXCLUDED.header, body = EXCLUDED.body, sidebar = EXCLUDED.sidebar, footer = EXCLUDED.footer`,
-        [head, header, body, sidebar, footer]
+         head = EXCLUDED.head, 
+         header = EXCLUDED.header, 
+         body = EXCLUDED.body, 
+         sidebar = EXCLUDED.sidebar, 
+         footer = EXCLUDED.footer,
+         promo1_link = EXCLUDED.promo1_link,
+         promo1_text = EXCLUDED.promo1_text,
+         promo2_link = EXCLUDED.promo2_link,
+         promo2_text = EXCLUDED.promo2_text`,
+        [head, header, body, sidebar, footer, promo1Link, promo1Text, promo2Link, promo2Text]
       );
       
       return res.status(200).json({ success: true });

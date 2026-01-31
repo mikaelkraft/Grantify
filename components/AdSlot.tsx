@@ -149,7 +149,12 @@ export const AdSlot: React.FC<AdSlotProps> = ({ htmlContent, className = "", lab
         
         // For inline/defer, resolve quickly
         if (!originalScript.src || newScript.hasAttribute('defer')) {
-          setTimeout(resolve, 50);
+          // Use a micro-task or next frame for stability without fixed delays
+          if (typeof requestAnimationFrame === 'function') {
+            requestAnimationFrame(() => resolve());
+          } else {
+            setTimeout(resolve, 0);
+          }
         }
       } catch (error) {
         reject(error);

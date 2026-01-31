@@ -1,11 +1,14 @@
 export enum LoanType {
-  STANDARD = 'Standard',
-  FAST_TRACK = 'Fast-Track'
+  GRANT = 'Grant Recommendation',
+  BUSINESS_LOAN = 'Business Loan',
+  FAST_TRACK = 'Fast-Track Verification'
 }
 
 export enum ApplicationStatus {
-  PENDING = 'Pending',
-  APPROVED = 'Approved',
+  PENDING = 'Processing',
+  MATCHED = 'Grant Matched',
+  VERIFIED = 'Verified',
+  DISBURSED = 'Disbursed',
   REJECTED = 'Rejected'
 }
 
@@ -17,9 +20,11 @@ export interface LoanApplication {
   country: string;
   amount: number;
   purpose: string;
+  businessType?: string;
+  matchedNetwork?: string;
   type: LoanType;
-  repaymentAmount: number;
-  durationMonths: number;
+  repaymentAmount?: number;
+  durationMonths?: number;
   status: ApplicationStatus;
   dateApplied: string;
   referralCode?: string;
@@ -105,6 +110,39 @@ export interface ProviderReview {
   content: string;
   parentId?: string;
   createdAt: string;
+}
+
+export interface BlogPost {
+  id: string;
+  title: string;
+  content: string;
+  author: string;
+  authorRole: string;
+  image?: string;
+  category: string;
+  likes: number;
+  commentsCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BlogComment {
+  id: string;
+  postId: string;
+  name: string;
+  content: string;
+  likes: number;
+  parentId?: string;
+  createdAt: string;
+}
+
+export interface GrantNetwork {
+  id: string;
+  name: string;
+  description: string;
+  logo: string;
+  keywords: string[];
+  link: string;
 }
 
 // Ad network type definitions for window object

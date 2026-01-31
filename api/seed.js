@@ -21,6 +21,9 @@ export default async function handler(req, res) {
   try {
     await client.query('BEGIN');
 
+    const bcrypt = await import('bcryptjs').then(m => m.default);
+    const saltRounds = 10;
+
     // Initial Seed Data - All dates in 2025
     const initialTestimonials = [
       { id: '1', name: 'Chinedu Okeke', image: 'https://images.unsplash.com/photo-1531384441138-2736e62e0919?fit=crop&w=150&h=150&q=80', amount: 200000, content: 'Grantify really came through for my grocery business. The 5% interest rate is unbeatable!', likes: 124, loves: 45, claps: 12, date: '2025-10-15' },
@@ -60,16 +63,16 @@ export default async function handler(req, res) {
       { 
         id: '1', 
         username: process.env.SEED_ADMIN_USERNAME, 
-        passwordHash: process.env.SEED_ADMIN_PASSWORD, 
+        passwordHash: await bcrypt.hash(process.env.SEED_ADMIN_PASSWORD || '', saltRounds), 
         role: 'SUPER_ADMIN', 
-        name: 'Super Admin' 
+        name: process.env.SEED_ADMIN_NAME || 'Super Admin' 
       },
       { 
         id: '2', 
         username: process.env.SEED_STAFF_USERNAME, 
-        passwordHash: process.env.SEED_STAFF_PASSWORD, 
+        passwordHash: await bcrypt.hash(process.env.SEED_STAFF_PASSWORD || '', saltRounds), 
         role: 'FLOOR_ADMIN', 
-        name: 'Floor Staff' 
+        name: process.env.SEED_STAFF_NAME || 'Staff' 
       }
     ];
 
@@ -251,26 +254,71 @@ export default async function handler(req, res) {
       seeded.providers = true;
     }
 
-    // Seed Reviews if empty
-    const reviewsCount = await client.query('SELECT COUNT(*) FROM provider_reviews');
-    if (parseInt(reviewsCount.rows[0].count) === 0) {
-      // Get the first provider's ID (FairMoney)
-      const pResult = await client.query("SELECT id FROM loan_providers WHERE name = 'FairMoney' LIMIT 1");
-      if (pResult.rows.length > 0) {
-        const pId = pResult.rows[0].id;
-        const initialReviews = [
-          { id: 'r1', providerId: pId, name: 'John Doe', rating: 5, content: 'Excellent service! Very fast disbursement.', parentId: null },
-          { id: 'r2', providerId: pId, name: 'Jane Smith', rating: 4, content: 'Competitive rates, but the app crashed once.', parentId: null },
-          { id: 'r3', providerId: pId, name: 'Support @ FairMoney', rating: 0, content: 'Hi Jane, we are sorry for the crash. We have fixed it in the latest update!', parentId: 'r2' }
-        ];
-        for (const r of initialReviews) {
-          await client.query(
-            `INSERT INTO provider_reviews (id, provider_id, name, rating, content, parent_id)
-             VALUES ($1, $2, $3, $4, $5, $6)`,
-            [r.id, r.providerId, r.name, r.rating, r.content, r.parentId]
-          );
+    // Update applications table schema
+    await client.query(`
+      ALTER TABLE applications 
+      ADD COLUMN IF NOT EXISTS business_type TEXT,
+      ADD COLUMN IF NOT EXISTS matched_network TEXT
+    `);
+
+    // Create blog_posts table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS blog_posts (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        author TEXT NOT NULL,
+        author_role TEXT,
+        image TEXT,
+        category TEXT,
+        likes INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Create blog_comments table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS blog_comments (
+        id TEXT PRIMARY KEY,
+        post_id TEXT REFERENCES blog_posts(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        content TEXT NOT NULL,
+        likes INTEGER DEFAULT 0,
+        parent_id TEXT REFERENCES blog_comments(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Seed Blog Posts if empty
+    const blogCount = await client.query('SELECT COUNT(*) FROM blog_posts');
+    if (parseInt(blogCount.rows[0].count) === 0) {
+      const initialPosts = [
+        {
+          id: 'b1',
+          title: 'Understanding the SME Grant Landscape in Nigeria',
+          content: 'The Nigerian government, through various agencies like the Bank of Industry (BOI), offers several grant opportunities for small businesses. These grants are designed to boost local production and create jobs...',
+          author: 'Mikael Kraft',
+          author_role: 'Chief Financial Strategist',
+          category: 'Grants',
+          likes: 45
+        },
+        {
+          id: 'b2',
+          title: 'How to Position Your Business for the Tony Elumelu Foundation Grant',
+          content: 'The TEF Entrepreneurship Program is a massive opportunity for African entrepreneurs. Success depends on a robust business plan and a clear impact on the community...',
+          author: 'Sarah Audu',
+          author_role: 'Business Consultant',
+          category: 'Strategy',
+          likes: 89
         }
-        seeded.reviews = true;
+      ];
+      for (const p of initialPosts) {
+        await client.query(
+          `INSERT INTO blog_posts (id, title, content, author, author_role, category, likes)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [p.id, p.title, p.content, p.author, p.author_role, p.category, p.likes]
+        );
       }
     }
 

@@ -16,20 +16,26 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const { username, password } = req.body;
       
+      const bcrypt = await import('bcryptjs').then(m => m.default);
+
       const result = await pool.query(
-        'SELECT * FROM admin_users WHERE username = $1 AND password_hash = $2',
-        [username, password]
+        'SELECT * FROM admin_users WHERE username = $1',
+        [username]
       );
       
       if (result.rows.length > 0) {
         const u = result.rows[0];
-        return res.status(200).json({
-          id: u.id,
-          username: u.username,
-          name: u.name,
-          role: u.role,
-          passwordHash: u.password_hash
-        });
+        const isMatch = await bcrypt.compare(password, u.password_hash);
+        
+        if (isMatch) {
+          return res.status(200).json({
+            id: u.id,
+            username: u.username,
+            name: u.name,
+            role: u.role,
+            passwordHash: u.password_hash
+          });
+        }
       }
       
       return res.status(401).json({ error: 'Invalid credentials' });

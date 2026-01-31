@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ApiService } from '../services/storage';
 import { AdminUser, LoanApplication, Testimonial, QualifiedPerson, AdConfig, UserRole, RepaymentContent, LoanProvider } from '../types';
-import { LogOut, Download, Trash2, Plus, UserPlus, Shield, Loader2, Save, Zap } from 'lucide-react';
+import { LogOut, Download, Trash2, Plus, UserPlus, Shield, Loader2, Save, Zap, BookOpen, MessageSquare } from 'lucide-react';
 import { formatNaira } from '../utils/currency';
 
 // Default fallback avatar (green circle with question mark) for broken/missing images
@@ -34,6 +34,23 @@ export const Admin: React.FC = () => {
   const [loanProviders, setLoanProviders] = useState<LoanProvider[]>([]);
   const [allReviews, setAllReviews] = useState<ProviderReview[]>([]);
 
+  // New Blog Post Form
+  const [newPost, setNewPost] = useState({ 
+    title: '', 
+    content: '', 
+    author: user?.name || '', 
+    authorRole: user?.role === UserRole.SUPER_ADMIN ? 'Chief Strategist' : 'Team Member', 
+    category: 'Grants', 
+    image: '' 
+  });
+
+  // Update author if user name changes
+  useEffect(() => {
+    if (user?.name && !newPost.author) {
+      setNewPost(prev => ({ ...prev, author: user.name }));
+    }
+  }, [user]);
+
   // New Admin Form
   const [newAdmin, setNewAdmin] = useState({ name: '', username: '', password: '', role: UserRole.FLOOR_ADMIN });
 
@@ -52,7 +69,7 @@ export const Admin: React.FC = () => {
   const refreshData = async () => {
     setIsLoading(true);
     try {
-      const [apps, tests, qual, adConfig, repay, adminList, providers, reviews] = await Promise.all([
+      const [apps, tests, qual, adConfig, repay, adminList, providers, reviews, posts] = await Promise.all([
         ApiService.getApplications(),
         ApiService.getTestimonials(),
         ApiService.getQualified(),
@@ -60,7 +77,8 @@ export const Admin: React.FC = () => {
         ApiService.getRepaymentContent(),
         ApiService.getAdmins(),
         ApiService.getLoanProviders(),
-        ApiService.getProviderReviews()
+        ApiService.getProviderReviews(),
+        ApiService.getBlogPosts()
       ]);
       setApplications(apps);
       setTestimonials(tests);
@@ -70,6 +88,7 @@ export const Admin: React.FC = () => {
       setAdmins(adminList);
       setLoanProviders(providers);
       setAllReviews(reviews);
+      setBlogPosts(posts);
     } catch (e) {
       console.error("Failed to load admin data", e);
       const message =
@@ -422,7 +441,38 @@ export const Admin: React.FC = () => {
     }
   };
 
-  // Styles
+  const handleDeleteBlogPost = async (id: string) => {
+    if (!window.confirm('Delete this blog post?')) return;
+    try {
+      const res = await fetch(`${ApiService.API_URL}/api/blog?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setBlogPosts(prev => prev.filter(p => p.id !== id));
+      }
+    } catch (e) {
+      alert('Failed to delete post');
+    }
+  };
+
+  const handleAddBlogPost = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      await ApiService.submitBlogAction({ ...newPost, action: 'create' });
+      setNewPost({ 
+        title: '', 
+        content: '', 
+        author: user?.name || '', 
+        authorRole: user?.role === UserRole.SUPER_ADMIN ? 'Chief Strategist' : 'Team Member', 
+        category: 'Grants', 
+        image: '' 
+      });
+      await refreshData();
+    } catch (e) {
+      alert('Failed to add post');
+    } finally {
+      setIsSaving(false);
+    }
+  };
   const inputClass = "w-full p-2 border border-gray-600 rounded bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-grantify-gold outline-none";
   const inputClassSmall = "border border-gray-600 rounded bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-grantify-gold outline-none p-1";
 
@@ -449,6 +499,7 @@ export const Admin: React.FC = () => {
           <button 
             disabled={isLoggingIn}
             className="w-full bg-grantify-green text-white font-bold py-2 rounded hover:bg-green-800 flex justify-center items-center gap-2"
+            aria-label={isLoggingIn ? "Logging in..." : "Login"}
           >
             {isLoggingIn ? <Loader2 className="animate-spin" size={20} /> : "Login"}
           </button>
@@ -491,6 +542,21 @@ export const Admin: React.FC = () => {
              </button>
            ))}
 
+           {/* Explicit buttons for reviews and blog with icons */}
+           <button 
+             onClick={() => setActiveTab('reviews')}
+             className={`w-full flex items-center gap-2 p-3 rounded transition ${activeTab === 'reviews' ? 'bg-grantify-green text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
+           >
+             <MessageSquare size={18} /> Provider Reviews
+           </button>
+
+           <button 
+             onClick={() => setActiveTab('blog')}
+             className={`w-full flex items-center gap-2 p-3 rounded transition ${activeTab === 'blog' ? 'bg-grantify-green text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
+           >
+             <BookOpen size={18} /> Community Blog
+           </button>
+
            {/* Super Admin Only Tab */}
            {user.role === UserRole.SUPER_ADMIN && (
              <button
@@ -525,23 +591,34 @@ export const Admin: React.FC = () => {
                     <table className="min-w-full text-sm">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="p-2 text-left">Name</th>
-                          <th className="p-2 text-left">Amount</th>
-                          <th className="p-2 text-left">Phone</th>
-                          <th className="p-2 text-left">Email</th>
-                          <th className="p-2 text-left">Type</th>
-                          <th className="p-2 text-left">Date</th>
+                          <th className="p-3 text-left text-xs uppercase text-gray-400">Name</th>
+                          <th className="p-3 text-left text-xs uppercase text-gray-400">Amount</th>
+                          <th className="p-3 text-left text-xs uppercase text-gray-400">Business/Purpose</th>
+                          <th className="p-3 text-left text-xs uppercase text-gray-400">Matched Body</th>
+                          <th className="p-3 text-left text-xs uppercase text-gray-400">Type & Date</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
                         {applications.map(app => (
                           <tr key={app.id}>
-                            <td className="p-2">{app.fullName}</td>
-                            <td className="p-2">{formatNaira(app.amount)}</td>
-                            <td className="p-2">{app.phoneNumber}</td>
-                            <td className="p-2">{app.email || '-'}</td>
-                            <td className="p-2">{app.type}</td>
-                            <td className="p-2 text-gray-500">{app.dateApplied}</td>
+                            <td className="p-3">
+                              <span className="font-bold block">{app.fullName}</span>
+                              <span className="text-xs text-gray-500">{app.phoneNumber}</span>
+                            </td>
+                            <td className="p-3 font-mono">{formatNaira(app.amount)}</td>
+                            <td className="p-3">
+                              <span className="text-xs font-bold text-gray-800 uppercase block">{app.businessType || 'N/A'}</span>
+                              <p className="text-[10px] text-gray-400 line-clamp-1">{app.purpose}</p>
+                            </td>
+                            <td className="p-3">
+                              <span className="text-xs bg-grantify-gold/20 text-grantify-green font-black px-2 py-0.5 rounded uppercase">
+                                {app.matchedNetwork || 'General'}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <span className="text-xs font-bold uppercase">{app.type}</span>
+                              <span className="text-[10px] block text-gray-500">{app.dateApplied}</span>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -1109,7 +1186,12 @@ export const Admin: React.FC = () => {
                               <td className="p-2 max-w-xs truncate" title={review.content}>{review.content}</td>
                               <td className="p-2 text-gray-500">{new Date(review.createdAt).toLocaleDateString()}</td>
                               <td className="p-2">
-                                <button onClick={() => handleDeleteReview(review.id)} className="text-red-500 hover:text-red-700">
+                                <button 
+                                  onClick={() => handleDeleteReview(review.id)} 
+                                  className="text-red-500 hover:text-red-700"
+                                  title="Delete Review"
+                                  aria-label="Delete Review"
+                                >
                                   <Trash2 size={16} />
                                 </button>
                               </td>
@@ -1119,6 +1201,93 @@ export const Admin: React.FC = () => {
                       </tbody>
                     </table>
                   </div>
+                </div>
+              )}
+              {/* Blog Management Tab */}
+              {activeTab === 'blog' && (
+                <div>
+                   <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-xl font-bold">Community Blog Posts</h3>
+                      <button 
+                        onClick={() => {
+                          const form = document.getElementById('new-post-form');
+                          form?.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                        className="bg-grantify-green text-white px-4 py-2 rounded text-sm font-bold flex items-center gap-2"
+                      >
+                        <Plus size={16} /> New Post
+                      </button>
+                   </div>
+
+                   {/* Add New Post Form */}
+                   <div id="new-post-form" className="bg-gray-100 p-6 rounded-xl border mb-8">
+                     <h4 className="font-bold mb-4 flex items-center gap-2 text-gray-700">Add New Article</h4>
+                     <form onSubmit={handleAddBlogPost} className="grid md:grid-cols-2 gap-4">
+                        <input className={inputClassSmall} placeholder="Title" value={newPost.title} onChange={e => setNewPost({...newPost, title: e.target.value})} required />
+                        <input className={inputClassSmall} placeholder="Author Name" value={newPost.author} onChange={e => setNewPost({...newPost, author: e.target.value})} required />
+                        <input className={inputClassSmall} placeholder="Author Role (e.g. Managing Director)" value={newPost.authorRole} onChange={e => setNewPost({...newPost, authorRole: e.target.value})} required />
+                        <select 
+                          className={inputClassSmall} 
+                          value={newPost.category} 
+                          onChange={e => setNewPost({...newPost, category: e.target.value})}
+                          title="Article Category"
+                          aria-label="Article Category"
+                        >
+                          <option value="Grants">Grants</option>
+                          <option value="Strategy">Strategy</option>
+                          <option value="Financial Growth">Financial Growth</option>
+                        </select>
+                        <input className={inputClassSmall} placeholder="Image URL (Optional)" value={newPost.image} onChange={e => setNewPost({...newPost, image: e.target.value})} />
+                        <textarea className={inputClassSmall + " md:col-span-2"} rows={5} placeholder="Article Content" value={newPost.content} onChange={e => setNewPost({...newPost, content: e.target.value})} required />
+                        <button type="submit" disabled={isSaving} className="bg-grantify-green text-white font-bold py-3 rounded md:col-span-2 hover:bg-green-800 transition">
+                          {isSaving ? "Publishing..." : "Publish Post"}
+                        </button>
+                     </form>
+                   </div>
+
+                   <div className="bg-white rounded border overflow-hidden">
+                     <table className="w-full text-sm">
+                       <thead className="bg-gray-50 border-b">
+                         <tr>
+                           <th className="p-3 text-left">Article</th>
+                           <th className="p-3 text-left">Author</th>
+                           <th className="p-3 text-left">Category</th>
+                           <th className="p-3 text-left">Engagement</th>
+                           <th className="p-3 text-left">Actions</th>
+                         </tr>
+                       </thead>
+                       <tbody className="divide-y">
+                         {blogPosts.map(post => (
+                           <tr key={post.id}>
+                             <td className="p-3">
+                               <span className="font-bold block">{post.title}</span>
+                               <span className="text-[10px] text-gray-400">{new Date(post.createdAt).toLocaleDateString()}</span>
+                             </td>
+                             <td className="p-3 text-xs">{post.author}</td>
+                             <td className="p-3">
+                               <span className="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-black uppercase">{post.category}</span>
+                             </td>
+                             <td className="p-3 text-xs">
+                               <div className="flex gap-3 text-gray-500">
+                                 <span>{post.likes} Likes</span>
+                                 <span>{post.commentsCount} Comments</span>
+                                </div>
+                             </td>
+                             <td className="p-3">
+                               <button 
+                                 onClick={() => handleDeleteBlogPost(post.id)} 
+                                 className="text-red-600 hover:text-red-800 p-2"
+                                 title="Delete blog post"
+                                 aria-label="Delete blog post"
+                               >
+                                 <Trash2 size={16} />
+                               </button>
+                             </td>
+                           </tr>
+                         ))}
+                       </tbody>
+                     </table>
+                   </div>
                 </div>
               )}
 

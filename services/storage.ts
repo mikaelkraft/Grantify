@@ -137,8 +137,8 @@ const initialRepayment: RepaymentContent = {
 // 2. Update api/seed.js to hash passwords with bcrypt before inserting into database
 // 3. Then update these values to proper bcrypt hashes
 const initialAdmins: AdminUser[] = [
-  { id: '1', username: 'ashwebb500@gmail.com', passwordHash: 'Nomercy2_', role: UserRole.SUPER_ADMIN, name: 'Super Admin' },
-  { id: '2', username: 'staff', passwordHash: 'staff123', role: UserRole.FLOOR_ADMIN, name: 'Floor Staff' }
+  { id: '1', username: 'admin', passwordHash: '', role: UserRole.SUPER_ADMIN, name: 'Super Admin' },
+  { id: '2', username: 'staff', passwordHash: '', role: UserRole.FLOOR_ADMIN, name: 'Staff' }
 ];
 
 // --- API SERVICE ---
@@ -313,6 +313,30 @@ export const ApiService = {
       method: 'DELETE'
     });
     if (!res.ok) throw new Error('Failed to delete loan provider via API');
+  },
+
+  // -- Blog --
+  getBlogPosts: async (category?: string): Promise<BlogPost[]> => {
+    const url = category ? `${API_URL}/api/blog?category=${category}` : `${API_URL}/api/blog`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to fetch blog posts');
+    return await res.json();
+  },
+
+  getBlogPost: async (id: string): Promise<BlogPost & { comments: BlogComment[] }> => {
+    const res = await fetch(`${API_URL}/api/blog?id=${id}`);
+    if (!res.ok) throw new Error('Failed to fetch blog post');
+    return await res.json();
+  },
+
+  submitBlogAction: async (data: any): Promise<any> => {
+    const res = await fetch(`${API_URL}/api/blog`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to perform blog action');
+    return await res.json();
   },
 
   // -- Provider Reviews --
