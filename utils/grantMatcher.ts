@@ -40,6 +40,38 @@ export const GRANT_NETWORKS: GrantNetwork[] = [
     logo: 'https://www.cbn.gov.ng/logo.png',
     keywords: ['agriculture', 'farming', 'agribusiness', 'poultry', 'crops', 'livestock', 'agro', 'fishery'],
     link: 'https://nmfb.com.ng/agsmeis/'
+  },
+  {
+    id: 'lsetf',
+    name: 'Lagos State Employment Trust Fund (LSETF)',
+    description: 'Grants and low-interest loans for Lagos-based residents and business owners.',
+    logo: 'https://lsetf.ng/assets/img/logo.png',
+    keywords: ['lagos', 'resident', 'employment', 'state', 'loan', 'training', 'sme'],
+    link: 'https://lsetf.ng/'
+  },
+  {
+    id: 'dbn',
+    name: 'Development Bank of Nigeria (DBN)',
+    description: 'Wholesale finance institution alleviating financing constraints for MSMEs.',
+    logo: 'https://devbankng.com/assets/images/logo.png',
+    keywords: ['development', 'bank', 'msme', 'financing', 'growth', 'capital', 'wholesale'],
+    link: 'https://devbankng.com/'
+  },
+  {
+    id: 'w-initiative',
+    name: 'Access Bank W Initiative',
+    description: 'Specialized funding and capacity building for women-owned businesses.',
+    logo: 'https://www.accessbankplc.com/AccessBank/media/Site-Images-and-Documents/W-Logo.png',
+    keywords: ['women', 'female', 'gender', 'access bank', 'empowerment', 'lady', 'girl'],
+    link: 'https://www.accessbankplc.com/w-initiative'
+  },
+  {
+    id: 'aytf',
+    name: 'African Youth Trade Fund',
+    description: 'Dedicated to supporting young African traders and exporters.',
+    logo: 'https://cdn-icons-png.flaticon.com/512/4300/4300508.png', // Placeholder
+    keywords: ['youth', 'trade', 'export', 'young', 'africa', 'commerce'],
+    link: '#matcher'
   }
 ];
 

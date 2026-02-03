@@ -163,7 +163,7 @@ export const Home: React.FC = () => {
 
             <button 
               onClick={() => setSubmitted(false)}
-              className="w-full bg-grantify-green text-white font-black py-5 rounded-2xl shadow-xl hover:shadow-2xl hover:bg-green-700 transition-all flex items-center justify-center gap-2"
+              className="w-full bg-grantify-green text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl hover:bg-green-700 transition-all flex items-center justify-center gap-2"
             >
               Done & View Other Opportunities
             </button>
@@ -199,15 +199,15 @@ export const Home: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
             <button 
               onClick={() => document.getElementById('matcher')?.scrollIntoView({ behavior: 'smooth' })}
-              className="bg-white text-grantify-green font-black py-5 px-12 rounded-2xl shadow-2xl hover:scale-105 transition-all text-lg flex items-center gap-3"
+              className="bg-white text-grantify-green font-bold py-3 px-8 rounded-xl shadow-xl hover:scale-105 transition-all text-base flex items-center gap-2"
             >
-              Find My Grant Match <Search size={20} />
+              Find My Grant Match <Search size={18} />
             </button>
             <Link 
               to="/loan-providers"
-              className="bg-grantify-gold text-grantify-green font-black py-5 px-12 rounded-2xl shadow-2xl hover:scale-105 transition-all text-lg flex items-center gap-3"
+              className="bg-grantify-gold text-grantify-green font-bold py-3 px-8 rounded-xl shadow-xl hover:scale-105 transition-all text-base flex items-center gap-2"
             >
-              <Zap size={20} /> Instant Verification
+              <Zap size={18} /> Instant Verification
             </Link>
           </div>
         </div>
@@ -217,10 +217,10 @@ export const Home: React.FC = () => {
       <section className="max-w-6xl mx-auto px-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           {[
-            { label: 'Total Matches', value: '45.2k', icon: Sparkles },
-            { label: 'Disbursed Capital', value: '₦24B+', icon: Award },
-            { label: 'Success Rate', value: '89.4%', icon: TrendingUp },
-            { label: 'Trusted Partners', value: '15+', icon: Landmark },
+            { label: 'Total Matches', value: '1,200+', icon: Sparkles },
+            { label: 'Disbursed Capital', value: '₦750M+', icon: Award },
+            { label: 'Success Rate', value: '85%', icon: TrendingUp },
+            { label: 'Trusted Partners', value: '12+', icon: Landmark },
           ].map((stat, i) => (
             <div key={i} className="text-center group">
               <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-grantify-green group-hover:text-white transition-all transform group-hover:rotate-12">

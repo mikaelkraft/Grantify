@@ -117,7 +117,7 @@ export const LoanProviders: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-20">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Hero Section */}
       <div className="bg-grantify-green relative overflow-hidden py-16 px-4 mb-12">
         <div className="absolute top-0 right-0 -mt-20 -mr-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
@@ -176,7 +176,16 @@ export const LoanProviders: React.FC = () => {
                   </div>
 
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-black text-grantify-green">{provider.name}</h3>
+                    <div className="flex items-center gap-3">
+                      {provider.logo ? (
+                        <img src={provider.logo} alt={provider.name} className="w-12 h-12 object-contain rounded-lg bg-white p-1 border border-gray-100 shadow-sm" />
+                      ) : (
+                         <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center text-grantify-green font-black text-xl border border-green-100">
+                           {provider.name.charAt(0)}
+                         </div>
+                      )}
+                      <h3 className="text-xl font-black text-grantify-green leading-tight">{provider.name}</h3>
+                    </div>
                     {renderStars(provider.rating)}
                   </div>
 
@@ -205,13 +214,13 @@ export const LoanProviders: React.FC = () => {
                       href={provider.website} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="flex-[2] flex items-center justify-center gap-2 bg-grantify-green text-white py-4 rounded-xl text-xs font-black transition-all group-hover:bg-green-700 group-hover:shadow-lg"
+                      className="flex-[2] flex items-center justify-center gap-2 bg-grantify-green text-white py-3 rounded-lg text-xs font-bold transition-all group-hover:bg-green-700 group-hover:shadow-md"
                     >
-                      APPLY NOW <ExternalLink size={16} />
+                      APPLY NOW <ExternalLink size={14} />
                     </a>
                     <button 
                       onClick={() => handleOpenReviews(provider)}
-                      className="flex-1 flex items-center justify-center gap-2 bg-gray-100 text-gray-600 py-4 rounded-xl text-xs font-black hover:bg-gray-200 transition-all"
+                      className="flex-1 flex items-center justify-center gap-2 bg-gray-100 text-gray-600 py-3 rounded-lg text-xs font-bold hover:bg-gray-200 transition-all"
                       aria-label="View Reviews"
                       title="View Reviews"
                     >
@@ -248,13 +257,22 @@ export const LoanProviders: React.FC = () => {
                   className="bg-white hover:bg-gray-50/50 border border-gray-100 rounded-2xl p-6 transition-all duration-200 hover:shadow-lg flex flex-col h-full group"
                 >
                   <div className="flex items-start justify-between mb-4">
-                    <div className="flex-grow">
-                      {provider.tag && (
-                        <span className="inline-block bg-blue-50 text-blue-600 text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-tighter mb-1">
-                          {provider.tag}
-                        </span>
+                    <div className="flex-grow flex items-start gap-3">
+                      {provider.logo ? (
+                         <img src={provider.logo} alt={provider.name} className="w-10 h-10 object-contain rounded bg-white border border-gray-100" />
+                      ) : (
+                         <div className="w-10 h-10 bg-gray-50 rounded flex items-center justify-center text-gray-400 font-bold border border-gray-100">
+                           {provider.name.charAt(0)}
+                         </div>
                       )}
-                      <h3 className="font-black text-gray-800 group-hover:text-grantify-green transition-colors">{provider.name}</h3>
+                      <div>
+                        {provider.tag && (
+                          <span className="inline-block bg-blue-50 text-blue-600 text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-tighter mb-1">
+                            {provider.tag}
+                          </span>
+                        )}
+                        <h3 className="font-black text-gray-800 group-hover:text-grantify-green transition-colors leading-tight">{provider.name}</h3>
+                      </div>
                     </div>
                     <div className="text-right">
                       {renderStars(provider.rating)}

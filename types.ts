@@ -95,6 +95,7 @@ export interface LoanProvider {
   interestRange: string;
   tenure: string;
   website: string;
+  logo?: string;
   playStoreUrl?: string;
   tag?: string;
   rating?: number;

@@ -8,6 +8,7 @@ export const BlogPostView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [post, setPost] = useState<BlogPost & { comments: BlogComment[] } | null>(null);
+  const [recommendedPosts, setRecommendedPosts] = useState<BlogPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [commentForm, setCommentForm] = useState({ name: '', content: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -20,6 +21,10 @@ export const BlogPostView: React.FC = () => {
     try {
       const data = await ApiService.getBlogPost(id!);
       setPost(data);
+      
+      // Fetch recommended posts (excluding current one)
+      const allPosts = await ApiService.getBlogPosts();
+      setRecommendedPosts(allPosts.filter(p => p.id !== id).slice(0, 3));
     } catch (e) {
       console.error(e);
       navigate('/blog');
@@ -123,6 +128,36 @@ export const BlogPostView: React.FC = () => {
           </div>
         </div>
       </article>
+
+      {/* Recommended Posts */}
+      {recommendedPosts.length > 0 && (
+        <section className="mb-16">
+          <h3 className="text-2xl font-black font-heading text-gray-900 mb-6">You Might Also Like</h3>
+          <div className="grid md:grid-cols-3 gap-6">
+            {recommendedPosts.map(rec => (
+              <Link key={rec.id} to={`/blog/${rec.id}`} className="group bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-all">
+                <div className="h-32 bg-gray-100 relative">
+                  {rec.image ? (
+                    <img src={rec.image} alt={rec.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-grantify-green to-blue-900 text-white p-4 text-center text-xs font-bold">
+                       {rec.title}
+                    </div>
+                  )}
+                </div>
+                <div className="p-4">
+                  <span className="text-[10px] bg-grantify-gold/20 text-grantify-green px-2 py-0.5 rounded font-bold uppercase mb-2 inline-block">
+                    {rec.category}
+                  </span>
+                  <h4 className="font-bold text-gray-800 leading-tight group-hover:text-grantify-green transition-colors line-clamp-2">
+                    {rec.title}
+                  </h4>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Engagement Section */}
       <section className="space-y-8">

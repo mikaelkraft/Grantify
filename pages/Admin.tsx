@@ -864,7 +864,7 @@ export const Admin: React.FC = () => {
                         <div key={key}>
                           <label className="block text-sm font-bold uppercase text-gray-600 mb-1">{key} Code</label>
                           <textarea 
-                            className="w-full border border-gray-600 p-2 rounded font-mono text-xs h-24 bg-gray-800 text-white focus:ring-2 focus:ring-grantify-gold outline-none"
+                            className="w-full border border-gray-300 p-3 rounded font-mono text-xs h-32 bg-white text-gray-900 focus:ring-2 focus:ring-grantify-green outline-none shadow-inner"
                             value={ads[key as keyof AdConfig]}
                             onChange={(e) => handleAdChange(key as keyof AdConfig, e.target.value)}
                             placeholder={`Paste ${key} ad code here...`}
@@ -1091,6 +1091,17 @@ export const Admin: React.FC = () => {
                               aria-label="Website Link"
                             />
                           </div>
+                        </div>
+
+                        <div className="mt-4">
+                             <label className="text-[10px] text-gray-500 uppercase block mb-1">Logo URL (Optional)</label>
+                             <input 
+                               className={inputClassSmall + " w-full"}
+                               value={p.logo || ''}
+                               onChange={(e) => handleUpdateProviderLocal(p.id!, 'logo', e.target.value)}
+                               placeholder="https://example.com/logo.png"
+                               aria-label="Logo URL"
+                             />
                         </div>
 
                         {/* New Fields */}
