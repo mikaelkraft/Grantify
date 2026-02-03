@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ApiService } from '../services/storage';
-import { AdminUser, LoanApplication, Testimonial, QualifiedPerson, AdConfig, UserRole, RepaymentContent, LoanProvider } from '../types';
+import { AdminUser, LoanApplication, Testimonial, QualifiedPerson, AdConfig, UserRole, RepaymentContent, LoanProvider, BlogPost, ProviderReview } from '../types';
 import { LogOut, Download, Trash2, Plus, UserPlus, Shield, Loader2, Save, Zap, BookOpen, MessageSquare } from 'lucide-react';
 import { formatNaira } from '../utils/currency';
 
@@ -33,6 +33,7 @@ export const Admin: React.FC = () => {
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loanProviders, setLoanProviders] = useState<LoanProvider[]>([]);
   const [allReviews, setAllReviews] = useState<ProviderReview[]>([]);
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
 
   // New Blog Post Form
   const [newPost, setNewPost] = useState({ 
@@ -182,6 +183,7 @@ export const Admin: React.FC = () => {
       name: 'New Provider',
       description: 'Describe the provider...',
       loanRange: 'NGN 1,000 - NGN 1,000,000',
+      interestRange: '5% - 20% monthly',
       tenure: '1 - 6 months',
       website: 'https://...',
       playStoreUrl: '',
@@ -214,6 +216,9 @@ export const Admin: React.FC = () => {
       setIsSaving(false);
     }
   };
+
+
+  // --- Ad Management Logic ---
 
   // --- Testimonial Logic ---
   const handleUpdateTestimonialLocal = (id: string, field: keyof Testimonial, value: any) => {
@@ -444,10 +449,8 @@ export const Admin: React.FC = () => {
   const handleDeleteBlogPost = async (id: string) => {
     if (!window.confirm('Delete this blog post?')) return;
     try {
-      const res = await fetch(`${ApiService.API_URL}/api/blog?id=${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setBlogPosts(prev => prev.filter(p => p.id !== id));
-      }
+      await ApiService.deleteBlogPost(id);
+      setBlogPosts(prev => prev.filter(p => p.id !== id));
     } catch (e) {
       alert('Failed to delete post');
     }

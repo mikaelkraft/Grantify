@@ -7,7 +7,10 @@ import {
   UserRole,
   RepaymentContent,
   ReferralData,
-  LoanProvider
+  LoanProvider,
+  BlogPost,
+  BlogComment,
+  ProviderReview
 } from '../types';
 
 // --- CONFIGURATION ---
@@ -337,6 +340,11 @@ export const ApiService = {
     });
     if (!res.ok) throw new Error('Failed to perform blog action');
     return await res.json();
+  },
+
+  deleteBlogPost: async (id: string): Promise<void> => {
+    const res = await fetch(`${API_URL}/api/blog?id=${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Failed to delete blog post');
   },
 
   // -- Provider Reviews --
