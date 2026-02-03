@@ -5,7 +5,7 @@ export const GRANT_NETWORKS: GrantNetwork[] = [
     id: 'boi',
     name: 'Bank of Industry (BOI)',
     description: 'Provides long-term financial assistance to industries, focused on manufacturing and production.',
-    logo: 'https://www.boi.ng/wp-content/uploads/2019/12/BOI-LOGO.png',
+    logo: 'https://placehold.co/400x200/png?text=BOI', // Replaced with reliable placeholder
     keywords: ['manufacturing', 'production', 'industry', 'factory', 'processing', 'raw materials', 'machinery'],
     link: 'https://www.boi.ng/apply/'
   },
@@ -13,7 +13,7 @@ export const GRANT_NETWORKS: GrantNetwork[] = [
     id: 'tef',
     name: 'Tony Elumelu Foundation (TEF)',
     description: 'Empowers African entrepreneurs with seed capital, training, and mentorship.',
-    logo: 'https://www.tonyelumelufoundation.org/wp-content/uploads/2020/09/TEF-Logo.png',
+    logo: 'https://placehold.co/400x200/png?text=TEF',
     keywords: ['startup', 'entrepreneur', 'africa', 'innovation', 'technology', 'scaleup', 'small business', 'new idea'],
     link: 'https://www.tefconnect.net/'
   },
@@ -21,7 +21,7 @@ export const GRANT_NETWORKS: GrantNetwork[] = [
     id: 'gep',
     name: 'Government Enterprise & Empowerment Programme (GEEP)',
     description: 'Interest-free loans for petty traders, artisans, and small business owners (MarketMoni, TraderMoni).',
-    logo: 'https://geep.ng/wp-content/uploads/2021/04/GEEP-Logo.png',
+    logo: 'https://placehold.co/400x200/png?text=GEEP',
     keywords: ['trader', 'artisan', 'market', 'retail', 'petty trade', 'small scale', 'community'],
     link: 'https://geep.ng/'
   },
@@ -29,7 +29,7 @@ export const GRANT_NETWORKS: GrantNetwork[] = [
     id: 'ncedf',
     name: 'Nigerian Creative Enterprise Support Scheme',
     description: 'Specialized funding for the creative arts, fashion, film, and media industries.',
-    logo: 'https://www.creativenigeria.org/logo.png',
+    logo: 'https://placehold.co/400x200/png?text=Creative+NG',
     keywords: ['creative', 'arts', 'fashion', 'film', 'media', 'music', 'entertainment', 'design'],
     link: 'https://www.creativenigeria.org/'
   },
@@ -37,7 +37,7 @@ export const GRANT_NETWORKS: GrantNetwork[] = [
     id: 'agmeis',
     name: 'AGSMEIS (CBN)',
     description: 'Agricultural Small and Medium Enterprise Investment Scheme for agribusiness and MSMEs.',
-    logo: 'https://www.cbn.gov.ng/logo.png',
+    logo: 'https://placehold.co/400x200/png?text=CBN',
     keywords: ['agriculture', 'farming', 'agribusiness', 'poultry', 'crops', 'livestock', 'agro', 'fishery'],
     link: 'https://nmfb.com.ng/agsmeis/'
   },
@@ -45,7 +45,7 @@ export const GRANT_NETWORKS: GrantNetwork[] = [
     id: 'lsetf',
     name: 'Lagos State Employment Trust Fund (LSETF)',
     description: 'Grants and low-interest loans for Lagos-based residents and business owners.',
-    logo: 'https://lsetf.ng/assets/img/logo.png',
+    logo: 'https://placehold.co/400x200/png?text=LSETF',
     keywords: ['lagos', 'resident', 'employment', 'state', 'loan', 'training', 'sme'],
     link: 'https://lsetf.ng/'
   },
@@ -53,7 +53,7 @@ export const GRANT_NETWORKS: GrantNetwork[] = [
     id: 'dbn',
     name: 'Development Bank of Nigeria (DBN)',
     description: 'Wholesale finance institution alleviating financing constraints for MSMEs.',
-    logo: 'https://devbankng.com/assets/images/logo.png',
+    logo: 'https://placehold.co/400x200/png?text=DBN',
     keywords: ['development', 'bank', 'msme', 'financing', 'growth', 'capital', 'wholesale'],
     link: 'https://devbankng.com/'
   },
@@ -61,7 +61,7 @@ export const GRANT_NETWORKS: GrantNetwork[] = [
     id: 'w-initiative',
     name: 'Access Bank W Initiative',
     description: 'Specialized funding and capacity building for women-owned businesses.',
-    logo: 'https://www.accessbankplc.com/AccessBank/media/Site-Images-and-Documents/W-Logo.png',
+    logo: 'https://placehold.co/400x200/png?text=W+Initiative',
     keywords: ['women', 'female', 'gender', 'access bank', 'empowerment', 'lady', 'girl'],
     link: 'https://www.accessbankplc.com/w-initiative'
   },
@@ -69,7 +69,7 @@ export const GRANT_NETWORKS: GrantNetwork[] = [
     id: 'aytf',
     name: 'African Youth Trade Fund',
     description: 'Dedicated to supporting young African traders and exporters.',
-    logo: 'https://cdn-icons-png.flaticon.com/512/4300/4300508.png', // Placeholder
+    logo: 'https://placehold.co/400x200/png?text=AYTF', 
     keywords: ['youth', 'trade', 'export', 'young', 'africa', 'commerce'],
     link: '#matcher'
   }

@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ApiService } from '../services/storage';
-import { BlogPost, BlogComment } from '../types';
-import { Loader2, ThumbsUp, MessageSquare, ArrowLeft, Send, Calendar, User, Shield } from 'lucide-react';
+import { BlogPost, BlogComment, AdConfig } from '../types';
+import { Loader2, ThumbsUp, MessageSquare, ArrowLeft, Send, Calendar, User, Shield, Share2 } from 'lucide-react';
+import { AdSlot } from '../components/AdSlot';
+import { FacebookShareButton, TwitterShareButton, WhatsappShareButton, LinkedinShareButton, FacebookIcon, TwitterIcon, WhatsappIcon, LinkedinIcon } from 'react-share';
 
 export const BlogPostView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [post, setPost] = useState<BlogPost & { comments: BlogComment[] } | null>(null);
   const [recommendedPosts, setRecommendedPosts] = useState<BlogPost[]>([]);
+  const [ads, setAds] = useState<AdConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [commentForm, setCommentForm] = useState({ name: '', content: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,6 +28,10 @@ export const BlogPostView: React.FC = () => {
       // Fetch recommended posts (excluding current one)
       const allPosts = await ApiService.getBlogPosts();
       setRecommendedPosts(allPosts.filter(p => p.id !== id).slice(0, 3));
+
+      // Fetch ads
+      const adData = await ApiService.getAds();
+      setAds(adData);
     } catch (e) {
       console.error(e);
       navigate('/blog');
@@ -109,8 +116,38 @@ export const BlogPostView: React.FC = () => {
             {post.title}
           </h1>
 
+
           <div className="prose prose-lg max-w-none text-gray-700 whitespace-pre-wrap leading-relaxed">
-            {post.content}
+            {ads?.body ? (
+              <>
+                 {/* Inject Ad after first paragraph approximately */}
+                 {post.content.split('\n\n').map((paragraph, index) => (
+                   <React.Fragment key={index}>
+                     <p>{paragraph}</p>
+                     {index === 1 && (
+                       <div className="my-8 flex justify-center">
+                         <div className="bg-gray-50 border border-gray-100 p-4 rounded-xl shadow-inner max-w-full overflow-hidden">
+                            <span className="text-[10px] text-gray-400 uppercase block mb-2 text-center tracking-widest">Advertisement</span>
+                            <AdSlot htmlContent={ads.body} label="" />
+                         </div>
+                       </div>
+                     )}
+                   </React.Fragment>
+                 ))}
+              </>
+            ) : (
+              post.content
+            )}
+          </div>
+
+          <div className="mt-8 flex items-center justify-between gap-4 border-y border-gray-100 py-6">
+             <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-gray-700 flex items-center gap-2"><Share2 size={16} /> Share:</span>
+                <FacebookShareButton url={window.location.href} className="hover:opacity-80 transition-opacity"><FacebookIcon size={32} round /></FacebookShareButton>
+                <TwitterShareButton url={window.location.href} title={post.title} className="hover:opacity-80 transition-opacity"><TwitterIcon size={32} round /></TwitterShareButton>
+                <WhatsappShareButton url={window.location.href} title={post.title} separator=" - " className="hover:opacity-80 transition-opacity"><WhatsappIcon size={32} round /></WhatsappShareButton>
+                <LinkedinShareButton url={window.location.href} title={post.title} summary={post.content.substring(0, 100)} source="Grantify" className="hover:opacity-80 transition-opacity"><LinkedinIcon size={32} round /></LinkedinShareButton>
+             </div>
           </div>
 
           <div className="mt-12 pt-8 border-t border-gray-50 flex items-center justify-between">

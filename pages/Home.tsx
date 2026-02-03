@@ -4,6 +4,7 @@ import { ApiService } from '../services/storage';
 import { AdSlot } from '../components/AdSlot';
 import { TestimonialCard } from '../components/TestimonialCard';
 import { RecentApplicantsTicker } from '../components/RecentApplicantsTicker';
+import { BlogTicker } from '../components/BlogTicker';
 import { matchGrantNetwork, GRANT_NETWORKS } from '../utils/grantMatcher';
 import { LoanType, ApplicationStatus, LoanApplication, Testimonial, QualifiedPerson, AdConfig, BlogPost, GrantNetwork } from '../types';
 import { 
@@ -174,8 +175,9 @@ export const Home: React.FC = () => {
   }
 
   return (
-    <div className="space-y-16 pb-20">
+    <div className="space-y-0 pb-20">
       <RecentApplicantsTicker applicants={qualifiedPersons} />
+      <BlogTicker posts={blogPosts} />
 
       {/* Hero Section */}
       <section className="relative min-h-[60vh] flex items-center justify-center overflow-hidden rounded-[3rem] mx-4 md:mx-0">
@@ -207,7 +209,7 @@ export const Home: React.FC = () => {
               to="/loan-providers"
               className="bg-grantify-gold text-grantify-green font-bold py-3 px-8 rounded-xl shadow-xl hover:scale-105 transition-all text-base flex items-center gap-2"
             >
-              <Zap size={18} /> Instant Verification
+              <Zap size={18} /> Instant Loan Apps
             </Link>
           </div>
         </div>

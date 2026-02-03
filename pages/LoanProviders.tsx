@@ -124,11 +124,15 @@ export const LoanProviders: React.FC = () => {
         <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-64 h-64 bg-grantify-gold/10 rounded-full blur-3xl"></div>
         
         <div className="max-w-5xl mx-auto relative z-10 text-center">
+          <div className="inline-flex items-center gap-2 bg-white/10 text-white px-4 py-2 rounded-full text-sm font-bold uppercase tracking-widest mb-6 border border-white/20 backdrop-blur-sm">
+            <ShieldCheck size={16} /> Community Reviewed
+          </div>
           <h1 className="text-4xl md:text-5xl font-black font-heading text-white mb-6 drop-shadow-md">
-            Verified Loan Providers
+            Instant Loan Apps
           </h1>
           <p className="text-green-50 text-xl max-w-2xl mx-auto leading-relaxed">
-            We've curated and vetted the most reliable CBN-approved digital lenders in Nigeria to help you fund your growth safely.
+            Select an app below to view community ratings. <br/>
+            <span className="font-bold text-white">Read reviews, share your experience, and learn from others</span> before applying.
           </p>
         </div>
       </div>
@@ -220,11 +224,11 @@ export const LoanProviders: React.FC = () => {
                     </a>
                     <button 
                       onClick={() => handleOpenReviews(provider)}
-                      className="flex-1 flex items-center justify-center gap-2 bg-gray-100 text-gray-600 py-3 rounded-lg text-xs font-bold hover:bg-gray-200 transition-all"
-                      aria-label="View Reviews"
-                      title="View Reviews"
+                      className="flex-1 flex items-center justify-center gap-2 bg-gray-100 text-gray-600 py-3 rounded-lg text-xs font-bold hover:bg-gray-200 transition-all border border-gray-200"
+                      aria-label="Read Reviews"
+                      title="Read & Write Reviews"
                     >
-                      <MessageCircle size={16} />
+                      <MessageCircle size={16} /> Reviews
                     </button>
                   </div>
                 </div>
