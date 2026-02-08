@@ -69,57 +69,51 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const injectHeadScripts = (headContent: string) => {
     if (!headContent || !headContent.trim()) return;
 
+    // Check if scripts are already injected and if content has changed
+    const existingScripts = document.head.querySelectorAll('[data-grantify-injected]');
+    const currentHash = headContent.length.toString(); // Simple check for change
+    
+    const existingHashMarker = document.head.querySelector('[data-grantify-ads-hash]');
+    if (existingHashMarker && existingHashMarker.getAttribute('content') === currentHash) {
+      return; // No change, skip
+    }
+
+    // Remove previously injected elements if they exist
+    existingScripts.forEach(el => el.remove());
+    if (existingHashMarker) existingHashMarker.remove();
+
+    // Add a marker for the current hash
+    const hashMarker = document.createElement('meta');
+    hashMarker.setAttribute('name', 'grantify-ads-hash');
+    hashMarker.setAttribute('data-grantify-ads-hash', 'true');
+    hashMarker.setAttribute('content', currentHash);
+    document.head.appendChild(hashMarker);
+
+    console.log('Injecting/Updating head scripts...');
+
     // Create a temporary container to parse the HTML
     const temp = document.createElement('div');
     temp.innerHTML = headContent;
 
-    // Check if scripts are already injected (by data attribute)
-    const existingMarker = document.head.querySelector('[data-grantify-ads]');
-    if (existingMarker) {
-      console.log('Head scripts already injected, skipping...');
-      return; // Already injected
-    }
-
-    // Add a marker to prevent duplicate injection
-    const marker = document.createElement('meta');
-    marker.setAttribute('data-grantify-ads', 'true');
-    document.head.appendChild(marker);
-
-    console.log('Injecting head scripts...');
-
-    // Process all direct children of temp container
-    Array.from(temp.children).forEach((el, index) => {
-      if (el.tagName === 'SCRIPT') {
-        // Scripts need to be recreated to execute
-        const newScript = document.createElement('script');
-        
-        // Copy all attributes
-        Array.from(el.attributes).forEach(attr => {
-          newScript.setAttribute(attr.name, attr.value);
-        });
-        
-        // Copy inline script content
-        if (el.innerHTML) {
-          newScript.innerHTML = el.innerHTML;
+    // Process all children
+    Array.from(temp.childNodes).forEach((node) => {
+      let el: HTMLElement | null = null;
+      
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const element = node as HTMLElement;
+        if (element.tagName === 'SCRIPT') {
+          const newScript = document.createElement('script');
+          Array.from(element.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+          if (element.innerHTML) newScript.innerHTML = element.innerHTML;
+          el = newScript;
+        } else {
+          el = element.cloneNode(true) as HTMLElement;
         }
-        
-        // Add error handling for external scripts
-        if (el.getAttribute('src')) {
-          const scriptSrc = el.getAttribute('src');
-          newScript.onerror = (error) => {
-            console.error(`Failed to load head script: ${scriptSrc}`, error);
-          };
-          newScript.onload = () => {
-            console.log(`Successfully loaded head script: ${scriptSrc}`);
-          };
-        }
-        
-        document.head.appendChild(newScript);
-        console.log(`Injected head script #${index + 1}`);
-      } else if (el.tagName === 'META' || el.tagName === 'LINK' || el.tagName === 'STYLE') {
-        // Other elements (meta, link, style, etc.) can be cloned directly
-        document.head.appendChild(el.cloneNode(true));
-        console.log(`Injected ${el.tagName.toLowerCase()} element`);
+      }
+
+      if (el) {
+        el.setAttribute('data-grantify-injected', 'true');
+        document.head.appendChild(el);
       }
     });
   };

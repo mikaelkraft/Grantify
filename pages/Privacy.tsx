@@ -102,7 +102,7 @@ export const Privacy: React.FC = () => {
         </section>
         
         <div className="pt-8 border-t">
-          <p className="text-xs text-gray-500">Effective Date: June 2025</p>
+          <p className="text-xs text-gray-500">Effective Date: Feb 2026</p>
         </div>
       </div>
 

@@ -117,26 +117,36 @@ export const BlogPostView: React.FC = () => {
           </h1>
 
 
-          <div className="prose prose-lg max-w-none text-gray-700 whitespace-pre-wrap leading-relaxed">
+          <div className="prose prose-lg max-w-none text-gray-700 leading-relaxed quill-content">
             {ads?.body ? (
-              <>
-                 {/* Inject Ad after first paragraph approximately */}
-                 {post.content.split('\n\n').map((paragraph, index) => (
-                   <React.Fragment key={index}>
-                     <p>{paragraph}</p>
-                     {index === 1 && (
-                       <div className="my-8 flex justify-center">
-                         <div className="bg-gray-50 border border-gray-100 p-4 rounded-xl shadow-inner max-w-full overflow-hidden">
-                            <span className="text-[10px] text-gray-400 uppercase block mb-2 text-center tracking-widest">Advertisement</span>
-                            <AdSlot htmlContent={ads.body} label="" />
-                         </div>
-                       </div>
-                     )}
-                   </React.Fragment>
-                 ))}
-              </>
+              (() => {
+                // Since content is now HTML from ReactQuill
+                // We'll try to split by the first paragraph ending
+                const content = post.content;
+                const splitIndex = content.indexOf('</p>');
+                
+                if (splitIndex !== -1) {
+                  const firstPart = content.substring(0, splitIndex + 4);
+                  const secondPart = content.substring(splitIndex + 4);
+                  
+                  return (
+                    <>
+                      <div dangerouslySetInnerHTML={{ __html: firstPart }} />
+                      <div className="my-10 flex justify-center">
+                        <div className="bg-gray-50 border border-gray-100 p-4 rounded-xl shadow-inner max-w-full overflow-hidden w-full">
+                           <span className="text-[10px] text-gray-400 uppercase block mb-2 text-center tracking-widest">Sponsored Information</span>
+                           <AdSlot htmlContent={ads.body} label="" />
+                        </div>
+                      </div>
+                      <div dangerouslySetInnerHTML={{ __html: secondPart }} />
+                    </>
+                  );
+                }
+                
+                return <div dangerouslySetInnerHTML={{ __html: content }} />;
+              })()
             ) : (
-              post.content
+              <div dangerouslySetInnerHTML={{ __html: post.content }} />
             )}
           </div>
 

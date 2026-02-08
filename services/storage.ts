@@ -109,13 +109,13 @@ const initialQualified: QualifiedPerson[] = [
 const initialAds: AdConfig = {
   head: '<!-- Google Tag Manager -->',
   header: '<div style="background:#eee; padding:10px; text-align:center; color:#666; font-size:12px;">Header Ad Space (728x90)</div>',
-  body: '<div style="background:#f0fdf4; border:1px dashed #006400; padding:20px; text-align:center; color:#006400;">Sponsored Content Space</div>',
+  body: '<ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5375979347378755" data-ad-slot="1234567890" data-ad-format="auto" data-full-width-responsive="true"></ins>',
   sidebar: '<div style="background:#eee; height:250px; display:flex; align-items:center; justify-content:center; color:#666;">Sidebar Ad (300x250)</div>',
-  footer: '<div style="background:#333; color:#fff; padding:10px; text-align:center;">Footer Ad Space</div>',
-  promo1Link: 'https://data527.click/eccd43ec29181253638a/951b5a4643/?placementName=default',
-  promo1Text: '🔥 Hot Offer!',
-  promo2Link: 'https://data527.click/eccd43ec29181253638a/951b5a4643/?placementName=unit2',
-  promo2Text: '🎁 Claim Free Bonus!'
+  footer: '<ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5375979347378755" data-ad-slot="0987654321" data-ad-format="auto" data-full-width-responsive="true"></ins>',
+  promo1Link: '',
+  promo1Text: '',
+  promo2Link: '',
+  promo2Text: ''
 };
 
 const adFields: (keyof AdConfig)[] = ['head', 'header', 'body', 'sidebar', 'footer', 'promo1Link', 'promo1Text', 'promo2Link', 'promo2Text'];

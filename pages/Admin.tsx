@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { ApiService } from '../services/storage';
 import { AdminUser, LoanApplication, Testimonial, QualifiedPerson, AdConfig, UserRole, RepaymentContent, LoanProvider, BlogPost, ProviderReview } from '../types';
-import { LogOut, Download, Trash2, Plus, UserPlus, Shield, Loader2, Save, Zap, BookOpen, MessageSquare } from 'lucide-react';
+import { LogOut, Download, Trash2, Plus, UserPlus, Shield, Loader2, Save, Zap, BookOpen, MessageSquare, Image as ImageIcon, Link as LinkIcon, Type, Hash } from 'lucide-react';
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 import { formatNaira } from '../utils/currency';
 
 // Default fallback avatar (green circle with question mark) for broken/missing images
@@ -847,9 +849,9 @@ export const Admin: React.FC = () => {
                     <button 
                       onClick={handleSaveAds} 
                       disabled={!hasUnsavedAds || isSaving}
-                      className={`flex items-center gap-2 px-3 py-1 rounded text-sm ${hasUnsavedAds ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                      className={`flex items-center gap-2 px-4 py-2 rounded font-bold shadow-sm transition-all ${hasUnsavedAds ? 'bg-grantify-green text-white hover:bg-green-800' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}
                     >
-                      <Save size={16} /> {isSaving ? 'Saving...' : 'Save Changes'}
+                      <Save size={18} /> {isSaving ? 'Saving...' : 'Save Changes'}
                     </button>
                   </div>
                   {hasUnsavedAds && (
@@ -932,6 +934,17 @@ export const Admin: React.FC = () => {
                           </div>
                         </div>
                       </div>
+                      
+                      <div className="flex justify-end pt-2">
+                        <button 
+                          onClick={handleSaveAds} 
+                          disabled={!hasUnsavedAds || isSaving}
+                          className={`flex items-center gap-2 px-6 py-2 rounded-lg font-bold shadow-md transition-all ${hasUnsavedAds ? 'bg-grantify-green text-white hover:bg-green-800' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                        >
+                          <Save size={18} /> {isSaving ? 'Saving...' : 'Save All Ad Settings'}
+                        </button>
+                      </div>
+
                       <p className="text-[10px] text-gray-400">
                         Leave the Link field empty to hide the button. Text changes are applied instantly after saving.
                       </p>
@@ -1251,10 +1264,21 @@ export const Admin: React.FC = () => {
                           <option value="Strategy">Strategy</option>
                           <option value="Financial Growth">Financial Growth</option>
                         </select>
-                        <input className={inputClassSmall} placeholder="Image URL (Optional)" value={newPost.image} onChange={e => setNewPost({...newPost, image: e.target.value})} />
-                        <textarea className={inputClassSmall + " md:col-span-2"} rows={5} placeholder="Article Content" value={newPost.content} onChange={e => setNewPost({...newPost, content: e.target.value})} required />
-                        <button type="submit" disabled={isSaving} className="bg-grantify-green text-white font-bold py-3 rounded md:col-span-2 hover:bg-green-800 transition">
-                          {isSaving ? "Publishing..." : "Publish Post"}
+                        <input className={inputClassSmall + " md:col-span-2"} placeholder="Image URL (Optional)" value={newPost.image} onChange={e => setNewPost({...newPost, image: e.target.value})} />
+                        
+                        <div className="md:col-span-2 bg-white rounded border overflow-hidden min-h-[300px] flex flex-col">
+                           <div className="p-2 bg-gray-50 border-b text-[10px] font-bold text-gray-500 uppercase tracking-wider">Article Content (Rich Text)</div>
+                           <ReactQuill
+                             theme="snow"
+                             value={newPost.content}
+                             onChange={(content) => setNewPost({...newPost, content})}
+                             className="flex-grow"
+                             placeholder="Write your article here..."
+                           />
+                        </div>
+
+                        <button type="submit" disabled={isSaving} className="bg-grantify-green text-white font-bold py-3 rounded md:col-span-2 hover:bg-green-800 transition shadow-lg mt-4">
+                          {isSaving ? "Publishing..." : "Publish Article to Community"}
                         </button>
                      </form>
                    </div>

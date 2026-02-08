@@ -90,26 +90,41 @@ export const AdSlot: React.FC<AdSlotProps> = ({ htmlContent, className = "", lab
     }
     // Still wait for all (including async) before setting loading to false
     await Promise.all(promises);
+    
+    // Google AdSense Initialization
+    // For AdSense, we need to call push() for each ad unit injected via SPA
+    if (containerRef.current?.querySelector('.adsbygoogle')) {
+      try {
+        console.log('[AdSlot] Detected Google AdSense unit, initializing...');
+        (window as any).adsbygoogle = (window as any).adsbygoogle || [];
+        (window as any).adsbygoogle.push({});
+      } catch (e) {
+        console.warn('[AdSlot] AdSense push error (usually safe to ignore if script not yet loaded):', e);
+      }
+    }
+
     setIsLoading(false);
   };
 
   const loadSingleScript = (originalScript: HTMLScriptElement): Promise<void> => {
     return new Promise((resolve, reject) => {
-      // Create new script element
+      // Determine if we should handle script manually or let contextual fragment do it
+      // Note: for some ad networks like Monetag, we want to ensure scripts are completely fresh
       const newScript = document.createElement('script');
       
       // Copy all attributes
       Array.from(originalScript.attributes).forEach(attr => {
         newScript.setAttribute(attr.name, attr.value);
       });
-      
+
       // Handle external scripts with src
       if (originalScript.src) {
         const scriptSrc = originalScript.src;
         
-        // Simple dedupe for global libraries if needed
-        // For nested ads, we might want to re-run them if they are specific to the slot
-        
+        // Add cache-busting for external scripts to ensure fresh load
+        newScript.setAttribute('cache-bust', Date.now().toString());
+        console.log(`[AdSlot] Force-reloaded external script: ${scriptSrc.substring(0, 50)}...`);
+
         newScript.onload = () => {
           scriptsLoadedRef.current.add(scriptSrc);
           triggerAdRefresh(scriptSrc);
