@@ -35,6 +35,13 @@
       h1, h2, h3, h4, h5, h6 {
         font-family: 'Roboto', sans-serif;
       }
+      @keyframes slide-up {
+        from { transform: translateY(100%); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+      .animate-slide-up {
+        animation: slide-up 0.5s ease-out forwards;
+      }
     </style>
   </head>
   <body class="bg-gray-50 text-gray-800 overflow-x-hidden">

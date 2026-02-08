@@ -29,15 +29,17 @@ export const BlogTicker: React.FC<Props> = ({ posts }) => {
       </div>
       
       <div className="h-6 flex items-center overflow-hidden flex-grow justify-center md:justify-start">
-        <Link 
-          to={`/blog/${current.id}`}
-          className="flex items-center gap-2 hover:underline transition-all duration-500 ease-in-out whitespace-nowrap"
-        >
-          <span className="text-xs font-bold truncate max-w-[200px] md:max-w-none">{current.title}</span>
-          <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded text-green-900 font-mono hidden md:inline-block">
-            {new Date(current.createdAt).toLocaleDateString()}
-          </span>
-        </Link>
+        <div key={offset} className="animate-slide-up">
+          <Link 
+            to={`/blog/${current.id}`}
+            className="flex items-center gap-2 hover:underline transition-all duration-500 ease-in-out whitespace-nowrap"
+          >
+            <span className="text-xs font-bold truncate max-w-[200px] md:max-w-none">{current.title}</span>
+            <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded text-green-900 font-mono hidden md:inline-block">
+              {new Date(current.createdAt).toLocaleDateString()}
+            </span>
+          </Link>
+        </div>
       </div>
 
       <div className="hidden md:flex ml-auto items-center gap-4 opacity-70 text-[10px] font-bold uppercase tracking-wider">

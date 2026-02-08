@@ -30,7 +30,8 @@ export const RecentApplicantsTicker: React.FC<Props> = ({ applicants }) => {
       
       <div className="h-6 flex items-center overflow-hidden">
         <div 
-          className="flex items-center gap-3 transition-transform duration-500 ease-in-out whitespace-nowrap"
+          key={offset}
+          className="flex items-center gap-3 transition-transform duration-500 ease-in-out whitespace-nowrap animate-slide-up"
         >
           <span className="text-xs font-bold">{current.name}</span>
           <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-gray-400 font-mono">
