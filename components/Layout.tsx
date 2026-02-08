@@ -4,6 +4,7 @@ import { AdSlot } from './AdSlot';
 import { ApiService } from '../services/storage';
 import { AdConfig } from '../types';
 import { Menu, X, Banknote, AlertTriangle, ShieldAlert, RefreshCw, HelpCircle } from 'lucide-react';
+import { AiChatbot } from './AiChatbot';
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [ads, setAds] = useState<AdConfig | null>(null);
@@ -343,6 +344,9 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           </div>
         </div>
       </footer>
+
+      {/* AI Chat Assistant */}
+      <AiChatbot />
     </div>
   );
 };

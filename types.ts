@@ -121,6 +121,9 @@ export interface BlogPost {
   authorRole: string;
   image?: string;
   category: string;
+  tags?: string[];
+  sourceName?: string;
+  sourceUrl?: string;
   likes: number;
   commentsCount: number;
   createdAt: string;

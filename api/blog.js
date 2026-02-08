@@ -31,6 +31,9 @@ export default async function handler(req, res) {
           authorRole: post.author_role,
           createdAt: post.created_at,
           updatedAt: post.updated_at,
+          tags: post.tags,
+          sourceName: post.source_name,
+          sourceUrl: post.source_url,
           comments: comments.rows.map(c => ({
             id: c.id,
             postId: c.post_id,
@@ -61,6 +64,9 @@ export default async function handler(req, res) {
         authorRole: row.author_role,
         image: row.image,
         category: row.category,
+        tags: row.tags,
+        sourceName: row.source_name,
+        sourceUrl: row.source_url,
         likes: row.likes,
         commentsCount: parseInt(row.comments_count),
         createdAt: row.created_at,
@@ -69,7 +75,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const { action, postId, name, content, parentId, title, author, authorRole, category, image } = req.body;
+      const { action, postId, name, content, parentId, title, author, authorRole, category, image, tags, sourceName, sourceUrl } = req.body;
 
       if (action === 'comment') {
         const id = Date.now().toString();
@@ -94,19 +100,19 @@ export default async function handler(req, res) {
       // Create new post (Admin)
       const id = Date.now().toString();
       await client.query(
-        `INSERT INTO blog_posts (id, title, content, author, author_role, category, image)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [id, title, content, author, authorRole, category, image]
+        `INSERT INTO blog_posts (id, title, content, author, author_role, category, image, tags, source_name, source_url)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        [id, title, content, author, authorRole, category, image, tags || [], sourceName, sourceUrl]
       );
       return res.status(200).json({ success: true, id });
     }
 
     if (req.method === 'PUT') {
-      const { id, title, content, author, authorRole, category, image } = req.body;
+      const { id, title, content, author, authorRole, category, image, tags, sourceName, sourceUrl } = req.body;
       await client.query(
-        `UPDATE blog_posts SET title = $1, content = $2, author = $3, author_role = $4, category = $5, image = $6, updated_at = CURRENT_TIMESTAMP
-         WHERE id = $7`,
-        [title, content, author, authorRole, category, image, id]
+        `UPDATE blog_posts SET title = $1, content = $2, author = $3, author_role = $4, category = $5, image = $6, tags = $7, source_name = $8, source_url = $9, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $10`,
+        [title, content, author, authorRole, category, image, tags || [], sourceName, sourceUrl, id]
       );
       return res.status(200).json({ success: true });
     }

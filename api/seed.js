@@ -276,10 +276,21 @@ export default async function handler(req, res) {
         author_role TEXT,
         image TEXT,
         category TEXT,
+        tags TEXT[],
+        source_name TEXT,
+        source_url TEXT,
         likes INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
+    `);
+
+    // Ensure new columns exist for existing databases
+    await client.query(`
+      ALTER TABLE blog_posts 
+      ADD COLUMN IF NOT EXISTS tags TEXT[],
+      ADD COLUMN IF NOT EXISTS source_name TEXT,
+      ADD COLUMN IF NOT EXISTS source_url TEXT
     `);
 
     // Create blog_comments table

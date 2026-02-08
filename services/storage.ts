@@ -342,8 +342,9 @@ export const ApiService = {
   },
 
   submitBlogAction: async (data: any): Promise<any> => {
+    const method = data.action === 'update' ? 'PUT' : 'POST';
     const res = await fetch(`${API_URL}/api/blog`, {
-      method: 'POST',
+      method: method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });

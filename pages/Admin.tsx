@@ -38,14 +38,32 @@ export const Admin: React.FC = () => {
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
 
   // New Blog Post Form
-  const [newPost, setNewPost] = useState({ 
+  const [newPost, setNewPost] = useState<{
+    id?: string;
+    title: string;
+    content: string;
+    author: string;
+    authorRole: string;
+    category: string;
+    image: string;
+    tags: string[];
+    sourceName: string;
+    sourceUrl: string;
+  }>({ 
     title: '', 
     content: '', 
     author: user?.name || '', 
     authorRole: user?.role === UserRole.SUPER_ADMIN ? 'Chief Strategist' : 'Team Member', 
     category: 'Grants', 
-    image: '' 
+    image: '',
+    tags: [],
+    sourceName: '',
+    sourceUrl: ''
   });
+
+  const [isEditingPost, setIsEditingPost] = useState(false);
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [aiProvider, setAiProvider] = useState<'gemini' | 'groq'>('gemini');
 
   // Update author if user name changes
   useEffect(() => {
@@ -462,20 +480,71 @@ export const Admin: React.FC = () => {
     e.preventDefault();
     setIsSaving(true);
     try {
-      await ApiService.submitBlogAction({ ...newPost, action: 'create' });
+      if (isEditingPost && newPost.id) {
+        await ApiService.submitBlogAction({ ...newPost, action: 'update' });
+      } else {
+        await ApiService.submitBlogAction({ ...newPost, action: 'create' });
+      }
+      
       setNewPost({ 
         title: '', 
         content: '', 
         author: user?.name || '', 
         authorRole: user?.role === UserRole.SUPER_ADMIN ? 'Chief Strategist' : 'Team Member', 
         category: 'Grants', 
-        image: '' 
+        image: '',
+        tags: [],
+        sourceName: '',
+        sourceUrl: ''
       });
+      setIsEditingPost(false);
       await refreshData();
     } catch (e) {
-      alert('Failed to add post');
+      alert('Failed to save post');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleEditBlogPost = (post: BlogPost) => {
+    setNewPost({
+      id: post.id,
+      title: post.title,
+      content: post.content,
+      author: post.author,
+      authorRole: post.authorRole,
+      category: post.category,
+      image: post.image || '',
+      tags: post.tags || [],
+      sourceName: post.sourceName || '',
+      sourceUrl: post.sourceUrl || ''
+    });
+    setIsEditingPost(true);
+    document.getElementById('new-post-form')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleAiSmartWrite = async () => {
+    if (!newPost.title) {
+      alert("Please enter a title first so the AI knows what to write about.");
+      return;
+    }
+    setIsGeneratingAi(true);
+    try {
+      // In a real app, this calls /api/ai
+      const res = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: newPost.title, type: 'blog', provider: aiProvider })
+      });
+      const data = await res.json();
+      if (data.content) {
+        setNewPost(prev => ({ ...prev, content: data.content }));
+      }
+    } catch (e) {
+      console.error("AI Generation failed", e);
+      alert("AI Generation failed. Check console for details.");
+    } finally {
+      setIsGeneratingAi(false);
     }
   };
   const inputClass = "w-full p-2 border border-gray-600 rounded bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-grantify-gold outline-none";
@@ -1246,86 +1315,160 @@ export const Admin: React.FC = () => {
                       </button>
                    </div>
 
-                   {/* Add New Post Form */}
-                   <div id="new-post-form" className="bg-gray-100 p-6 rounded-xl border mb-8">
-                     <h4 className="font-bold mb-4 flex items-center gap-2 text-gray-700">Add New Article</h4>
-                     <form onSubmit={handleAddBlogPost} className="grid md:grid-cols-2 gap-4">
-                        <input className={inputClassSmall} placeholder="Title" value={newPost.title} onChange={e => setNewPost({...newPost, title: e.target.value})} required />
-                        <input className={inputClassSmall} placeholder="Author Name" value={newPost.author} onChange={e => setNewPost({...newPost, author: e.target.value})} required />
-                        <input className={inputClassSmall} placeholder="Author Role (e.g. Managing Director)" value={newPost.authorRole} onChange={e => setNewPost({...newPost, authorRole: e.target.value})} required />
-                        <select 
-                          className={inputClassSmall} 
-                          value={newPost.category} 
-                          onChange={e => setNewPost({...newPost, category: e.target.value})}
-                          title="Article Category"
-                          aria-label="Article Category"
-                        >
-                          <option value="Grants">Grants</option>
-                          <option value="Strategy">Strategy</option>
-                          <option value="Financial Growth">Financial Growth</option>
-                        </select>
-                        <input className={inputClassSmall + " md:col-span-2"} placeholder="Image URL (Optional)" value={newPost.image} onChange={e => setNewPost({...newPost, image: e.target.value})} />
-                        
-                        <div className="md:col-span-2 bg-white rounded border overflow-hidden min-h-[300px] flex flex-col">
-                           <div className="p-2 bg-gray-50 border-b text-[10px] font-bold text-gray-500 uppercase tracking-wider">Article Content (Rich Text)</div>
-                           <ReactQuill
-                             theme="snow"
-                             value={newPost.content}
-                             onChange={(content) => setNewPost({...newPost, content})}
-                             className="flex-grow"
-                             placeholder="Write your article here..."
-                           />
-                        </div>
-
-                        <button type="submit" disabled={isSaving} className="bg-grantify-green text-white font-bold py-3 rounded md:col-span-2 hover:bg-green-800 transition shadow-lg mt-4">
-                          {isSaving ? "Publishing..." : "Publish Article to Community"}
-                        </button>
-                     </form>
-                   </div>
-
-                   <div className="bg-white rounded border overflow-hidden">
-                     <table className="w-full text-sm">
-                       <thead className="bg-gray-50 border-b">
-                         <tr>
-                           <th className="p-3 text-left">Article</th>
-                           <th className="p-3 text-left">Author</th>
-                           <th className="p-3 text-left">Category</th>
-                           <th className="p-3 text-left">Engagement</th>
-                           <th className="p-3 text-left">Actions</th>
-                         </tr>
-                       </thead>
-                       <tbody className="divide-y">
-                         {blogPosts.map(post => (
-                           <tr key={post.id}>
-                             <td className="p-3">
-                               <span className="font-bold block">{post.title}</span>
-                               <span className="text-[10px] text-gray-400">{new Date(post.createdAt).toLocaleDateString()}</span>
-                             </td>
-                             <td className="p-3 text-xs">{post.author}</td>
-                             <td className="p-3">
-                               <span className="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-black uppercase">{post.category}</span>
-                             </td>
-                             <td className="p-3 text-xs">
-                               <div className="flex gap-3 text-gray-500">
-                                 <span>{post.likes} Likes</span>
-                                 <span>{post.commentsCount} Comments</span>
+                    {/* Add New/Edit Post Form */}
+                    <div id="new-post-form" className={`p-6 rounded-xl border mb-8 transition-all ${isEditingPost ? 'bg-blue-50 border-blue-200 shadow-md' : 'bg-gray-100'}`}>
+                      <div className="flex justify-between items-center mb-4">
+                        <h4 className="font-bold flex items-center gap-2 text-gray-700">
+                          {isEditingPost ? <Zap className="text-blue-600 animate-pulse" size={18} /> : null}
+                          {isEditingPost ? 'Editing Article' : 'Add New Article'}
+                        </h4>
+                        {isEditingPost && (
+                          <button 
+                            onClick={() => {
+                              setIsEditingPost(false);
+                              setNewPost({ 
+                                title: '', content: '', author: user?.name || '', 
+                                authorRole: user?.role === UserRole.SUPER_ADMIN ? 'Chief Strategist' : 'Team Member', 
+                                category: 'Grants', image: '', tags: [], sourceName: '', sourceUrl: '' 
+                              });
+                            }}
+                            className="text-xs text-blue-600 font-bold hover:underline"
+                          >
+                            Cancel Edit
+                          </button>
+                        )}
+                      </div>
+                      
+                      <form onSubmit={handleAddBlogPost} className="grid md:grid-cols-2 gap-4">
+                         <div className="md:col-span-2 flex flex-col md:flex-row gap-3">
+                           <input className={inputClassSmall + " flex-grow"} placeholder="Title" value={newPost.title} onChange={e => setNewPost({...newPost, title: e.target.value})} required />
+                           <div className="flex gap-2 min-w-fit">
+                             <select 
+                               className="text-xs border rounded bg-white px-2 outline-none focus:ring-1 focus:ring-purple-500"
+                               value={aiProvider}
+                               onChange={(e) => setAiProvider(e.target.value as any)}
+                               title="Select AI Provider"
+                             >
+                               <option value="gemini">Gemini 1.5</option>
+                               <option value="groq">Groq (Llama 3)</option>
+                             </select>
+                             <button 
+                               type="button"
+                               onClick={handleAiSmartWrite}
+                               disabled={isGeneratingAi}
+                               className="bg-purple-600 text-white px-3 py-2 rounded text-xs font-bold flex items-center gap-2 hover:bg-purple-700 transition"
+                             >
+                               {isGeneratingAi ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
+                               Smart Write
+                             </button>
+                           </div>
+                         </div>
+                         
+                         <input className={inputClassSmall} placeholder="Author Name" value={newPost.author} onChange={e => setNewPost({...newPost, author: e.target.value})} required />
+                         <input className={inputClassSmall} placeholder="Author Role" value={newPost.authorRole} onChange={e => setNewPost({...newPost, authorRole: e.target.value})} required />
+                         
+                         <select 
+                           className={inputClassSmall} 
+                           value={newPost.category} 
+                           onChange={e => setNewPost({...newPost, category: e.target.value})}
+                           aria-label="Article Category"
+                         >
+                           <option value="Grants">Grants</option>
+                           <option value="Strategy">Strategy</option>
+                           <option value="Financial Growth">Financial Growth</option>
+                         </select>
+                         
+                         <input 
+                           className={inputClassSmall} 
+                           placeholder="Tags (comma separated)" 
+                           value={newPost.tags.join(', ')} 
+                           onChange={e => setNewPost({...newPost, tags: e.target.value.split(',').map(t => t.trim())})} 
+                         />
+                         
+                         <input className={inputClassSmall} placeholder="Source Name (Optional)" value={newPost.sourceName} onChange={e => setNewPost({...newPost, sourceName: e.target.value})} />
+                         <input className={inputClassSmall} placeholder="Source URL (Optional)" value={newPost.sourceUrl} onChange={e => setNewPost({...newPost, sourceUrl: e.target.value})} />
+                         
+                         <input className={inputClassSmall + " md:col-span-2"} placeholder="Feature Image URL" value={newPost.image} onChange={e => setNewPost({...newPost, image: e.target.value})} />
+                         
+                         <div className="md:col-span-2 bg-white rounded border overflow-hidden min-h-[300px] flex flex-col">
+                            <div className="p-2 bg-gray-50 border-b text-[10px] font-bold text-gray-500 uppercase tracking-wider">Article Content</div>
+                            <ReactQuill
+                              theme="snow"
+                              value={newPost.content}
+                              onChange={(content) => setNewPost({...newPost, content})}
+                              className="flex-grow"
+                              placeholder="Write your article here..."
+                            />
+                         </div>
+ 
+                         <button type="submit" disabled={isSaving} className={`${isEditingPost ? 'bg-blue-600 hover:bg-blue-800' : 'bg-grantify-green hover:bg-green-800'} text-white font-bold py-3 rounded md:col-span-2 transition shadow-lg mt-4`}>
+                           {isSaving ? "Saving..." : (isEditingPost ? "Update Publication" : "Publish Article to Community")}
+                         </button>
+                      </form>
+                    </div>
+ 
+                    <div className="bg-white rounded border overflow-x-auto">
+                      <table className="w-full text-sm min-w-[800px]">
+                        <thead className="bg-gray-50 border-b">
+                          <tr>
+                            <th className="p-3 text-left">Article</th>
+                            <th className="p-3 text-left">Author</th>
+                            <th className="p-3 text-left">Category & Tags</th>
+                            <th className="p-3 text-left">Engagement</th>
+                            <th className="p-3 text-left">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {blogPosts.map(post => (
+                            <tr key={post.id} className={newPost.id === post.id ? 'bg-blue-50' : ''}>
+                              <td className="p-3">
+                                <span className="font-bold block truncate max-w-[200px]" title={post.title}>{post.title}</span>
+                                <span className="text-[10px] text-gray-400">{new Date(post.createdAt).toLocaleDateString()}</span>
+                                {post.sourceName && (
+                                  <div className="flex items-center gap-1 text-[10px] text-blue-500 font-bold mt-1">
+                                    <LinkIcon size={10} /> {post.sourceName}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="p-3 text-xs">
+                                <span className="font-bold">{post.author}</span>
+                                <span className="block text-gray-400 italic">{post.authorRole}</span>
+                              </td>
+                              <td className="p-3">
+                                <span className="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-black uppercase">{post.category}</span>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {post.tags?.map((tag, i) => (
+                                    <span key={i} className="text-[9px] text-gray-400 bg-gray-100 px-1 rounded">#{tag}</span>
+                                  ))}
                                 </div>
-                             </td>
-                             <td className="p-3">
-                               <button 
-                                 onClick={() => handleDeleteBlogPost(post.id)} 
-                                 className="text-red-600 hover:text-red-800 p-2"
-                                 title="Delete blog post"
-                                 aria-label="Delete blog post"
-                               >
-                                 <Trash2 size={16} />
-                               </button>
-                             </td>
-                           </tr>
-                         ))}
-                       </tbody>
-                     </table>
-                   </div>
+                              </td>
+                              <td className="p-3 text-xs text-gray-500">
+                                <div>{post.likes} Likes</div>
+                                <div>{post.commentsCount} Comments</div>
+                              </td>
+                              <td className="p-3">
+                                <div className="flex gap-1">
+                                  <button 
+                                    onClick={() => handleEditBlogPost(post)}
+                                    className="text-blue-600 hover:bg-blue-100 p-2 rounded"
+                                    title="Edit post"
+                                  >
+                                    <Type size={16} />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDeleteBlogPost(post.id)} 
+                                    className="text-red-600 hover:bg-red-100 p-2 rounded"
+                                    title="Delete post"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                 </div>
               )}
 
