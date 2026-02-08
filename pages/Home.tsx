@@ -5,6 +5,7 @@ import { AdSlot } from '../components/AdSlot';
 import { TestimonialCard } from '../components/TestimonialCard';
 import { RecentApplicantsTicker } from '../components/RecentApplicantsTicker';
 import { BlogTicker } from '../components/BlogTicker';
+import { BlogSlider } from '../components/BlogSlider';
 import { matchGrantNetwork, GRANT_NETWORKS } from '../utils/grantMatcher';
 import { LoanType, ApplicationStatus, LoanApplication, Testimonial, QualifiedPerson, AdConfig, BlogPost, GrantNetwork } from '../types';
 import { 
@@ -62,7 +63,7 @@ export const Home: React.FC = () => {
         ]);
         setAllTestimonials(fetchedTestimonials);
         setQualifiedPersons(fetchedQualified);
-        setBlogPosts(fetchedBlog.slice(0, 3));
+        setBlogPosts(fetchedBlog); // Take all for the slider and other sections
       } catch (e) {
         console.error("Failed to load home data", e);
         setError('Failed to load data. Please check your connection.');
@@ -177,7 +178,7 @@ export const Home: React.FC = () => {
   return (
     <div className="space-y-0 pb-20">
       <RecentApplicantsTicker applicants={qualifiedPersons} />
-      <BlogTicker posts={blogPosts} />
+      <BlogTicker posts={blogPosts.slice(0, 3)} />
 
       {/* Hero Section */}
       <section className="relative min-h-[60vh] flex items-center justify-center overflow-hidden rounded-[3rem] mx-4 md:mx-0">
@@ -216,7 +217,7 @@ export const Home: React.FC = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="max-w-6xl mx-auto px-4">
+      <section className="max-w-6xl mx-auto px-4 py-12">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           {[
             { label: 'Total Matches', value: '1,200+', icon: Sparkles },
@@ -235,15 +236,18 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
+      {/* Blog Slider for Engagement */}
+      <BlogSlider posts={blogPosts} />
+
       {/* Matcher Form Section */}
-      <section id="matcher" className="max-w-6xl mx-auto px-4 grid lg:grid-cols-5 gap-12 items-start">
+      <section id="matcher" className="max-w-6xl mx-auto px-4 grid lg:grid-cols-5 gap-12 items-start py-12">
         <div className="lg:col-span-3">
           <div className="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-2xl border border-gray-100 relative">
-            <div className="absolute top-0 right-0 p-8">
-              <Sparkles className="text-gray-100" size={80} />
+            <div className="absolute top-0 right-0 p-8 z-0 opacity-50">
+              <Sparkles className="text-gray-100" size={60} />
             </div>
             
-            <h2 className="text-3xl font-black font-heading text-gray-900 mb-10 flex items-center gap-4">
+            <h2 className="text-3xl font-black font-heading text-gray-900 mb-10 flex items-center gap-4 relative z-10">
               <div className="w-2 h-10 bg-grantify-green rounded-full"></div>
               Intelligent Matcher
             </h2>
@@ -307,8 +311,8 @@ export const Home: React.FC = () => {
               {/* Dynamic Matching Feedback */}
               {matchedNetwork && (
                 <div className="bg-grantify-green/5 border border-grantify-green/20 p-6 rounded-2xl flex items-center gap-6 animate-in slide-in-from-top-4">
-                  <div className="w-16 h-16 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center p-2">
-                    <img src={matchedNetwork.logo} alt={matchedNetwork.name} className="max-w-full max-h-full object-contain" />
+                  <div className="w-16 h-16 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center p-2 text-grantify-green">
+                    <ShieldCheck size={32} />
                   </div>
                   <div>
                     <span className="text-[10px] font-black uppercase text-grantify-green tracking-widest block mb-1">Optimal Network Found</span>
@@ -339,8 +343,8 @@ export const Home: React.FC = () => {
               <div className="space-y-4">
                 {GRANT_NETWORKS.map(network => (
                   <div key={network.id} className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100 hover:border-grantify-green/30 transition-all cursor-pointer group">
-                    <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center p-1.5 shadow-sm">
-                      <img src={network.logo} alt={network.name} className="max-w-full max-h-full object-contain" />
+                    <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center p-1.5 shadow-sm text-grantify-green">
+                      <ShieldCheck size={20} />
                     </div>
                     <div>
                       <h4 className="text-sm font-bold text-gray-800 group-hover:text-grantify-green transition-colors">{network.name}</h4>
@@ -380,7 +384,7 @@ export const Home: React.FC = () => {
           </div>
           
           <div className="grid md:grid-cols-3 gap-8">
-            {blogPosts.map(post => (
+            {blogPosts.slice(0, 3).map(post => (
               <Link key={post.id} to={`/blog/${post.id}`} className="group bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300">
                 <div className="h-48 bg-gray-200 relative overflow-hidden">
                   {post.image ? (
@@ -410,7 +414,7 @@ export const Home: React.FC = () => {
       </section>
 
       {/* Testimonials */}
-      <section className="max-w-6xl mx-auto px-4">
+      <section className="max-w-6xl mx-auto px-4 py-12">
         <h2 className="text-3xl font-black font-heading text-center text-gray-900 mb-12">Successful Grant Matches</h2>
         <div className="grid md:grid-cols-3 gap-8">
           {allTestimonials.filter(t => !t.status || t.status === 'approved').slice(0, 3).map(t => (
@@ -421,6 +425,133 @@ export const Home: React.FC = () => {
           <p className="text-gray-400 text-sm italic">Join 45,000+ businesses already growing with Grantify intelligence.</p>
         </div>
       </section>
+
+      {/* Testimonial Submission Form */}
+      <section className="bg-grantify-green py-20 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-grantify-gold/10 rounded-full blur-[100px] -mr-48 -mt-48"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/5 rounded-full blur-[100px] -ml-48 -mb-48"></div>
+        
+        <div className="max-w-4xl mx-auto px-4 relative z-10">
+          <div className="bg-white rounded-[3rem] shadow-2xl overflow-hidden flex flex-col md:flex-row">
+            <div className="md:w-2/5 bg-gray-50 p-12 flex flex-col justify-center border-r border-gray-100">
+              <div className="w-16 h-16 bg-grantify-gold/20 rounded-2xl flex items-center justify-center text-grantify-green mb-6">
+                <MessageSquarePlus size={32} />
+              </div>
+              <h2 className="text-3xl font-black font-heading text-gray-900 mb-4 leading-tight">
+                Share Your <br/>Success Story
+              </h2>
+              <p className="text-gray-500 text-sm leading-relaxed">
+                Your feedback helps us improve and inspires other business owners to take the first step towards growth.
+              </p>
+            </div>
+            
+            <div className="md:w-3/5 p-12">
+              <TestimonialForm onSubmit={async (data) => {
+                await ApiService.addTestimonial({
+                  ...data,
+                  id: Date.now().toString(),
+                  image: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name)}&background=006400&color=ffffff&size=150&bold=true`,
+                  likes: Math.floor(Math.random() * 20),
+                  loves: 0,
+                  claps: 0,
+                  date: new Date().toISOString().split('T')[0],
+                  status: 'pending'
+                });
+              }} />
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
+  );
+};
+
+// Sub-component for the form for cleaner code
+const TestimonialForm: React.FC<{ onSubmit: (data: { name: string; amount: number; content: string }) => Promise<void> }> = ({ onSubmit }) => {
+  const [name, setName] = useState('');
+  const [amount, setAmount] = useState('');
+  const [content, setContent] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await onSubmit({ name, amount: parseInt(amount) || 0, content });
+      setIsSuccess(true);
+      setName('');
+      setAmount('');
+      setContent('');
+    } catch (e) {
+      alert('Failed to submit. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isSuccess) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center text-center py-8 animate-in fade-in zoom-in duration-500">
+        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center text-green-600 mb-6">
+          <CheckCircle size={40} />
+        </div>
+        <h3 className="text-2xl font-black text-gray-900 mb-2">Submission Received!</h3>
+        <p className="text-gray-500 text-sm mb-8">Your success story has been sent for review. It will appear on our home page once approved by our team.</p>
+        <button 
+          onClick={() => setIsSuccess(false)}
+          className="text-grantify-green font-black uppercase text-xs tracking-widest hover:underline"
+        >
+          Submit Another
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="space-y-2">
+        <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1">Your Full Name</label>
+        <input 
+          required
+          className="w-full p-4 bg-gray-50 rounded-2xl border-none ring-1 ring-gray-100 focus:ring-2 focus:ring-grantify-green outline-none transition-all shadow-inner text-sm"
+          placeholder="e.g. Kola Ibrahim"
+          value={name}
+          onChange={e => setName(e.target.value)}
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1">Amount Disbursed (₦)</label>
+        <input 
+          required
+          type="number"
+          className="w-full p-4 bg-gray-50 rounded-2xl border-none ring-1 ring-gray-100 focus:ring-2 focus:ring-grantify-green outline-none transition-all shadow-inner text-sm"
+          placeholder="e.g. 500000"
+          value={amount}
+          onChange={e => setAmount(e.target.value)}
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1">Your Story</label>
+        <textarea 
+          required
+          rows={4}
+          className="w-full p-4 bg-gray-50 rounded-2xl border-none ring-1 ring-gray-100 focus:ring-2 focus:ring-grantify-green outline-none transition-all shadow-inner resize-none text-sm"
+          placeholder="How did Grantify help your business?"
+          value={content}
+          onChange={e => setContent(e.target.value)}
+        />
+      </div>
+      
+      <button 
+        disabled={isSubmitting}
+        className="w-full bg-grantify-green text-white font-black py-4 rounded-2xl shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+      >
+        {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : <Send size={18} />}
+        Publish My Story
+      </button>
+    </form>
   );
 };

@@ -20,32 +20,44 @@ export default async function handler(req, res) {
     }
     
     if (req.method === 'POST') {
-      const items = req.body;
-      if (!Array.isArray(items)) {
-        return res.status(400).json({ error: 'Expected array' });
+      const body = req.body;
+      
+      // Handle Single Submission (public form)
+      if (body && !Array.isArray(body)) {
+        await pool.query(
+          `INSERT INTO testimonials (id, name, image, amount, content, likes, loves, claps, date, status)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+          [body.id, body.name, body.image, body.amount, body.content, body.likes, body.loves, body.claps, body.date, body.status || 'pending']
+        );
+        return res.status(200).json({ success: true, message: 'Submission received for review' });
+      }
+
+      // Handle Bulk Save (admin dashboard)
+      if (Array.isArray(body)) {
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+          await client.query('DELETE FROM testimonials');
+          
+          for (const t of body) {
+            await client.query(
+              `INSERT INTO testimonials (id, name, image, amount, content, likes, loves, claps, date, status)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+              [t.id, t.name, t.image, t.amount, t.content, t.likes, t.loves, t.claps, t.date, t.status || null]
+            );
+          }
+          
+          await client.query('COMMIT');
+          return res.status(200).json({ success: true });
+        } catch (err) {
+          await client.query('ROLLBACK');
+          throw err;
+        } finally {
+          client.release();
+        }
       }
       
-      const client = await pool.connect();
-      try {
-        await client.query('BEGIN');
-        await client.query('DELETE FROM testimonials');
-        
-        for (const t of items) {
-          await client.query(
-            `INSERT INTO testimonials (id, name, image, amount, content, likes, loves, claps, date, status)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-            [t.id, t.name, t.image, t.amount, t.content, t.likes, t.loves, t.claps, t.date, t.status || null]
-          );
-        }
-        
-        await client.query('COMMIT');
-        return res.status(200).json({ success: true });
-      } catch (err) {
-        await client.query('ROLLBACK');
-        throw err;
-      } finally {
-        client.release();
-      }
+      return res.status(400).json({ error: 'Expected array or object' });
     }
     
     return res.status(405).json({ error: 'Method not allowed' });

@@ -208,6 +208,15 @@ export const ApiService = {
     if (!res.ok) throw new Error('Failed to save testimonials via API');
   },
 
+  addTestimonial: async (testimonial: Testimonial): Promise<void> => {
+    const res = await fetch(`${API_URL}/api/testimonials`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(testimonial)
+    });
+    if (!res.ok) throw new Error('Failed to submit testimonial via API');
+  },
+
   // -- Qualified Persons --
   getQualified: async (): Promise<QualifiedPerson[]> => {
     const res = await fetch(`${API_URL}/api/qualified`);
