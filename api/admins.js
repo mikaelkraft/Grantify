@@ -31,21 +31,44 @@ export default async function handler(req, res) {
       // Handle Login
       if (action === 'login') {
         const { username, password } = req.body;
+        console.log(`Login attempt for username: ${username}`);
+        
+        if (!username || !password) {
+          return res.status(400).json({ error: 'Username and password required' });
+        }
+
         const bcrypt = await import('bcryptjs').then(m => m.default);
         const result = await pool.query('SELECT * FROM admin_users WHERE username = $1', [username]);
         
         if (result.rows.length > 0) {
           const u = result.rows[0];
-          const isMatch = await bcrypt.compare(password, u.password_hash);
+          
+          // Check for bcrypt hash format ($2a$, $2b$, or $2y$)
+          const isHashed = u.password_hash?.startsWith('$2');
+          let isMatch = false;
+
+          if (isHashed) {
+            isMatch = await bcrypt.compare(password, u.password_hash);
+          } else {
+            // Fallback for plaintext (transition period)
+            isMatch = (password === u.password_hash);
+            console.warn(`Plaintext password match for ${username}. Please secure this account.`);
+          }
+
           if (isMatch) {
-            return res.status(200).json({
+             console.log(`Successful login for ${username}`);
+             return res.status(200).json({
               id: u.id,
               username: u.username,
               name: u.name,
               role: u.role,
               passwordHash: u.password_hash
             });
+          } else {
+            console.warn(`Password mismatch for ${username}`);
           }
+        } else {
+          console.warn(`User not found: ${username}`);
         }
         return res.status(401).json({ error: 'Invalid credentials' });
       }
