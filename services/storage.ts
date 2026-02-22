@@ -167,13 +167,13 @@ export const ApiService = {
 
   // -- Applications --
   getApplications: async (): Promise<LoanApplication[]> => {
-    const res = await fetch(`${API_URL}/api/applications`);
+    const res = await fetch(`${API_URL}/api/leads?type=applications`);
     if (!res.ok) throw new Error('Failed to fetch applications from API');
     return await res.json();
   },
 
   addApplication: async (app: LoanApplication): Promise<void> => {
-    const res = await fetch(`${API_URL}/api/applications`, {
+    const res = await fetch(`${API_URL}/api/leads?type=applications`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(app)
@@ -219,15 +219,14 @@ export const ApiService = {
 
   // -- Qualified Persons --
   getQualified: async (): Promise<QualifiedPerson[]> => {
-    const res = await fetch(`${API_URL}/api/qualified`);
+    const res = await fetch(`${API_URL}/api/leads?type=qualified`);
     if (!res.ok) throw new Error('Failed to fetch qualified persons from API');
     const data = await res.json();
-    // Return data from database (even if empty)
     return data;
   },
 
   saveQualified: async (data: QualifiedPerson[]): Promise<void> => {
-    const res = await fetch(`${API_URL}/api/qualified`, {
+    const res = await fetch(`${API_URL}/api/leads?type=qualified`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(data)
@@ -237,15 +236,13 @@ export const ApiService = {
 
   // -- Ads --
   getAds: async (): Promise<AdConfig> => {
-    const res = await fetch(`${API_URL}/api/ads`);
+    const res = await fetch(`${API_URL}/api/config?type=ads`);
     if (!res.ok) throw new Error('Failed to fetch ads from API');
-    const data = await res.json();
-    // Return ad config from database
-    return data;
+    return await res.json();
   },
 
   saveAds: async (data: AdConfig): Promise<void> => {
-    const res = await fetch(`${API_URL}/api/ads`, {
+    const res = await fetch(`${API_URL}/api/config?type=ads`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(data)
@@ -271,13 +268,13 @@ export const ApiService = {
 
   // -- Repayment Content --
   getRepaymentContent: async (): Promise<RepaymentContent> => {
-    const res = await fetch(`${API_URL}/api/content/repayment`);
+    const res = await fetch(`${API_URL}/api/config?type=repayment`);
     if (!res.ok) throw new Error('Failed to fetch repayment content from API');
     return await res.json();
   },
 
   saveRepaymentContent: async (data: RepaymentContent): Promise<void> => {
-    const res = await fetch(`${API_URL}/api/content/repayment`, {
+    const res = await fetch(`${API_URL}/api/config?type=repayment`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(data)
@@ -287,7 +284,7 @@ export const ApiService = {
 
   // -- Auth --
   login: async (username: string, password: string): Promise<AdminUser | null> => {
-    const res = await fetch(`${API_URL}/api/auth/login`, {
+    const res = await fetch(`${API_URL}/api/admins?action=login`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ username, password })
