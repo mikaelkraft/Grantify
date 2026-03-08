@@ -63,7 +63,6 @@ export const Admin: React.FC = () => {
 
   const [isEditingPost, setIsEditingPost] = useState(false);
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
-  const [aiProvider, setAiProvider] = useState<'gemini' | 'groq'>('gemini');
 
   // Update author if user name changes
   useEffect(() => {
@@ -534,7 +533,7 @@ export const Admin: React.FC = () => {
       const res = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: newPost.title, type: 'blog', provider: aiProvider })
+        body: JSON.stringify({ prompt: newPost.title, type: 'blog' })
       });
       const data = await res.json();
       if (data.content) {
@@ -1343,15 +1342,6 @@ export const Admin: React.FC = () => {
                          <div className="md:col-span-2 flex flex-col md:flex-row gap-3">
                            <input className={inputClassSmall + " flex-grow"} placeholder="Title" value={newPost.title} onChange={e => setNewPost({...newPost, title: e.target.value})} required />
                            <div className="flex gap-2 min-w-fit">
-                             <select 
-                               className="text-xs border rounded bg-white px-2 outline-none focus:ring-1 focus:ring-purple-500"
-                               value={aiProvider}
-                               onChange={(e) => setAiProvider(e.target.value as any)}
-                               title="Select AI Provider"
-                             >
-                               <option value="gemini">Gemini 1.5</option>
-                               <option value="groq">Groq (Llama 3)</option>
-                             </select>
                              <button 
                                type="button"
                                onClick={handleAiSmartWrite}

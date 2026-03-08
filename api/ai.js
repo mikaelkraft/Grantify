@@ -1,5 +1,5 @@
 // API: /api/ai - AI Content Generation and Assistant
-// Uses Google Gemini 1.5 Flash
+// Uses Groq (OpenAI-compatible Chat Completions)
 
 export default async function handler(req, res) {
   // Enable CORS
@@ -10,19 +10,22 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { prompt, type, provider = 'gemini' } = req.body;
-  const geminiKey = process.env.GEMINI_API_KEY;
+  const { prompt, type, history } = req.body || {};
   const groqKey = process.env.GROQ_API_KEY;
 
+  if (!prompt || typeof prompt !== 'string') {
+    return res.status(400).json({ error: 'Missing prompt' });
+  }
+
   // Fallback for missing keys
-  if ((provider === 'gemini' && !geminiKey) || (provider === 'groq' && !groqKey)) {
+  if (!groqKey) {
     if (type === 'blog') {
       return res.status(200).json({ 
-        content: `<h2>${prompt}</h2><p>This is a human-optimized article about <strong>${prompt}</strong>. It avoids common AI traits and focuses on the Nigerian business context. To enable live ${provider} generation, add your API key to the environment.</p>` 
+        content: `<h2>${prompt}</h2><p>This is a human-optimized article about <strong>${prompt}</strong>. It avoids common AI traits and focuses on the Nigerian business context. To enable live generation, add GROQ_API_KEY to the environment.</p>` 
       });
     }
     return res.status(200).json({ 
-      text: `Hello! I'm the Grantify assistant (running in demo mode). Add a ${provider === 'gemini' ? 'GEMINI_API_KEY' : 'GROQ_API_KEY'} to see my real ${provider} responses!` 
+      text: `Hello! I'm the Grantify assistant (running in demo mode). Add GROQ_API_KEY to enable live AI responses.`
     });
   }
 
@@ -47,46 +50,43 @@ export default async function handler(req, res) {
       Rules: No em dashes (—). Be concise, professional, and friendly. Speak specifically about Nigerian opportunities.`;
     }
 
-    if (provider === 'gemini') {
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
-      const response = await fetch(geminiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: `${systemInstruction}\n\nRequest: ${userPrompt}` }] }],
-          generationConfig: { temperature: 0.9, maxOutputTokens: 2048 }
-        })
-      });
-      if (!response.ok) throw new Error('Gemini API Error');
-      const data = await response.json();
-      const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated.";
-      return res.status(200).json(type === 'blog' ? { content: aiText } : { text: aiText });
-    } 
-    
-    if (provider === 'groq') {
-      const groqUrl = `https://api.groq.com/openai/v1/chat/completions`;
-      const response = await fetch(groqUrl, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${groqKey}`
-        },
-        body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
-          messages: [
-            { role: "system", content: systemInstruction },
-            { role: "user", content: userPrompt }
-          ],
-          temperature: 0.8
-        })
-      });
-      if (!response.ok) throw new Error('Groq API Error');
-      const data = await response.json();
-      const aiText = data.choices?.[0]?.message?.content || "No response generated.";
-      return res.status(200).json(type === 'blog' ? { content: aiText } : { text: aiText });
-    }
+    const groqUrl = `https://api.groq.com/openai/v1/chat/completions`;
 
-    return res.status(400).json({ error: 'Unsupported provider' });
+    const normalizedHistory = Array.isArray(history)
+      ? history
+          .slice(-12)
+          .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+          .map((m) => ({ role: m.role, content: m.content }))
+      : [];
+
+    const messages = type === 'blog'
+      ? [
+          { role: 'system', content: systemInstruction },
+          { role: 'user', content: userPrompt }
+        ]
+      : [
+          { role: 'system', content: systemInstruction },
+          ...normalizedHistory,
+          { role: 'user', content: userPrompt }
+        ];
+
+    const response = await fetch(groqUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${groqKey}`
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages,
+        temperature: 0.8
+      })
+    });
+
+    if (!response.ok) throw new Error('Groq API Error');
+    const data = await response.json();
+    const aiText = data.choices?.[0]?.message?.content || 'No response generated.';
+    return res.status(200).json(type === 'blog' ? { content: aiText } : { text: aiText });
   } catch (err) {
     console.error('AI API Error:', err);
     return res.status(500).json({ error: err.message });
