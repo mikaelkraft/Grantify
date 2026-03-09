@@ -7,14 +7,15 @@ import { RecentApplicantsTicker } from '../components/RecentApplicantsTicker';
 import { BlogTicker } from '../components/BlogTicker';
 import { BlogSlider } from '../components/BlogSlider';
 import { matchGrantNetwork, GRANT_NETWORKS } from '../utils/grantMatcher';
-import { LoanType, ApplicationStatus, LoanApplication, Testimonial, QualifiedPerson, AdConfig, BlogPost, GrantNetwork } from '../types';
+import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
+import { LoanType, ApplicationStatus, LoanApplication, Testimonial, AdConfig, BlogPost, GrantNetwork } from '../types';
 import { 
   Calculator, CheckCircle, AlertCircle, ArrowRight, Share2, Copy, 
   Info, Loader2, MessageSquarePlus, Send, Zap, Landmark, 
   ExternalLink, ShieldCheck, Search, Award, TrendingUp, Sparkles,
   BookOpen, ChevronRight
 } from 'lucide-react';
-import { formatNaira, formatNairaCompact } from '../utils/currency';
+import { formatNaira } from '../utils/currency';
 
 export const Home: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -37,7 +38,7 @@ export const Home: React.FC = () => {
   // Data State
   const [ads, setAds] = useState<AdConfig | null>(null);
   const [allTestimonials, setAllTestimonials] = useState<Testimonial[]>([]);
-  const [qualifiedPersons, setQualifiedPersons] = useState<QualifiedPerson[]>([]);
+  const [recentApplicants, setRecentApplicants] = useState<Array<{ id: string; fullName: string }>>([]);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [referralData] = useState(ApiService.getMyReferralData());
 
@@ -56,13 +57,13 @@ export const Home: React.FC = () => {
     // 2. Fetch other content
     const loadData = async () => {
       try {
-        const [fetchedTestimonials, fetchedQualified, fetchedBlog] = await Promise.all([
+        const [fetchedTestimonials, fetchedRecentApplicants, fetchedBlog] = await Promise.all([
           ApiService.getTestimonials(),
-          ApiService.getQualified(),
+          ApiService.getRecentApplicantsTicker(),
           ApiService.getBlogPosts()
         ]);
         setAllTestimonials(fetchedTestimonials);
-        setQualifiedPersons(fetchedQualified);
+        setRecentApplicants(fetchedRecentApplicants);
         setBlogPosts(fetchedBlog); // Take all for the slider and other sections
       } catch (e) {
         console.error("Failed to load home data", e);
@@ -177,11 +178,11 @@ export const Home: React.FC = () => {
 
   return (
     <div className="space-y-0 pb-20">
-      <RecentApplicantsTicker applicants={qualifiedPersons} />
+      <RecentApplicantsTicker applicants={recentApplicants} />
       <BlogTicker posts={blogPosts.slice(0, 3)} />
 
       {/* Hero Section */}
-      <section className="relative min-h-[60vh] flex items-center justify-center overflow-hidden rounded-[3rem] mx-4 md:mx-0">
+      <section className="relative min-h-[60vh] flex items-center justify-center overflow-hidden rounded-[2.5rem]">
         <div className="absolute inset-0 bg-grantify-green">
           <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-grantify-gold/20 rounded-full blur-[120px] -mr-64 -mt-64"></div>
@@ -202,13 +203,13 @@ export const Home: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
             <button 
               onClick={() => document.getElementById('matcher')?.scrollIntoView({ behavior: 'smooth' })}
-              className="bg-white text-grantify-green font-bold py-3 px-8 rounded-xl shadow-xl hover:scale-105 transition-all text-base flex items-center gap-2"
+              className="bg-white text-grantify-green font-bold py-3 px-8 rounded-xl shadow-xl hover:scale-105 transition-all text-sm md:text-base flex items-center gap-2"
             >
               Find My Grant Match <Search size={18} />
             </button>
             <Link 
               to="/loan-providers"
-              className="bg-grantify-gold text-grantify-green font-bold py-3 px-8 rounded-xl shadow-xl hover:scale-105 transition-all text-base flex items-center gap-2"
+              className="bg-grantify-gold text-grantify-green font-bold py-3 px-8 rounded-xl shadow-xl hover:scale-105 transition-all text-sm md:text-base flex items-center gap-2"
             >
               <Zap size={18} /> Instant Loan Apps
             </Link>
@@ -217,7 +218,7 @@ export const Home: React.FC = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="max-w-6xl mx-auto px-4 py-12">
+      <section className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-12">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           {[
             { label: 'Total Matches', value: '1,200+', icon: Sparkles },
@@ -240,7 +241,7 @@ export const Home: React.FC = () => {
       <BlogSlider posts={blogPosts} />
 
       {/* Matcher Form Section */}
-      <section id="matcher" className="max-w-6xl mx-auto px-4 grid lg:grid-cols-5 gap-12 items-start py-12">
+      <section id="matcher" className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 grid lg:grid-cols-5 gap-12 items-start py-12">
         <div className="lg:col-span-3">
           <div className="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-2xl border border-gray-100 relative">
             <div className="absolute top-0 right-0 p-8 z-0 opacity-50">
@@ -372,7 +373,7 @@ export const Home: React.FC = () => {
 
       {/* Blog/Intelligence Section */}
       <section className="bg-gray-50 py-16">
-        <div className="max-w-6xl mx-auto px-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
             <div>
               <h2 className="text-3xl font-black font-heading text-gray-900 mb-2">Financial Intelligence</h2>
@@ -387,13 +388,12 @@ export const Home: React.FC = () => {
             {blogPosts.slice(0, 3).map(post => (
               <Link key={post.id} to={`/blog/${post.id}`} className="group bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300">
                 <div className="h-48 bg-gray-200 relative overflow-hidden">
-                  {post.image ? (
-                    <img src={post.image} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-grantify-green to-blue-900 flex items-center justify-center p-6 text-white font-bold text-center text-sm">
-                      {post.title}
-                    </div>
-                  )}
+                  <img
+                    src={post.image || getBlogPlaceholderImage(post.title)}
+                    alt={post.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    loading="lazy"
+                  />
                   <div className="absolute top-4 left-4 bg-white/20 backdrop-blur-md text-white text-[10px] font-black px-2 py-1 rounded uppercase">
                     {post.category}
                   </div>
@@ -414,7 +414,7 @@ export const Home: React.FC = () => {
       </section>
 
       {/* Testimonials */}
-      <section className="max-w-6xl mx-auto px-4 py-12">
+      <section className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-12">
         <h2 className="text-3xl font-black font-heading text-center text-gray-900 mb-12">Successful Grant Matches</h2>
         <div className="grid md:grid-cols-3 gap-8">
           {allTestimonials.filter(t => !t.status || t.status === 'approved').slice(0, 3).map(t => (
@@ -450,7 +450,9 @@ export const Home: React.FC = () => {
                 await ApiService.addTestimonial({
                   ...data,
                   id: Date.now().toString(),
-                  image: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name)}&background=006400&color=ffffff&size=150&bold=true`,
+                  image: (data.photoUrl && data.photoUrl.trim())
+                    ? data.photoUrl.trim()
+                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name)}&background=006400&color=ffffff&size=150&bold=true`,
                   likes: Math.floor(Math.random() * 20),
                   loves: 0,
                   claps: 0,
@@ -467,10 +469,11 @@ export const Home: React.FC = () => {
 };
 
 // Sub-component for the form for cleaner code
-const TestimonialForm: React.FC<{ onSubmit: (data: { name: string; amount: number; content: string }) => Promise<void> }> = ({ onSubmit }) => {
+const TestimonialForm: React.FC<{ onSubmit: (data: { name: string; amount: number; content: string; photoUrl?: string }) => Promise<void> }> = ({ onSubmit }) => {
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [content, setContent] = useState('');
+  const [photoUrl, setPhotoUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -478,11 +481,12 @@ const TestimonialForm: React.FC<{ onSubmit: (data: { name: string; amount: numbe
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await onSubmit({ name, amount: parseInt(amount) || 0, content });
+      await onSubmit({ name, amount: parseInt(amount) || 0, content, photoUrl });
       setIsSuccess(true);
       setName('');
       setAmount('');
       setContent('');
+      setPhotoUrl('');
     } catch (e) {
       alert('Failed to submit. Please try again.');
     } finally {
@@ -519,6 +523,17 @@ const TestimonialForm: React.FC<{ onSubmit: (data: { name: string; amount: numbe
           value={name}
           onChange={e => setName(e.target.value)}
         />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1">Photo URL (optional)</label>
+        <input 
+          className="w-full p-4 bg-gray-50 rounded-2xl border-none ring-1 ring-gray-100 focus:ring-2 focus:ring-grantify-green outline-none transition-all shadow-inner text-sm"
+          placeholder="https://..."
+          value={photoUrl}
+          onChange={e => setPhotoUrl(e.target.value)}
+        />
+        <p className="text-[10px] text-gray-400 ml-1">If left empty, we will generate an avatar.</p>
       </div>
       
       <div className="space-y-2">

@@ -16,6 +16,18 @@ export default async function handler(req, res) {
     // --- APPLICATIONS ---
     if (type === 'applications') {
       if (req.method === 'GET') {
+        const isPublic = req.query.public === '1' || req.query.public === 'true';
+
+        if (isPublic) {
+          const result = await pool.query(
+            'SELECT id, full_name FROM applications ORDER BY date_applied DESC'
+          );
+          return res.status(200).json(result.rows.map(row => ({
+            id: row.id,
+            fullName: row.full_name
+          })));
+        }
+
         const result = await pool.query('SELECT * FROM applications ORDER BY date_applied DESC');
         const apps = result.rows.map(row => ({
           id: row.id,

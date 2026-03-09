@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ApiService } from '../services/storage';
 import { BlogPost } from '../types';
 import { Loader2, MessageSquare, ThumbsUp, Calendar, ChevronRight } from 'lucide-react';
+import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
 
 export const Blog: React.FC = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -33,7 +34,7 @@ export const Blog: React.FC = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto py-12 px-4">
+    <div className="max-w-7xl mx-auto py-12 px-3 sm:px-4 md:px-6">
       <div className="mb-12 text-center">
         <h1 className="text-4xl font-black font-heading text-gray-900 mb-4">Financial Intelligence Hub</h1>
         <p className="text-gray-600 max-w-2xl mx-auto">
@@ -54,13 +55,12 @@ export const Blog: React.FC = () => {
               className="group bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col"
             >
               <div className="aspect-video bg-gray-100 overflow-hidden relative">
-                {post.image ? (
-                  <img src={post.image} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-grantify-green to-blue-900 text-white font-bold p-6 text-center">
-                    {post.title}
-                  </div>
-                )}
+                <img
+                  src={post.image || getBlogPlaceholderImage(post.title)}
+                  alt={post.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  loading="lazy"
+                />
                 <div className="absolute top-4 left-4 bg-grantify-gold text-grantify-green text-[10px] font-black px-2 py-1 rounded uppercase tracking-wider">
                   {post.category}
                 </div>

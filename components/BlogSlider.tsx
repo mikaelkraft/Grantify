@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { BlogPost } from '../types';
 import { BookOpen, ChevronRight, Share2 } from 'lucide-react';
+import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
 
 interface Props {
   posts: BlogPost[];
@@ -40,17 +41,12 @@ export const BlogSlider: React.FC<Props> = ({ posts }) => {
                 className="block h-full bg-gray-50 rounded-[2rem] border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-500 group/card hover:-translate-y-2"
               >
                 <div className="h-40 relative overflow-hidden">
-                  {post.image ? (
-                    <img 
-                      src={post.image} 
-                      alt={post.title} 
-                      className="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-700" 
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-green-900/10 to-grantify-green/20 flex items-center justify-center p-6 text-grantify-green font-bold text-center text-xs">
-                      {post.title}
-                    </div>
-                  )}
+                  <img
+                    src={post.image || getBlogPlaceholderImage(post.title)}
+                    alt={post.title}
+                    className="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-700"
+                    loading="lazy"
+                  />
                   <div className="absolute top-4 left-4">
                     <span className="bg-white/90 backdrop-blur-sm text-grantify-green text-[9px] font-black px-2 py-1 rounded-full uppercase tracking-tighter">
                       {post.category}

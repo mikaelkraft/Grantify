@@ -1,11 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { QualifiedPerson } from '../types';
-import { formatNairaCompact } from '../utils/currency';
 import { TrendingUp } from 'lucide-react';
 
 interface Props {
-  applicants: QualifiedPerson[];
+  applicants: Array<{ id: string; fullName: string }>;
 }
+
+const anonymizeName = (fullName: string | undefined) => {
+  const safe = (fullName || '').trim();
+  if (!safe) return 'A new applicant';
+  const parts = safe.split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return 'A new applicant';
+  if (parts.length === 1) return parts[0];
+  const first = parts[0];
+  const lastInitial = parts[parts.length - 1]?.[0]?.toUpperCase();
+  return lastInitial ? `${first} ${lastInitial}.` : first;
+};
 
 export const RecentApplicantsTicker: React.FC<Props> = ({ applicants }) => {
   const [offset, setOffset] = useState(0);
@@ -21,6 +30,7 @@ export const RecentApplicantsTicker: React.FC<Props> = ({ applicants }) => {
   if (applicants.length === 0) return null;
 
   const current = applicants[offset];
+  const displayName = anonymizeName(current.fullName);
 
   return (
     <div className="bg-gray-900 text-white py-2 px-4 flex items-center justify-center gap-4 overflow-hidden relative border-y border-white/5">
@@ -33,21 +43,15 @@ export const RecentApplicantsTicker: React.FC<Props> = ({ applicants }) => {
           key={offset}
           className="flex items-center gap-3 transition-transform duration-500 ease-in-out whitespace-nowrap animate-slide-up"
         >
-          <span className="text-xs font-bold">{current.name}</span>
-          <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-gray-400 font-mono">
-            {formatNairaCompact(current.amount)}
-          </span>
-          <span className="text-[10px] text-green-400 font-black uppercase tracking-tighter">
-            {current.status}
-          </span>
+          <span className="text-xs font-bold">{displayName}</span>
+          <span className="text-[10px] text-green-400 font-black uppercase tracking-tighter">Submitted Form</span>
         </div>
       </div>
 
       <div className="hidden md:flex ml-auto items-center gap-4 opacity-50">
         {applicants.slice(0, 3).map((a, i) => (
           <div key={i} className="text-[10px] flex gap-2">
-            <span className="font-bold">{a.name}</span>
-            <span className="text-grantify-gold">{formatNairaCompact(a.amount)}</span>
+            <span className="font-bold">{anonymizeName(a.fullName)}</span>
           </div>
         ))}
       </div>

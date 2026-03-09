@@ -5,6 +5,7 @@ import { BlogPost, BlogComment, AdConfig } from '../types';
 import { Loader2, ThumbsUp, MessageSquare, ArrowLeft, Send, Calendar, User, Shield, Share2 } from 'lucide-react';
 import { AdSlot } from '../components/AdSlot';
 import { FacebookShareButton, TwitterShareButton, WhatsappShareButton, LinkedinShareButton, FacebookIcon, TwitterIcon, WhatsappIcon, LinkedinIcon } from 'react-share';
+import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
 
 export const BlogPostView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -100,9 +101,12 @@ export const BlogPostView: React.FC = () => {
       </Link>
 
       <article className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden mb-12">
-        {post.image && (
-          <img src={post.image} alt={post.title} className="w-full h-80 object-cover" />
-        )}
+        <img
+          src={post.image || getBlogPlaceholderImage(post.title)}
+          alt={post.title}
+          className="w-full h-80 object-cover"
+          loading="lazy"
+        />
         
         <div className="p-8 md:p-12">
           <div className="flex flex-wrap items-center gap-4 text-gray-400 text-xs mb-6 uppercase tracking-widest font-bold">
@@ -184,13 +188,12 @@ export const BlogPostView: React.FC = () => {
             {recommendedPosts.map(rec => (
               <Link key={rec.id} to={`/blog/${rec.id}`} className="group bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-all">
                 <div className="h-32 bg-gray-100 relative">
-                  {rec.image ? (
-                    <img src={rec.image} alt={rec.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-grantify-green to-blue-900 text-white p-4 text-center text-xs font-bold">
-                       {rec.title}
-                    </div>
-                  )}
+                  <img
+                    src={rec.image || getBlogPlaceholderImage(rec.title)}
+                    alt={rec.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    loading="lazy"
+                  />
                 </div>
                 <div className="p-4">
                   <span className="text-[10px] bg-grantify-gold/20 text-grantify-green px-2 py-0.5 rounded font-bold uppercase mb-2 inline-block">

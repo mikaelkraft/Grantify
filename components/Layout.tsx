@@ -256,7 +256,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
       {/* Navbar */}
       <header className="bg-grantify-green/95 backdrop-blur-md text-white shadow-lg sticky top-0 z-[60] transition-all duration-300">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+        <div className="mx-auto w-full max-w-7xl px-3 sm:px-4 md:px-6 py-4 flex justify-between items-center">
           <Link to="/" className="flex items-center gap-2 text-2xl font-bold font-heading text-grantify-gold">
             <Banknote className="w-8 h-8" />
             <span>Grantify</span>
@@ -309,7 +309,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       </header>
 
       {/* Main Content */}
-      <main className="flex-grow container mx-auto px-4 py-8 max-w-5xl">
+      <main className="flex-grow mx-auto w-full max-w-7xl px-3 sm:px-4 md:px-6 py-6 md:py-8">
         <div className="w-full">
             {children}
         </div>
@@ -328,7 +328,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
       {/* Footer */}
       <footer className="bg-gray-900 text-gray-400 py-8">
-        <div className="container mx-auto px-4 text-center">
+        <div className="mx-auto w-full max-w-7xl px-3 sm:px-4 md:px-6 text-center">
           <div className="flex flex-col items-center justify-center gap-2 mb-4">
              <div className="flex items-center gap-2 text-yellow-500 text-xs bg-yellow-900/30 px-3 py-1 rounded-full border border-yellow-700/50">
                <AlertTriangle size={12} />

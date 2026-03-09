@@ -199,12 +199,17 @@ app.post('/api/admins', async (req, res) => {
   const items = req.body;
   const client = await pool.connect();
   try {
+    const bcrypt = await import('bcryptjs').then(m => m.default);
+    const saltRounds = 10;
     await client.query('BEGIN');
     await client.query('DELETE FROM admin_users');
     for (const a of items) {
+      const passwordHash = a.passwordHash?.startsWith('$2')
+        ? a.passwordHash
+        : await bcrypt.hash(a.passwordHash, saltRounds);
       await client.query(
         `INSERT INTO admin_users (id, username, password_hash, role, name) VALUES ($1, $2, $3, $4, $5)`,
-        [a.id, a.username, a.passwordHash, a.role, a.name]
+        [a.id, a.username, passwordHash, a.role, a.name]
       );
     }
     await client.query('COMMIT');
@@ -220,19 +225,37 @@ app.post('/api/admins', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   const { username, password } = req.body;
   try {
-    const result = await pool.query('SELECT * FROM admin_users WHERE username = $1 AND password_hash = $2', [username, password]);
-    if (result.rows.length > 0) {
-      const u = result.rows[0];
-      res.json({
-        id: u.id,
-        username: u.username,
-        name: u.name,
-        role: u.role,
-        passwordHash: u.password_hash
-      });
+    if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
+
+    const bcrypt = await import('bcryptjs').then(m => m.default);
+    const result = await pool.query('SELECT * FROM admin_users WHERE username = $1', [username]);
+    if (result.rows.length === 0) return res.status(401).json({ error: 'Invalid credentials' });
+
+    const u = result.rows[0];
+    const isHashed = u.password_hash?.startsWith('$2');
+    let isMatch = false;
+
+    if (isHashed) {
+      isMatch = await bcrypt.compare(password, u.password_hash);
     } else {
-      res.status(401).json({ error: 'Invalid credentials' });
+      isMatch = password === u.password_hash;
+      if (isMatch) {
+        const saltRounds = 10;
+        const upgradedHash = await bcrypt.hash(password, saltRounds);
+        await pool.query('UPDATE admin_users SET password_hash = $1 WHERE id = $2', [upgradedHash, u.id]);
+        u.password_hash = upgradedHash;
+      }
     }
+
+    if (!isMatch) return res.status(401).json({ error: 'Invalid credentials' });
+
+    res.json({
+      id: u.id,
+      username: u.username,
+      name: u.name,
+      role: u.role,
+      passwordHash: u.password_hash
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

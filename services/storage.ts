@@ -166,6 +166,12 @@ export const ApiService = {
   },
 
   // -- Applications --
+  getRecentApplicantsTicker: async (): Promise<Array<{ id: string; fullName: string }>> => {
+    const res = await fetch(`${API_URL}/api/leads?type=applications&public=1`);
+    if (!res.ok) throw new Error('Failed to fetch recent applicants from API');
+    return await res.json();
+  },
+
   getApplications: async (): Promise<LoanApplication[]> => {
     const res = await fetch(`${API_URL}/api/leads?type=applications`);
     if (!res.ok) throw new Error('Failed to fetch applications from API');

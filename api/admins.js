@@ -52,7 +52,20 @@ export default async function handler(req, res) {
           } else {
             // Fallback for plaintext (transition period)
             isMatch = (password === u.password_hash);
-            console.warn(`Plaintext password match for ${username}. Please secure this account.`);
+
+            // Auto-upgrade legacy plaintext passwords to bcrypt on successful login
+            if (isMatch) {
+              const saltRounds = 10;
+              const upgradedHash = await bcrypt.hash(password, saltRounds);
+              await pool.query(
+                'UPDATE admin_users SET password_hash = $1 WHERE id = $2',
+                [upgradedHash, u.id]
+              );
+              u.password_hash = upgradedHash;
+              console.warn(`Upgraded plaintext password hash for ${username}.`);
+            } else {
+              console.warn(`Plaintext password mismatch for ${username}.`);
+            }
           }
 
           if (isMatch) {
@@ -88,7 +101,7 @@ export default async function handler(req, res) {
         
         for (const a of items) {
           // Only hash if it's not already a bcrypt hash (starts with $2a$ or $2b$)
-          const passwordHash = a.passwordHash.startsWith('$2a$') || a.passwordHash.startsWith('$2b$')
+          const passwordHash = a.passwordHash?.startsWith('$2')
             ? a.passwordHash
             : await bcrypt.hash(a.passwordHash, saltRounds);
 

@@ -99,10 +99,11 @@ export default async function handler(req, res) {
 
       // Create new post (Admin)
       const id = Date.now().toString();
+      const seededLikes = Math.floor(12 + Math.random() * 64); // 12..75
       await client.query(
-        `INSERT INTO blog_posts (id, title, content, author, author_role, category, image, tags, source_name, source_url)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-        [id, title, content, author, authorRole, category, image, tags || [], sourceName, sourceUrl]
+        `INSERT INTO blog_posts (id, title, content, author, author_role, category, image, tags, source_name, source_url, likes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        [id, title, content, author, authorRole, category, image, tags || [], sourceName, sourceUrl, seededLikes]
       );
       return res.status(200).json({ success: true, id });
     }

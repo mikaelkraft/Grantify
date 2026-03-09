@@ -475,14 +475,45 @@ export const Admin: React.FC = () => {
     }
   };
 
+  const extractFirstImageSrcFromHtml = (html: string): string | null => {
+    try {
+      const doc = new DOMParser().parseFromString(html || '', 'text/html');
+      const img = doc.querySelector('img');
+      const src = img?.getAttribute('src');
+      return src && src.trim() ? src.trim() : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleFeaturedImageUpload = async (file: File | null | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file.');
+      return;
+    }
+
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(new Error('Failed to read image file'));
+      reader.readAsDataURL(file);
+    });
+
+    setNewPost(prev => ({ ...prev, image: dataUrl }));
+  };
+
   const handleAddBlogPost = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     try {
+      const derivedImage = (newPost.image || '').trim() || extractFirstImageSrcFromHtml(newPost.content) || '';
+      const payload = { ...newPost, image: derivedImage };
+
       if (isEditingPost && newPost.id) {
-        await ApiService.submitBlogAction({ ...newPost, action: 'update' });
+        await ApiService.submitBlogAction({ ...payload, action: 'update' });
       } else {
-        await ApiService.submitBlogAction({ ...newPost, action: 'create' });
+        await ApiService.submitBlogAction({ ...payload, action: 'create' });
       }
       
       setNewPost({ 
@@ -1378,14 +1409,46 @@ export const Admin: React.FC = () => {
                          <input className={inputClassSmall} placeholder="Source Name (Optional)" value={newPost.sourceName} onChange={e => setNewPost({...newPost, sourceName: e.target.value})} />
                          <input className={inputClassSmall} placeholder="Source URL (Optional)" value={newPost.sourceUrl} onChange={e => setNewPost({...newPost, sourceUrl: e.target.value})} />
                          
-                         <input className={inputClassSmall + " md:col-span-2"} placeholder="Feature Image URL" value={newPost.image} onChange={e => setNewPost({...newPost, image: e.target.value})} />
+                         <div className="md:col-span-2 flex flex-col md:flex-row gap-3">
+                           <input
+                             className={inputClassSmall + " flex-grow"}
+                             placeholder="Feature Image URL (optional)"
+                             value={newPost.image}
+                             onChange={e => setNewPost({ ...newPost, image: e.target.value })}
+                           />
+                           <input
+                             type="file"
+                             accept="image/*"
+                             className={inputClassSmall + " p-1 text-xs"}
+                             onChange={(e) => handleFeaturedImageUpload(e.target.files?.[0])}
+                             aria-label="Upload featured image"
+                           />
+                         </div>
+
+                         {newPost.image && (
+                           <div className="md:col-span-2">
+                             <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Featured Image Preview</div>
+                             <div className="bg-white rounded border overflow-hidden">
+                               <img
+                                 src={newPost.image}
+                                 alt={newPost.title || 'Featured'}
+                                 className="w-full h-48 object-cover"
+                                 loading="lazy"
+                               />
+                             </div>
+                           </div>
+                         )}
                          
                          <div className="md:col-span-2 bg-white rounded border overflow-hidden min-h-[300px] flex flex-col">
                             <div className="p-2 bg-gray-50 border-b text-[10px] font-bold text-gray-500 uppercase tracking-wider">Article Content</div>
                             <ReactQuill
                               theme="snow"
                               value={newPost.content}
-                              onChange={(content) => setNewPost({...newPost, content})}
+                              onChange={(content) => setNewPost(prev => {
+                                if ((prev.image || '').trim()) return { ...prev, content };
+                                const extracted = extractFirstImageSrcFromHtml(content);
+                                return { ...prev, content, image: extracted || prev.image };
+                              })}
                               className="flex-grow"
                               placeholder="Write your article here..."
                             />

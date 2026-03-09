@@ -123,7 +123,7 @@ export const LoanProviders: React.FC = () => {
         <div className="absolute top-0 right-0 -mt-20 -mr-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
         <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-64 h-64 bg-grantify-gold/10 rounded-full blur-3xl"></div>
         
-        <div className="max-w-5xl mx-auto relative z-10 text-center">
+        <div className="max-w-7xl mx-auto relative z-10 text-center">
           <div className="inline-flex items-center gap-2 bg-white/10 text-white px-4 py-2 rounded-full text-sm font-bold uppercase tracking-widest mb-6 border border-white/20 backdrop-blur-sm">
             <ShieldCheck size={16} /> Community Reviewed
           </div>
@@ -137,7 +137,7 @@ export const LoanProviders: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
         {/* Important Disclaimer Banner */}
         <div className="bg-white border-l-4 border-red-500 p-6 mb-12 rounded-xl shadow-sm flex flex-col md:flex-row items-center md:items-start gap-5">
           <div className="bg-red-50 p-3 rounded-full">
