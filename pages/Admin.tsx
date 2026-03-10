@@ -49,6 +49,8 @@ export const Admin: React.FC = () => {
     tags: string[];
     sourceName: string;
     sourceUrl: string;
+    views?: number;
+    createdAt?: string;
   }>({ 
     title: '', 
     content: '', 
@@ -58,7 +60,9 @@ export const Admin: React.FC = () => {
     image: '',
     tags: [],
     sourceName: '',
-    sourceUrl: ''
+    sourceUrl: '',
+    views: undefined,
+    createdAt: undefined
   });
 
   const [isEditingPost, setIsEditingPost] = useState(false);
@@ -525,7 +529,9 @@ export const Admin: React.FC = () => {
         image: '',
         tags: [],
         sourceName: '',
-        sourceUrl: ''
+        sourceUrl: '',
+        views: undefined,
+        createdAt: undefined
       });
       setIsEditingPost(false);
       await refreshData();
@@ -547,7 +553,9 @@ export const Admin: React.FC = () => {
       image: post.image || '',
       tags: post.tags || [],
       sourceName: post.sourceName || '',
-      sourceUrl: post.sourceUrl || ''
+      sourceUrl: post.sourceUrl || '',
+      views: post.views,
+      createdAt: post.createdAt
     });
     setIsEditingPost(true);
     document.getElementById('new-post-form')?.scrollIntoView({ behavior: 'smooth' });
@@ -577,14 +585,14 @@ export const Admin: React.FC = () => {
       setIsGeneratingAi(false);
     }
   };
-  const inputClass = "w-full p-2 border border-gray-600 rounded bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-grantify-gold outline-none";
-  const inputClassSmall = "border border-gray-600 rounded bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-grantify-gold outline-none p-1";
+    const inputClass = "w-full p-2 border border-gray-200 dark:border-gray-800 rounded bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-grantify-gold outline-none";
+    const inputClassSmall = "border border-gray-200 dark:border-gray-800 rounded bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-grantify-gold outline-none p-1";
 
   // Login Screen
   if (!user) {
     return (
-      <div className="max-w-md mx-auto mt-20 bg-white p-8 rounded shadow-lg border-t-4 border-grantify-green animate-in fade-in slide-in-from-bottom-4">
-        <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Admin Portal</h2>
+      <div className="max-w-md mx-auto mt-20 bg-white dark:bg-gray-900 p-8 rounded shadow-lg border-t-4 border-grantify-green animate-in fade-in slide-in-from-bottom-4 border border-gray-100 dark:border-gray-800">
+        <h2 className="text-2xl font-bold mb-6 text-center text-gray-800 dark:text-gray-100">Admin Portal</h2>
         <form onSubmit={handleLogin} className="space-y-4">
           <input 
             type="text" 
@@ -614,7 +622,7 @@ export const Admin: React.FC = () => {
 
   // Dashboard
   return (
-    <div className="bg-white min-h-[600px] rounded shadow-lg overflow-hidden flex flex-col">
+    <div className="bg-white dark:bg-gray-900 min-h-[600px] rounded shadow-lg overflow-hidden flex flex-col border border-gray-100 dark:border-gray-800">
       <div className="bg-gray-800 text-white p-4 flex justify-between items-center">
         <div>
           <h2 className="text-xl font-bold">Admin Dashboard</h2>
@@ -627,7 +635,7 @@ export const Admin: React.FC = () => {
 
       <div className="flex flex-col md:flex-row h-full flex-grow">
         {/* Sidebar Tabs */}
-        <div className="w-full md:w-64 bg-gray-100 p-4 space-y-2 border-r">
+        <div className="w-full md:w-64 bg-gray-100 dark:bg-gray-950 p-4 space-y-2 border-r border-gray-200 dark:border-gray-800">
            {[
              {id: 'applications', label: 'Applications'},
              {id: 'qualified', label: 'Qualified Persons'},
@@ -640,7 +648,7 @@ export const Admin: React.FC = () => {
              <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`w-full text-left px-4 py-2 rounded ${activeTab === tab.id ? 'bg-grantify-green text-white' : 'hover:bg-gray-200'}`}
+              className={`w-full text-left px-4 py-2 rounded transition ${activeTab === tab.id ? 'bg-grantify-green text-white' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
              >
                {tab.label}
              </button>
@@ -649,14 +657,14 @@ export const Admin: React.FC = () => {
            {/* Explicit buttons for reviews and blog with icons */}
            <button 
              onClick={() => setActiveTab('reviews')}
-             className={`w-full flex items-center gap-2 p-3 rounded transition ${activeTab === 'reviews' ? 'bg-grantify-green text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
+             className={`w-full flex items-center gap-2 p-3 rounded transition ${activeTab === 'reviews' ? 'bg-grantify-green text-white shadow-md' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
            >
              <MessageSquare size={18} /> Provider Reviews
            </button>
 
            <button 
              onClick={() => setActiveTab('blog')}
-             className={`w-full flex items-center gap-2 p-3 rounded transition ${activeTab === 'blog' ? 'bg-grantify-green text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
+             className={`w-full flex items-center gap-2 p-3 rounded transition ${activeTab === 'blog' ? 'bg-grantify-green text-white shadow-md' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
            >
              <BookOpen size={18} /> Community Blog
            </button>
@@ -665,7 +673,7 @@ export const Admin: React.FC = () => {
            {user.role === UserRole.SUPER_ADMIN && (
              <button
                onClick={() => setActiveTab('admins')}
-               className={`w-full text-left px-4 py-2 rounded mt-4 border-t border-gray-300 pt-4 flex items-center gap-2 ${activeTab === 'admins' ? 'bg-grantify-green text-white' : 'hover:bg-gray-200'}`}
+               className={`w-full text-left px-4 py-2 rounded mt-4 border-t border-gray-300 dark:border-gray-800 pt-4 flex items-center gap-2 transition ${activeTab === 'admins' ? 'bg-grantify-green text-white' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
              >
                <Shield size={16}/> Manage Admins
              </button>
@@ -673,9 +681,9 @@ export const Admin: React.FC = () => {
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 p-6 overflow-y-auto bg-white min-h-[500px]">
+        <div className="flex-1 p-6 overflow-y-auto bg-white dark:bg-gray-900 min-h-[500px] text-gray-900 dark:text-gray-100">
           {isLoading && (
-             <div className="flex items-center justify-center h-full text-gray-500">
+             <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-300">
                 <Loader2 className="animate-spin mr-2" /> Loading data...
              </div>
           )}
@@ -693,21 +701,21 @@ export const Admin: React.FC = () => {
                   </div>
                   <div className="overflow-x-auto">
                     <table className="min-w-full text-sm">
-                      <thead className="bg-gray-50">
+                      <thead className="bg-gray-50 dark:bg-gray-950">
                         <tr>
-                          <th className="p-3 text-left text-xs uppercase text-gray-400">Name</th>
-                          <th className="p-3 text-left text-xs uppercase text-gray-400">Amount</th>
-                          <th className="p-3 text-left text-xs uppercase text-gray-400">Business/Purpose</th>
-                          <th className="p-3 text-left text-xs uppercase text-gray-400">Matched Body</th>
-                          <th className="p-3 text-left text-xs uppercase text-gray-400">Type & Date</th>
+                          <th className="p-3 text-left text-xs uppercase text-gray-400 dark:text-gray-500">Name</th>
+                          <th className="p-3 text-left text-xs uppercase text-gray-400 dark:text-gray-500">Amount</th>
+                          <th className="p-3 text-left text-xs uppercase text-gray-400 dark:text-gray-500">Business/Purpose</th>
+                          <th className="p-3 text-left text-xs uppercase text-gray-400 dark:text-gray-500">Matched Body</th>
+                          <th className="p-3 text-left text-xs uppercase text-gray-400 dark:text-gray-500">Type & Date</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y">
+                      <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                         {applications.map(app => (
                           <tr key={app.id}>
                             <td className="p-3">
                               <span className="font-bold block">{app.fullName}</span>
-                              <span className="text-xs text-gray-500">{app.phoneNumber}</span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400">{app.phoneNumber}</span>
                             </td>
                             <td className="p-3 font-mono">{formatNaira(app.amount)}</td>
                             <td className="p-3">
@@ -1288,29 +1296,29 @@ export const Admin: React.FC = () => {
                    <h3 className="text-xl font-bold mb-4">Provider Reviews & Comments ({allReviews.length})</h3>
                    <div className="overflow-x-auto">
                     <table className="min-w-full text-sm">
-                      <thead className="bg-gray-50">
+                      <thead className="bg-gray-50 dark:bg-gray-950">
                         <tr>
-                          <th className="p-2 text-left">Provider</th>
-                          <th className="p-2 text-left">User</th>
-                          <th className="p-2 text-left">Rating</th>
-                          <th className="p-2 text-left">Content</th>
-                          <th className="p-2 text-left">Date</th>
-                          <th className="p-2 text-left">Action</th>
+                          <th className="p-2 text-left text-gray-700 dark:text-gray-200">Provider</th>
+                          <th className="p-2 text-left text-gray-700 dark:text-gray-200">User</th>
+                          <th className="p-2 text-left text-gray-700 dark:text-gray-200">Rating</th>
+                          <th className="p-2 text-left text-gray-700 dark:text-gray-200">Content</th>
+                          <th className="p-2 text-left text-gray-700 dark:text-gray-200">Date</th>
+                          <th className="p-2 text-left text-gray-700 dark:text-gray-200">Action</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y overflow-hidden">
+                      <tbody className="divide-y divide-gray-100 dark:divide-gray-800 overflow-hidden">
                         {allReviews.map(review => {
                           const provider = loanProviders.find(p => p.id === review.providerId);
                           return (
-                            <tr key={review.id} className={review.parentId ? 'bg-gray-50/50' : ''}>
+                            <tr key={review.id} className={review.parentId ? 'bg-gray-50/50 dark:bg-gray-950' : ''}>
                               <td className="p-2 font-bold">{provider?.name || 'Unknown'}</td>
                               <td className="p-2">
                                 {review.name}
-                                {review.parentId && <span className="ml-2 bg-blue-100 text-blue-600 text-[10px] px-1 rounded">Reply</span>}
+                                {review.parentId && <span className="ml-2 bg-blue-100 dark:bg-blue-950/40 text-blue-600 dark:text-blue-200 text-[10px] px-1 rounded border border-blue-200 dark:border-blue-900">Reply</span>}
                               </td>
                               <td className="p-2">{review.rating > 0 ? `${review.rating} ⭐` : '-'}</td>
                               <td className="p-2 max-w-xs truncate" title={review.content}>{review.content}</td>
-                              <td className="p-2 text-gray-500">{new Date(review.createdAt).toLocaleDateString()}</td>
+                              <td className="p-2 text-gray-500 dark:text-gray-400">{new Date(review.createdAt).toLocaleDateString()}</td>
                               <td className="p-2">
                                 <button 
                                   onClick={() => handleDeleteReview(review.id)} 
@@ -1408,6 +1416,27 @@ export const Admin: React.FC = () => {
                          
                          <input className={inputClassSmall} placeholder="Source Name (Optional)" value={newPost.sourceName} onChange={e => setNewPost({...newPost, sourceName: e.target.value})} />
                          <input className={inputClassSmall} placeholder="Source URL (Optional)" value={newPost.sourceUrl} onChange={e => setNewPost({...newPost, sourceUrl: e.target.value})} />
+
+                         <input
+                           type="datetime-local"
+                           className={inputClassSmall}
+                           value={newPost.createdAt ? new Date(newPost.createdAt).toISOString().slice(0, 16) : ''}
+                           onChange={e => setNewPost({ ...newPost, createdAt: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
+                           aria-label="Publish date"
+                           title="Publish date"
+                           placeholder="Publish date"
+                         />
+
+                         <input
+                           type="number"
+                           min={0}
+                           className={inputClassSmall}
+                           placeholder="Views (optional)"
+                           value={typeof newPost.views === 'number' ? newPost.views : ''}
+                           onChange={e => setNewPost({ ...newPost, views: e.target.value === '' ? undefined : Number(e.target.value) })}
+                           aria-label="Views"
+                           title="Views"
+                         />
                          
                          <div className="md:col-span-2 flex flex-col md:flex-row gap-3">
                            <input

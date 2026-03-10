@@ -24,7 +24,7 @@ export const BlogTicker: React.FC<Props> = ({ posts }) => {
 
   return (
     <div className="bg-grantify-gold text-grantify-green py-2 px-4 flex items-center justify-center gap-4 overflow-hidden relative border-b border-yellow-500/20">
-      <div className="flex items-center gap-2 text-grantify-green text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
+      <div className="flex items-center gap-2 text-grantify-green text-[10px] font-black uppercase tracking-widest whitespace-nowrap animate-pulse">
         <Megaphone size={12} /> Latest News
       </div>
       

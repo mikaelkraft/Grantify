@@ -82,7 +82,7 @@ export const LoanProviders: React.FC = () => {
             className={`${i < Math.floor(rating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
           />
         ))}
-        {rating > 0 && <span className="ml-1.5 text-xs font-bold text-gray-600">{rating.toFixed(1)}</span>}
+        {rating > 0 && <span className="ml-1.5 text-xs font-bold text-gray-600 dark:text-gray-300">{rating.toFixed(1)}</span>}
       </div>
     );
   };
@@ -93,14 +93,14 @@ export const LoanProviders: React.FC = () => {
     const date = new Date(review.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
     return (
-      <div className={`space-y-4 ${depth > 0 ? 'ml-6 mt-4 border-l-2 border-gray-100 pl-4' : 'border-b pb-6'}`}>
+      <div className={`space-y-4 ${depth > 0 ? 'ml-6 mt-4 border-l-2 border-gray-100 dark:border-gray-800 pl-4' : 'border-b border-gray-100 dark:border-gray-800 pb-6'}`}>
         <div className="flex flex-col gap-1">
           <div className="flex items-center justify-between">
-            <span className="font-bold text-sm text-gray-800">{review.name}</span>
-            <span className="text-[10px] text-gray-400 uppercase font-black">{date}</span>
+            <span className="font-bold text-sm text-gray-800 dark:text-gray-100">{review.name}</span>
+            <span className="text-[10px] text-gray-400 dark:text-gray-500 uppercase font-black">{date}</span>
           </div>
           {review.rating > 0 && renderStars(review.rating, 10)}
-          <p className="text-sm text-gray-600 mt-1 leading-relaxed">{review.content}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 leading-relaxed">{review.content}</p>
           <button 
             onClick={() => setReplyTo(review.id)}
             className="text-[10px] font-black text-grantify-green uppercase mt-1 hover:underline flex items-center gap-1"
@@ -117,7 +117,7 @@ export const LoanProviders: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Hero Section */}
       <div className="bg-grantify-green relative overflow-hidden py-16 px-4 mb-12">
         <div className="absolute top-0 right-0 -mt-20 -mr-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
@@ -139,13 +139,13 @@ export const LoanProviders: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
         {/* Important Disclaimer Banner */}
-        <div className="bg-white border-l-4 border-red-500 p-6 mb-12 rounded-xl shadow-sm flex flex-col md:flex-row items-center md:items-start gap-5">
-          <div className="bg-red-50 p-3 rounded-full">
+        <div className="bg-white dark:bg-gray-900 border-l-4 border-red-500 p-6 mb-12 rounded-xl shadow-sm flex flex-col md:flex-row items-center md:items-start gap-5 border border-gray-100 dark:border-gray-800">
+          <div className="bg-red-50 dark:bg-gray-950 p-3 rounded-full">
             <AlertTriangle className="text-red-600" size={32} />
           </div>
           <div>
             <h2 className="font-black text-red-700 text-xl mb-2">Important Disclaimer</h2>
-            <p className="text-gray-600 text-sm leading-relaxed">
+            <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
               <strong className="text-red-800">Grantify does NOT offer loans directly.</strong> We are an educational platform helping you discover legitimate financial services. 
               The information provided is for reference only. <strong>Always</strong> verify lender details independently and read all terms carefully before sharing sensitive personal data.
             </p>
@@ -155,7 +155,7 @@ export const LoanProviders: React.FC = () => {
         {/* Header Ad Slot */}
         {ads?.header && (
           <div className="mb-12 flex justify-center">
-            <div className="bg-white p-2 rounded-lg shadow-sm border border-gray-100">
+            <div className="bg-white dark:bg-gray-900 p-2 rounded-lg shadow-sm border border-gray-100 dark:border-gray-800">
               <AdSlot htmlContent={ads.header} label="Sponsored" />
             </div>
           </div>
@@ -166,14 +166,14 @@ export const LoanProviders: React.FC = () => {
           <section className="mb-16">
             <div className="flex items-center gap-2 mb-8 border-b pb-4">
               <Award className="text-grantify-gold" size={28} />
-              <h2 className="text-2xl font-black text-gray-800 uppercase tracking-tighter">Highly Recommended</h2>
+              <h2 className="text-2xl font-black text-gray-800 dark:text-gray-100 uppercase tracking-tighter">Highly Recommended</h2>
             </div>
             
             <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
               {providers.filter(p => p.isRecommended).map((provider, index) => (
                 <div 
                   key={provider.id || `rec-${index}`} 
-                  className="group relative bg-white border-2 border-grantify-green/20 rounded-2xl p-6 transition-all duration-300 hover:shadow-2xl hover:border-grantify-green hover:-translate-y-1 overflow-hidden"
+                  className="group relative bg-white dark:bg-gray-900 border-2 border-grantify-green/20 dark:border-gray-800 rounded-2xl p-6 transition-all duration-300 hover:shadow-2xl hover:border-grantify-green hover:-translate-y-1 overflow-hidden"
                 >
                   <div className="absolute top-0 right-0 bg-grantify-green text-white text-[10px] font-black px-3 py-1 rounded-bl-lg uppercase tracking-widest">
                     Top Pick
@@ -182,9 +182,9 @@ export const LoanProviders: React.FC = () => {
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
                       {provider.logo ? (
-                        <img src={provider.logo} alt={provider.name} className="w-12 h-12 object-contain rounded-lg bg-white p-1 border border-gray-100 shadow-sm" />
+                        <img src={provider.logo} alt={provider.name} className="w-12 h-12 object-contain rounded-lg bg-white dark:bg-gray-900 p-1 border border-gray-100 dark:border-gray-800 shadow-sm" />
                       ) : (
-                         <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center text-grantify-green font-black text-xl border border-green-100">
+                         <div className="w-12 h-12 bg-green-50 dark:bg-gray-950 rounded-lg flex items-center justify-center text-grantify-green font-black text-xl border border-green-100 dark:border-gray-800">
                            {provider.name.charAt(0)}
                          </div>
                       )}
@@ -193,18 +193,18 @@ export const LoanProviders: React.FC = () => {
                     {renderStars(provider.rating)}
                   </div>
 
-                  <p className="text-gray-600 text-sm mb-6 line-clamp-3 italic leading-relaxed">
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-6 line-clamp-3 italic leading-relaxed">
                     "{provider.description}"
                   </p>
 
-                  <div className="space-y-3 mb-8 bg-green-50/50 p-4 rounded-xl border border-green-100">
+                  <div className="space-y-3 mb-8 bg-green-50/50 dark:bg-gray-950 p-4 rounded-xl border border-green-100 dark:border-gray-800">
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-green-700 font-bold uppercase tracking-wider">Loan Range</span>
-                      <span className="font-black text-gray-800">{provider.loanRange}</span>
+                      <span className="font-black text-gray-800 dark:text-gray-100">{provider.loanRange}</span>
                     </div>
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-green-700 font-bold uppercase tracking-wider">Interest</span>
-                      <span className="font-black text-gray-800">{provider.interestRange}</span>
+                      <span className="font-black text-gray-800 dark:text-gray-100">{provider.interestRange}</span>
                     </div>
                   </div>
 
@@ -224,7 +224,7 @@ export const LoanProviders: React.FC = () => {
                     </a>
                     <button 
                       onClick={() => handleOpenReviews(provider)}
-                      className="flex-1 flex items-center justify-center gap-2 bg-gray-100 text-gray-600 py-3 rounded-lg text-xs font-bold hover:bg-gray-200 transition-all border border-gray-200"
+                      className="flex-1 flex items-center justify-center gap-2 bg-gray-100 dark:bg-gray-950 text-gray-600 dark:text-gray-200 py-3 rounded-lg text-xs font-bold hover:bg-gray-200 dark:hover:bg-gray-900 transition-all border border-gray-200 dark:border-gray-800"
                       aria-label="Read Reviews"
                       title="Read & Write Reviews"
                     >
@@ -241,15 +241,15 @@ export const LoanProviders: React.FC = () => {
         <section className="mb-12">
           <div className="flex flex-col md:flex-row justify-between items-end gap-4 mb-8">
             <div>
-              <h2 className="text-2xl font-black text-gray-800 uppercase tracking-tighter flex items-center gap-2">
+              <h2 className="text-2xl font-black text-gray-800 dark:text-gray-100 uppercase tracking-tighter flex items-center gap-2">
                 <CheckCircle className="text-green-500" size={24} /> Verified Lenders
               </h2>
-              <p className="text-gray-500 text-sm mt-1">Browse our complete list of approved digital banks</p>
+              <p className="text-gray-500 dark:text-gray-300 text-sm mt-1">Browse our complete list of approved digital banks</p>
             </div>
           </div>
 
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-32 bg-white rounded-2xl shadow-sm border border-gray-100">
+            <div className="flex flex-col items-center justify-center py-32 bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
               <Loader2 className="animate-spin text-grantify-green mb-4" size={48} />
               <span className="text-gray-400 font-bold uppercase tracking-widest text-xs">Accessing Lenders Database...</span>
             </div>
@@ -258,14 +258,14 @@ export const LoanProviders: React.FC = () => {
               {providers.filter(p => !p.isRecommended).map((provider, index) => (
                 <div 
                   key={provider.id || index} 
-                  className="bg-white hover:bg-gray-50/50 border border-gray-100 rounded-2xl p-6 transition-all duration-200 hover:shadow-lg flex flex-col h-full group"
+                  className="bg-white dark:bg-gray-900 hover:bg-gray-50/50 dark:hover:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-6 transition-all duration-200 hover:shadow-lg flex flex-col h-full group"
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-grow flex items-start gap-3">
                       {provider.logo ? (
-                         <img src={provider.logo} alt={provider.name} className="w-10 h-10 object-contain rounded bg-white border border-gray-100" />
+                         <img src={provider.logo} alt={provider.name} className="w-10 h-10 object-contain rounded bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800" />
                       ) : (
-                         <div className="w-10 h-10 bg-gray-50 rounded flex items-center justify-center text-gray-400 font-bold border border-gray-100">
+                         <div className="w-10 h-10 bg-gray-50 dark:bg-gray-950 rounded flex items-center justify-center text-gray-400 font-bold border border-gray-100 dark:border-gray-800">
                            {provider.name.charAt(0)}
                          </div>
                       )}
@@ -275,7 +275,7 @@ export const LoanProviders: React.FC = () => {
                             {provider.tag}
                           </span>
                         )}
-                        <h3 className="font-black text-gray-800 group-hover:text-grantify-green transition-colors leading-tight">{provider.name}</h3>
+                        <h3 className="font-black text-gray-800 dark:text-gray-100 group-hover:text-grantify-green transition-colors leading-tight">{provider.name}</h3>
                       </div>
                     </div>
                     <div className="text-right">
@@ -283,16 +283,16 @@ export const LoanProviders: React.FC = () => {
                     </div>
                   </div>
 
-                  <p className="text-gray-500 text-xs mb-6 flex-grow line-clamp-3">{provider.description}</p>
+                  <p className="text-gray-500 dark:text-gray-300 text-xs mb-6 flex-grow line-clamp-3">{provider.description}</p>
                   
                   <div className="grid grid-cols-2 gap-3 mb-6">
-                    <div className="bg-gray-50 p-2 rounded-lg">
-                      <span className="text-[10px] text-gray-400 block font-bold uppercase mb-0.5">Rate</span>
-                      <span className="text-[11px] font-black text-gray-700">{provider.interestRange}</span>
+                    <div className="bg-gray-50 dark:bg-gray-950 p-2 rounded-lg border border-gray-100 dark:border-gray-800">
+                      <span className="text-[10px] text-gray-400 dark:text-gray-500 block font-bold uppercase mb-0.5">Rate</span>
+                      <span className="text-[11px] font-black text-gray-700 dark:text-gray-100">{provider.interestRange}</span>
                     </div>
-                    <div className="bg-gray-50 p-2 rounded-lg">
-                      <span className="text-[10px] text-gray-400 block font-bold uppercase mb-0.5">Tenure</span>
-                      <span className="text-[11px] font-black text-gray-700">{provider.tenure}</span>
+                    <div className="bg-gray-50 dark:bg-gray-950 p-2 rounded-lg border border-gray-100 dark:border-gray-800">
+                      <span className="text-[10px] text-gray-400 dark:text-gray-500 block font-bold uppercase mb-0.5">Tenure</span>
+                      <span className="text-[11px] font-black text-gray-700 dark:text-gray-100">{provider.tenure}</span>
                     </div>
                   </div>
 
@@ -307,7 +307,7 @@ export const LoanProviders: React.FC = () => {
                     </a>
                     <button 
                       onClick={() => handleOpenReviews(provider)}
-                      className="flex-1 inline-flex items-center justify-center bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-all"
+                      className="flex-1 inline-flex items-center justify-center bg-gray-100 dark:bg-gray-950 text-gray-600 dark:text-gray-200 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-900 transition-all border border-gray-200 dark:border-gray-800"
                       aria-label="View Reviews"
                       title="View Reviews"
                     >
@@ -318,10 +318,10 @@ export const LoanProviders: React.FC = () => {
               ))}
               
               {providers.length === 0 && (
-                <div className="col-span-full py-20 bg-gray-50 rounded-2xl border border-dashed border-gray-200 text-center">
+                <div className="col-span-full py-20 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800 text-center">
                   <div className="max-w-xs mx-auto">
                     <Zap className="text-gray-300 mx-auto mb-4" size={40} />
-                    <p className="text-gray-400 font-medium">No providers matching your criteria were found. Please check back later.</p>
+                    <p className="text-gray-400 dark:text-gray-500 font-medium">No providers matching your criteria were found. Please check back later.</p>
                   </div>
                 </div>
               )}
@@ -331,7 +331,7 @@ export const LoanProviders: React.FC = () => {
 
         {/* Body Ad Slot */}
         {ads?.body && (
-          <div className="my-16 flex justify-center bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+          <div className="my-16 flex justify-center bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
             <AdSlot htmlContent={ads.body} label="Featured Promotion" />
           </div>
         )}
@@ -356,22 +356,22 @@ export const LoanProviders: React.FC = () => {
             </ul>
           </div>
 
-          <div className="bg-white border-2 border-gray-100 rounded-3xl p-8 shadow-sm">
+          <div className="bg-white dark:bg-gray-900 border-2 border-gray-100 dark:border-gray-800 rounded-3xl p-8 shadow-sm">
             <Info className="text-grantify-green mb-4" size={40} />
-            <h3 className="text-2xl font-black mb-4 text-gray-800 uppercase tracking-tighter leading-tight">Borrow Smart</h3>
-            <p className="text-gray-600 text-sm leading-relaxed mb-6">
+            <h3 className="text-2xl font-black mb-4 text-gray-800 dark:text-gray-100 uppercase tracking-tighter leading-tight">Borrow Smart</h3>
+            <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-6">
               Taking a loan is a major responsibility. We advise calculating your debt-to-income ratio before committing. 
               The lenders listed here offer varying terms—compare at least three before deciding.
             </p>
             <div className="flex flex-wrap gap-2">
-              <span className="text-[10px] font-black bg-gray-100 text-gray-500 px-3 py-1.5 rounded-full uppercase">Term Comparison</span>
-              <span className="text-[10px] font-black bg-gray-100 text-gray-500 px-3 py-1.5 rounded-full uppercase">Late Fee Check</span>
-              <span className="text-[10px] font-black bg-gray-100 text-gray-500 px-3 py-1.5 rounded-full uppercase">Credit Impact</span>
+              <span className="text-[10px] font-black bg-gray-100 dark:bg-gray-950 text-gray-500 dark:text-gray-300 px-3 py-1.5 rounded-full uppercase border border-gray-200 dark:border-gray-800">Term Comparison</span>
+              <span className="text-[10px] font-black bg-gray-100 dark:bg-gray-950 text-gray-500 dark:text-gray-300 px-3 py-1.5 rounded-full uppercase border border-gray-200 dark:border-gray-800">Late Fee Check</span>
+              <span className="text-[10px] font-black bg-gray-100 dark:bg-gray-950 text-gray-500 dark:text-gray-300 px-3 py-1.5 rounded-full uppercase border border-gray-200 dark:border-gray-800">Credit Impact</span>
             </div>
           </div>
         </div>
 
-        <div className="text-center pt-8 border-t border-gray-100">
+        <div className="text-center pt-8 border-t border-gray-100 dark:border-gray-800">
           <p className="text-gray-400 text-[10px] font-black uppercase tracking-[0.2em]">
             Information last updated: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} • Grantify Data Engine
           </p>
@@ -384,15 +384,15 @@ export const LoanProviders: React.FC = () => {
           className={`absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${selectedProvider ? 'opacity-100' : 'opacity-0'}`} 
           onClick={() => setSelectedProvider(null)}
         />
-        <div className={`absolute top-0 right-0 h-full w-full max-w-lg bg-white shadow-2xl transition-transform duration-300 transform flex flex-col ${selectedProvider ? 'translate-x-0' : 'translate-x-full'}`}>
-          <div className="p-6 border-b flex justify-between items-center bg-gray-50">
+        <div className={`absolute top-0 right-0 h-full w-full max-w-lg bg-white dark:bg-gray-900 shadow-2xl transition-transform duration-300 transform flex flex-col border-l border-gray-100 dark:border-gray-800 ${selectedProvider ? 'translate-x-0' : 'translate-x-full'}`}>
+          <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-gray-950">
             <div>
-              <h2 className="text-lg font-black text-gray-800 uppercase tracking-tighter">User Reviews</h2>
-              <p className="text-xs text-gray-500 font-bold uppercase">{selectedProvider?.name}</p>
+              <h2 className="text-lg font-black text-gray-800 dark:text-gray-100 uppercase tracking-tighter">User Reviews</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase">{selectedProvider?.name}</p>
             </div>
             <button 
               onClick={() => setSelectedProvider(null)}
-              className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+              className="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full transition-colors"
               aria-label="Close"
               title="Close"
             >
@@ -420,8 +420,8 @@ export const LoanProviders: React.FC = () => {
             )}
           </div>
 
-          <div className="p-6 border-t bg-gray-50">
-            <h3 className="text-xs font-black text-gray-500 uppercase mb-4 tracking-widest">
+          <div className="p-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-950">
+            <h3 className="text-xs font-black text-gray-500 dark:text-gray-400 uppercase mb-4 tracking-widest">
               {replyTo ? `Replying to Review` : `Post a Review`}
             </h3>
             
@@ -432,7 +432,7 @@ export const LoanProviders: React.FC = () => {
                     type="text"
                     required
                     placeholder="Your Name"
-                    className="w-full bg-white border border-gray-200 p-3 rounded-xl text-sm outline-none focus:ring-2 focus:ring-grantify-green"
+                    className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-3 rounded-xl text-sm outline-none focus:ring-2 focus:ring-grantify-green text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                     value={newReview.name}
                     onChange={(e) => setNewReview({...newReview, name: e.target.value})}
                   />
@@ -440,7 +440,7 @@ export const LoanProviders: React.FC = () => {
                 {!replyTo && (
                   <div className="flex-1">
                     <select 
-                      className="w-full bg-white border border-gray-200 p-3 rounded-xl text-sm outline-none focus:ring-2 focus:ring-grantify-green"
+                      className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-3 rounded-xl text-sm outline-none focus:ring-2 focus:ring-grantify-green text-gray-900 dark:text-gray-100"
                       value={newReview.rating}
                       onChange={(e) => setNewReview({...newReview, rating: parseInt(e.target.value)})}
                       aria-label="Rating"
@@ -459,7 +459,7 @@ export const LoanProviders: React.FC = () => {
                 <textarea 
                   required
                   placeholder={replyTo ? "Write your reply..." : "Share your honest experience..."}
-                  className="w-full bg-white border border-gray-200 p-4 rounded-xl text-sm outline-none focus:ring-2 focus:ring-grantify-green min-h-[100px]"
+                  className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-xl text-sm outline-none focus:ring-2 focus:ring-grantify-green min-h-[100px] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                   value={newReview.content}
                   onChange={(e) => setNewReview({...newReview, content: e.target.value})}
                 />

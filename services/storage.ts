@@ -172,6 +172,12 @@ export const ApiService = {
     return await res.json();
   },
 
+  getApplicationStats: async (): Promise<{ applicationsCount: number; totalRequestedAmount: number }> => {
+    const res = await fetch(`${API_URL}/api/leads?type=applications&stats=1`);
+    if (!res.ok) throw new Error('Failed to fetch application stats from API');
+    return await res.json();
+  },
+
   getApplications: async (): Promise<LoanApplication[]> => {
     const res = await fetch(`${API_URL}/api/leads?type=applications`);
     if (!res.ok) throw new Error('Failed to fetch applications from API');

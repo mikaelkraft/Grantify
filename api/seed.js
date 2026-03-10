@@ -280,6 +280,7 @@ export default async function handler(req, res) {
         source_name TEXT,
         source_url TEXT,
         likes INTEGER DEFAULT 0,
+        views INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -290,7 +291,8 @@ export default async function handler(req, res) {
       ALTER TABLE blog_posts 
       ADD COLUMN IF NOT EXISTS tags TEXT[],
       ADD COLUMN IF NOT EXISTS source_name TEXT,
-      ADD COLUMN IF NOT EXISTS source_url TEXT
+      ADD COLUMN IF NOT EXISTS source_url TEXT,
+      ADD COLUMN IF NOT EXISTS views INTEGER DEFAULT 0
     `);
 
     // Create blog_comments table
@@ -317,7 +319,8 @@ export default async function handler(req, res) {
           author: 'Mikael Kraft',
           author_role: 'Chief Financial Strategist',
           category: 'Grants',
-          likes: 45
+          likes: 45,
+          views: 420
         },
         {
           id: 'b2',
@@ -326,14 +329,15 @@ export default async function handler(req, res) {
           author: 'Sarah Audu',
           author_role: 'Business Consultant',
           category: 'Strategy',
-          likes: 89
+          likes: 89,
+          views: 780
         }
       ];
       for (const p of initialPosts) {
         await client.query(
-          `INSERT INTO blog_posts (id, title, content, author, author_role, category, likes)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-          [p.id, p.title, p.content, p.author, p.author_role, p.category, p.likes]
+          `INSERT INTO blog_posts (id, title, content, author, author_role, category, likes, views)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [p.id, p.title, p.content, p.author, p.author_role, p.category, p.likes, p.views]
         );
       }
     }

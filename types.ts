@@ -125,6 +125,7 @@ export interface BlogPost {
   sourceName?: string;
   sourceUrl?: string;
   likes: number;
+  views: number;
   commentsCount: number;
   createdAt: string;
   updatedAt: string;

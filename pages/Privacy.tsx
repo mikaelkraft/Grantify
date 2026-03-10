@@ -11,7 +11,7 @@ export const Privacy: React.FC = () => {
   }, []);
 
   return (
-    <div className="bg-white p-8 rounded-lg shadow-sm max-w-4xl mx-auto">
+    <div className="bg-white dark:bg-gray-900 p-8 rounded-lg shadow-sm max-w-4xl mx-auto border border-gray-100 dark:border-gray-800">
       <h1 className="text-3xl font-bold font-heading text-grantify-green mb-6">Privacy Policy</h1>
       
       {/* Header Ad Slot */}
@@ -21,7 +21,7 @@ export const Privacy: React.FC = () => {
         </div>
       )}
 
-      <div className="space-y-6 text-gray-700 text-sm leading-relaxed">
+      <div className="space-y-6 text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
         {/* Body Ad Slot */}
         {ads?.body && (
           <div className="my-8 flex justify-center">
@@ -30,7 +30,7 @@ export const Privacy: React.FC = () => {
         )}
         
         <section>
-          <h2 className="text-lg font-bold text-gray-900 mb-2">1. Data Collection</h2>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">1. Data Collection</h2>
           <p>At Grantify, we prioritize the protection of your personal data. We collect information necessary to process your loan applications and verify your identity, including:</p>
           <ul className="list-disc ml-5 mt-2 space-y-1">
             <li>Personal identification (Name, Age, Address).</li>
@@ -41,7 +41,7 @@ export const Privacy: React.FC = () => {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-gray-900 mb-2">2. Use of Information</h2>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">2. Use of Information</h2>
           <p>Your data is used for the following purposes:</p>
           <ul className="list-disc ml-5 mt-2 space-y-1">
             <li>To assess your eligibility for loans and grants.</li>
@@ -52,7 +52,7 @@ export const Privacy: React.FC = () => {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-gray-900 mb-2">3. Data Sharing</h2>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">3. Data Sharing</h2>
           <p>We do not sell your personal data. However, we may share your information with:</p>
           <ul className="list-disc ml-5 mt-2 space-y-1">
             <li>Credit Bureaus: To check credit history or report defaults.</li>
@@ -62,22 +62,22 @@ export const Privacy: React.FC = () => {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-gray-900 mb-2">4. Data Security</h2>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">4. Data Security</h2>
           <p>We employ industry-standard security measures, including encryption and secure server infrastructure, to protect your data from unauthorized access, alteration, or disclosure. While we strive to protect your data, no method of transmission over the internet is 100% secure.</p>
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-gray-900 mb-2">5. Your Rights</h2>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">5. Your Rights</h2>
           <p>You have the right to request access to the personal data we hold about you, request corrections to inaccurate data, or request deletion of your data (subject to legal retention requirements).</p>
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-gray-900 mb-2">6. Contact Us</h2>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">6. Contact Us</h2>
           <p>If you have questions about this privacy policy or our data practices, please contact our support team.</p>
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-gray-900 mb-2">7. Advertising & Revenue</h2>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">7. Advertising & Revenue</h2>
           <p className="mb-2">
             <strong>Advertising helps us keep Grantify free for you.</strong> Here's what you should know about how we use advertising:
           </p>
@@ -87,13 +87,13 @@ export const Privacy: React.FC = () => {
             <li>We do NOT sell your personal information (phone number or email address) to advertisers.</li>
             <li>Your data is used to improve our services and help connect you with relevant financial products.</li>
           </ul>
-          <p className="mt-3 text-green-700 font-medium">
+          <p className="mt-3 text-green-700 dark:text-green-300 font-medium">
             Rest assured – we mean no harm to your shared data. Your phone number and optional email address are handled with care and used only to communicate with you about your applications and relevant updates.
           </p>
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-gray-900 mb-2">Disclaimer</h2>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Disclaimer</h2>
           <p>
             <strong>Grantify does NOT offer loans directly.</strong> We help individuals find legitimate loan options for informational purposes. 
             You will see advertisements on our platform – this is how we sustain our services. We can show you the best loan offering services 
@@ -101,14 +101,14 @@ export const Privacy: React.FC = () => {
           </p>
         </section>
         
-        <div className="pt-8 border-t">
-          <p className="text-xs text-gray-500">Effective Date: Feb 2026</p>
+        <div className="pt-8 border-t border-gray-100 dark:border-gray-800">
+          <p className="text-xs text-gray-500 dark:text-gray-400">Effective Date: Feb 2026</p>
         </div>
       </div>
 
       {/* Footer Ad Slot */}
       {ads?.footer && (
-        <div className="mt-12 flex justify-center bg-gray-50 p-4 rounded-xl">
+        <div className="mt-12 flex justify-center bg-gray-50 dark:bg-gray-950 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
           <AdSlot htmlContent={ads.footer} label="Sponsor" />
         </div>
       )}

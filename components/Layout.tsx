@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { AdSlot } from './AdSlot';
 import { ApiService } from '../services/storage';
 import { AdConfig } from '../types';
-import { Menu, X, Banknote, AlertTriangle, ShieldAlert, RefreshCw, HelpCircle } from 'lucide-react';
+import { Menu, X, Banknote, AlertTriangle, ShieldAlert, RefreshCw, HelpCircle, Moon, Sun } from 'lucide-react';
 import { AiChatbot } from './AiChatbot';
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -12,9 +12,18 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const [showCompliance, setShowCompliance] = useState(false);
   const [blockerDetected, setBlockerDetected] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
+    try {
+      const stored = localStorage.getItem('grantify_theme');
+      const isDark = document.documentElement.classList.contains('dark') || stored === 'dark';
+      setIsDarkMode(isDark);
+    } catch {
+      // no-op
+    }
+
     const loadAds = async () => {
       try {
         const adData = await ApiService.getAds();
@@ -65,6 +74,17 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     // Delay ad blocker detection slightly
     setTimeout(detectAdBlock, 500);
   }, []);
+
+  const setTheme = (theme: 'light' | 'dark') => {
+    const shouldBeDark = theme === 'dark';
+    setIsDarkMode(shouldBeDark);
+    document.documentElement.classList.toggle('dark', shouldBeDark);
+    try {
+      localStorage.setItem('grantify_theme', theme);
+    } catch {
+      // no-op
+    }
+  };
 
   // Inject scripts into document head (for AdSense, GTM, etc.)
   const injectHeadScripts = (headContent: string) => {
@@ -132,7 +152,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 relative">
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 relative">
       
       {/* Floating Promo Button 1 (Admin Configurable) */}
       {ads?.promo1Link && (
@@ -255,7 +275,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       {/* Header Ad Slot - REMOVED for cleaner site header */}
 
       {/* Navbar */}
-      <header className="bg-grantify-green/95 backdrop-blur-md text-white shadow-lg sticky top-0 z-[60] transition-all duration-300">
+      <header className="bg-grantify-green/95 dark:bg-gray-950 backdrop-blur-md text-white shadow-lg sticky top-0 z-[60] transition-all duration-300">
         <div className="mx-auto w-full max-w-7xl px-3 sm:px-4 md:px-6 py-4 flex justify-between items-center">
           <Link to="/" className="flex items-center gap-2 text-2xl font-bold font-heading text-grantify-gold">
             <Banknote className="w-8 h-8" />
@@ -263,7 +283,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex gap-6">
+          <nav className="hidden md:flex gap-6 items-center">
             {navLinks.map(link => (
               <Link 
                 key={link.to} 
@@ -273,24 +293,48 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 {link.label}
               </Link>
             ))}
+
+            <button
+              type="button"
+              onClick={() => setTheme(isDarkMode ? 'light' : 'dark')}
+              className="ml-2 inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white/10 hover:bg-white/15 transition text-xs font-bold"
+              aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={isDarkMode ? 'Light mode' : 'Dark mode'}
+            >
+              {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
+              <span className="hidden lg:inline">{isDarkMode ? 'Light' : 'Dark'}</span>
+            </button>
           </nav>
 
-          {/* Mobile Menu Toggle */}
-          <button 
-            className="md:hidden text-white p-2"
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              setIsMobileMenuOpen(!isMobileMenuOpen);
-            }}
-          >
-            {isMobileMenuOpen ? <X /> : <Menu />}
-          </button>
+          {/* Mobile actions */}
+          <div className="md:hidden flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setTheme(isDarkMode ? 'light' : 'dark')}
+              className="text-white p-2 rounded-full hover:bg-white/10 transition"
+              aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={isDarkMode ? 'Light mode' : 'Dark mode'}
+            >
+              {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+
+            <button 
+              className="text-white p-2"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                setIsMobileMenuOpen(!isMobileMenuOpen);
+              }}
+              aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+            >
+              {isMobileMenuOpen ? <X /> : <Menu />}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Nav */}
         {isMobileMenuOpen && (
-          <nav className="md:hidden bg-green-800 p-4 flex flex-col gap-4">
+          <nav className="md:hidden bg-green-800 dark:bg-gray-900 p-4 flex flex-col gap-4">
              {navLinks.map(link => (
               <Link 
                 key={link.to} 

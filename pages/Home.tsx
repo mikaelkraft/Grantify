@@ -15,7 +15,7 @@ import {
   ExternalLink, ShieldCheck, Search, Award, TrendingUp, Sparkles,
   BookOpen, ChevronRight
 } from 'lucide-react';
-import { formatNaira } from '../utils/currency';
+import { formatNaira, formatNairaCompact } from '../utils/currency';
 
 export const Home: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -40,6 +40,7 @@ export const Home: React.FC = () => {
   const [allTestimonials, setAllTestimonials] = useState<Testimonial[]>([]);
   const [recentApplicants, setRecentApplicants] = useState<Array<{ id: string; fullName: string }>>([]);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [applicationStats, setApplicationStats] = useState<{ applicationsCount: number; totalRequestedAmount: number } | null>(null);
   const [referralData] = useState(ApiService.getMyReferralData());
 
   useEffect(() => {
@@ -57,14 +58,16 @@ export const Home: React.FC = () => {
     // 2. Fetch other content
     const loadData = async () => {
       try {
-        const [fetchedTestimonials, fetchedRecentApplicants, fetchedBlog] = await Promise.all([
+        const [fetchedTestimonials, fetchedRecentApplicants, fetchedBlog, fetchedAppStats] = await Promise.all([
           ApiService.getTestimonials(),
           ApiService.getRecentApplicantsTicker(),
-          ApiService.getBlogPosts()
+          ApiService.getBlogPosts(),
+          ApiService.getApplicationStats()
         ]);
         setAllTestimonials(fetchedTestimonials);
         setRecentApplicants(fetchedRecentApplicants);
         setBlogPosts(fetchedBlog); // Take all for the slider and other sections
+        setApplicationStats(fetchedAppStats);
       } catch (e) {
         console.error("Failed to load home data", e);
         setError('Failed to load data. Please check your connection.');
@@ -134,7 +137,7 @@ export const Home: React.FC = () => {
   if (submitted) {
     return (
       <div className="max-w-3xl mx-auto py-20 px-4 animate-in fade-in zoom-in duration-500">
-        <div className="bg-white rounded-[3rem] shadow-2xl overflow-hidden border border-gray-100">
+        <div className="bg-white dark:bg-gray-900 rounded-[3rem] shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800">
           <div className="bg-grantify-green p-12 text-center text-white relative">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl"></div>
             <CheckCircle className="w-20 h-20 text-grantify-gold mx-auto mb-6" />
@@ -145,21 +148,21 @@ export const Home: React.FC = () => {
           </div>
           <div className="p-12 space-y-8">
             <div className="grid md:grid-cols-2 gap-6">
-              <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
-                <span className="text-[10px] uppercase font-black text-gray-400 block mb-2">Matched Body</span>
-                <span className="text-xl font-bold text-gray-800">{matchedNetwork?.name || 'Grantify Network'}</span>
+              <div className="bg-gray-50 dark:bg-gray-950 p-6 rounded-2xl border border-gray-100 dark:border-gray-800">
+                <span className="text-[10px] uppercase font-black text-gray-400 dark:text-gray-500 block mb-2">Matched Body</span>
+                <span className="text-xl font-bold text-gray-800 dark:text-gray-100">{matchedNetwork?.name || 'Grantify Network'}</span>
               </div>
-              <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
-                <span className="text-[10px] uppercase font-black text-gray-400 block mb-2">Status</span>
+              <div className="bg-gray-50 dark:bg-gray-950 p-6 rounded-2xl border border-gray-100 dark:border-gray-800">
+                <span className="text-[10px] uppercase font-black text-gray-400 dark:text-gray-500 block mb-2">Status</span>
                 <span className="text-xl font-bold text-blue-600 flex items-center gap-2">
                   <Loader2 size={20} className="animate-spin" /> {ApplicationStatus.PENDING}
                 </span>
               </div>
             </div>
             
-            <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100 flex items-start gap-4">
+            <div className="bg-blue-50 dark:bg-gray-950 p-6 rounded-2xl border border-blue-100 dark:border-gray-800 flex items-start gap-4">
               <Info className="text-blue-500 flex-shrink-0" size={24} />
-              <p className="text-sm text-blue-800 leading-relaxed">
+              <p className="text-sm text-blue-800 dark:text-gray-200 leading-relaxed">
                 <strong>Next Steps:</strong> Our specialists are now reviewing your profile. If you qualify for the {matchedNetwork?.name} program, you will receive a follow-up email and phone call within 48-72 hours.
               </p>
             </div>
@@ -177,12 +180,14 @@ export const Home: React.FC = () => {
   }
 
   return (
-    <div className="space-y-0 pb-20">
-      <RecentApplicantsTicker applicants={recentApplicants} />
-      <BlogTicker posts={blogPosts.slice(0, 3)} />
+    <div className="pb-20">
+      <div className="space-y-0">
+        <RecentApplicantsTicker applicants={recentApplicants} />
+        <BlogTicker posts={blogPosts.slice(0, 3)} />
+      </div>
 
       {/* Hero Section */}
-      <section className="relative min-h-[60vh] flex items-center justify-center overflow-hidden rounded-[2.5rem]">
+      <section className="relative mt-4 min-h-[60vh] flex items-center justify-center overflow-hidden rounded-[2.5rem]">
         <div className="absolute inset-0 bg-grantify-green">
           <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-grantify-gold/20 rounded-full blur-[120px] -mr-64 -mt-64"></div>
@@ -219,21 +224,23 @@ export const Home: React.FC = () => {
 
       {/* Stats Section */}
       <section className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-12">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2.5rem] p-6 md:p-10">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           {[
-            { label: 'Total Matches', value: '1,200+', icon: Sparkles },
-            { label: 'Disbursed Capital', value: '₦750M+', icon: Award },
+            { label: 'Requests Matched', value: applicationStats ? applicationStats.applicationsCount.toLocaleString() : '—', icon: Sparkles },
+            { label: 'Funding Requested', value: applicationStats ? formatNairaCompact(applicationStats.totalRequestedAmount) : '—', icon: Award },
             { label: 'Success Rate', value: '85%', icon: TrendingUp },
             { label: 'Trusted Partners', value: '12+', icon: Landmark },
           ].map((stat, i) => (
             <div key={i} className="text-center group">
-              <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-grantify-green group-hover:text-white transition-all transform group-hover:rotate-12">
+              <div className="w-12 h-12 bg-gray-50 dark:bg-gray-950 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-grantify-green group-hover:text-white transition-all transform group-hover:rotate-12">
                 <stat.icon size={24} />
               </div>
-              <div className="text-2xl font-black text-gray-900 mb-1">{stat.value}</div>
-              <div className="text-[10px] uppercase font-black text-gray-400 tracking-tighter">{stat.label}</div>
+              <div className="text-2xl font-black text-gray-900 dark:text-gray-100 mb-1">{stat.value}</div>
+              <div className="text-[10px] uppercase font-black text-gray-400 dark:text-gray-400 tracking-tighter">{stat.label}</div>
             </div>
           ))}
+          </div>
         </div>
       </section>
 
@@ -243,12 +250,12 @@ export const Home: React.FC = () => {
       {/* Matcher Form Section */}
       <section id="matcher" className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 grid lg:grid-cols-5 gap-12 items-start py-12">
         <div className="lg:col-span-3">
-          <div className="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-2xl border border-gray-100 relative">
+          <div className="bg-white dark:bg-gray-900 p-8 md:p-12 rounded-[2.5rem] shadow-2xl border border-gray-100 dark:border-gray-800 relative">
             <div className="absolute top-0 right-0 p-8 z-0 opacity-50">
-              <Sparkles className="text-gray-100" size={60} />
+              <Sparkles className="text-gray-100 dark:text-gray-800" size={60} />
             </div>
             
-            <h2 className="text-3xl font-black font-heading text-gray-900 mb-10 flex items-center gap-4 relative z-10">
+            <h2 className="text-3xl font-black font-heading text-gray-900 dark:text-gray-100 mb-10 flex items-center gap-4 relative z-10">
               <div className="w-2 h-10 bg-grantify-green rounded-full"></div>
               Intelligent Matcher
             </h2>
@@ -258,7 +265,7 @@ export const Home: React.FC = () => {
                 <div className="space-y-2">
                   <label className="text-xs font-black uppercase text-gray-500 tracking-widest pl-1 font-mono">Full Legal Name</label>
                   <input 
-                    className="w-full p-5 bg-gray-50 rounded-2xl border-none ring-1 ring-gray-100 focus:ring-2 focus:ring-grantify-green outline-none transition-all shadow-inner"
+                    className="w-full p-5 bg-gray-50 dark:bg-gray-950 rounded-2xl border-none ring-1 ring-gray-100 dark:ring-gray-700 focus:ring-2 focus:ring-grantify-green outline-none transition-all shadow-inner text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                     value={formData.fullName}
                     onChange={e => setFormData({...formData, fullName: e.target.value})}
                     placeholder="Enter full name"
@@ -268,7 +275,7 @@ export const Home: React.FC = () => {
                 <div className="space-y-2">
                   <label className="text-xs font-black uppercase text-gray-500 tracking-widest pl-1 font-mono">Mobile Number</label>
                   <input 
-                    className="w-full p-5 bg-gray-50 rounded-2xl border-none ring-1 ring-gray-100 focus:ring-2 focus:ring-grantify-green outline-none transition-all shadow-inner"
+                    className="w-full p-5 bg-gray-50 dark:bg-gray-950 rounded-2xl border-none ring-1 ring-gray-100 dark:ring-gray-700 focus:ring-2 focus:ring-grantify-green outline-none transition-all shadow-inner text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                     value={formData.phone}
                     onChange={e => setFormData({...formData, phone: e.target.value})}
                     placeholder="+234..."
@@ -280,7 +287,7 @@ export const Home: React.FC = () => {
               <div className="space-y-2">
                 <label className="text-xs font-black uppercase text-gray-500 tracking-widest pl-1 font-mono">Business Industry</label>
                 <select 
-                  className="w-full p-5 bg-gray-50 rounded-2xl border-none ring-1 ring-gray-100 focus:ring-2 focus:ring-grantify-green outline-none transition-all shadow-inner cursor-pointer"
+                  className="w-full p-5 bg-gray-50 dark:bg-gray-950 rounded-2xl border-none ring-1 ring-gray-100 dark:ring-gray-700 focus:ring-2 focus:ring-grantify-green outline-none transition-all shadow-inner cursor-pointer text-gray-900 dark:text-gray-100"
                   value={formData.businessType}
                   onChange={e => setFormData({...formData, businessType: e.target.value})}
                   required
@@ -301,7 +308,7 @@ export const Home: React.FC = () => {
                 <label className="text-xs font-black uppercase text-gray-500 tracking-widest pl-1 font-mono">Reason for Grant / Grant Proposal Summary</label>
                 <textarea 
                   rows={4}
-                  className="w-full p-5 bg-gray-50 rounded-2xl border-none ring-1 ring-gray-100 focus:ring-2 focus:ring-grantify-green outline-none transition-all shadow-inner resize-none"
+                  className="w-full p-5 bg-gray-50 dark:bg-gray-950 rounded-2xl border-none ring-1 ring-gray-100 dark:ring-gray-700 focus:ring-2 focus:ring-grantify-green outline-none transition-all shadow-inner resize-none text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                   value={formData.purpose}
                   onChange={e => handlePurposeChange(e.target.value)}
                   placeholder="Describe your business needs and how funding will impact your growth..."
@@ -311,14 +318,14 @@ export const Home: React.FC = () => {
 
               {/* Dynamic Matching Feedback */}
               {matchedNetwork && (
-                <div className="bg-grantify-green/5 border border-grantify-green/20 p-6 rounded-2xl flex items-center gap-6 animate-in slide-in-from-top-4">
-                  <div className="w-16 h-16 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center p-2 text-grantify-green">
+                <div className="bg-grantify-green/5 dark:bg-gray-950 border border-grantify-green/20 dark:border-gray-800 p-6 rounded-2xl flex items-center gap-6 animate-in slide-in-from-top-4">
+                  <div className="w-16 h-16 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-center justify-center p-2 text-grantify-green">
                     <ShieldCheck size={32} />
                   </div>
                   <div>
                     <span className="text-[10px] font-black uppercase text-grantify-green tracking-widest block mb-1">Optimal Network Found</span>
-                    <h4 className="text-lg font-bold text-gray-800">{matchedNetwork.name}</h4>
-                    <p className="text-xs text-gray-500 mt-1 line-clamp-1">{matchedNetwork.description}</p>
+                    <h4 className="text-lg font-bold text-gray-800 dark:text-gray-100">{matchedNetwork.name}</h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-1">{matchedNetwork.description}</p>
                   </div>
                 </div>
               )}
@@ -326,10 +333,10 @@ export const Home: React.FC = () => {
               <div className="pt-4">
                 <button 
                   disabled={isSubmitting}
-                  className="w-full bg-grantify-green text-white font-black py-6 rounded-3xl shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 text-xl"
+                  className="w-full bg-grantify-green text-white font-bold py-4 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-sm md:text-base"
                 >
-                  {isSubmitting ? <Loader2 className="animate-spin" /> : <Award size={24} />}
-                  Submit Proposal for Matching
+                  {isSubmitting ? <Loader2 className="animate-spin" /> : <Award size={18} />}
+                  Submit for Matching
                 </button>
               </div>
             </form>
@@ -337,18 +344,18 @@ export const Home: React.FC = () => {
         </div>
 
         <div className="lg:col-span-2 space-y-8">
-           <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-gray-100">
+           <div className="bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-800">
               <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
                 <Landmark className="text-grantify-green" /> Robust Partners
               </h3>
               <div className="space-y-4">
                 {GRANT_NETWORKS.map(network => (
-                  <div key={network.id} className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100 hover:border-grantify-green/30 transition-all cursor-pointer group">
-                    <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center p-1.5 shadow-sm text-grantify-green">
+                  <div key={network.id} className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 hover:border-grantify-green/30 transition-all cursor-pointer group">
+                    <div className="w-10 h-10 bg-white dark:bg-gray-900 rounded-lg flex items-center justify-center p-1.5 shadow-sm text-grantify-green border border-gray-100 dark:border-gray-800">
                       <ShieldCheck size={20} />
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-gray-800 group-hover:text-grantify-green transition-colors">{network.name}</h4>
+                      <h4 className="text-sm font-bold text-gray-800 dark:text-gray-100 group-hover:text-grantify-green transition-colors">{network.name}</h4>
                       <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Verified Provider</p>
                     </div>
                     <ArrowRight size={14} className="ml-auto text-gray-300 group-hover:text-grantify-green group-hover:translate-x-1 transition-all" />
@@ -372,12 +379,12 @@ export const Home: React.FC = () => {
       </section>
 
       {/* Blog/Intelligence Section */}
-      <section className="bg-gray-50 py-16">
+      <section className="bg-gray-50 dark:bg-gray-950 py-16">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
             <div>
-              <h2 className="text-3xl font-black font-heading text-gray-900 mb-2">Financial Intelligence</h2>
-              <p className="text-gray-500 font-medium">Expert guides on scaling your business with government support.</p>
+              <h2 className="text-3xl font-black font-heading text-gray-900 dark:text-gray-100 mb-2">Financial Intelligence</h2>
+              <p className="text-gray-500 dark:text-gray-300 font-medium">Expert guides on scaling your business with government support.</p>
             </div>
             <Link to="/blog" className="text-grantify-green font-black flex items-center gap-1 hover:gap-2 transition-all">
               View Publication <ArrowRight size={18} />
@@ -386,8 +393,8 @@ export const Home: React.FC = () => {
           
           <div className="grid md:grid-cols-3 gap-8">
             {blogPosts.slice(0, 3).map(post => (
-              <Link key={post.id} to={`/blog/${post.id}`} className="group bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300">
-                <div className="h-48 bg-gray-200 relative overflow-hidden">
+              <Link key={post.id} to={`/blog/${post.id}`} className="group bg-white dark:bg-gray-900 rounded-3xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-xl transition-all duration-300">
+                <div className="h-48 bg-gray-200 dark:bg-gray-950 relative overflow-hidden">
                   <img
                     src={post.image || getBlogPlaceholderImage(post.title)}
                     alt={post.title}
@@ -399,10 +406,10 @@ export const Home: React.FC = () => {
                   </div>
                 </div>
                 <div className="p-6">
-                  <h3 className="font-bold text-gray-800 group-hover:text-grantify-green transition-colors line-clamp-2 min-h-[3rem]">
+                  <h3 className="font-bold text-gray-800 dark:text-gray-100 group-hover:text-grantify-green transition-colors line-clamp-2 min-h-[3rem]">
                     {post.title}
                   </h3>
-                  <div className="mt-4 flex items-center justify-between text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                  <div className="mt-4 flex items-center justify-between text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
                     <span>{post.author}</span>
                     <span className="flex items-center gap-1"><BookOpen size={12} /> {post.likes}</span>
                   </div>
@@ -415,14 +422,14 @@ export const Home: React.FC = () => {
 
       {/* Testimonials */}
       <section className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-12">
-        <h2 className="text-3xl font-black font-heading text-center text-gray-900 mb-12">Successful Grant Matches</h2>
+        <h2 className="text-3xl font-black font-heading text-center text-gray-900 dark:text-gray-100 mb-12">Successful Grant Matches</h2>
         <div className="grid md:grid-cols-3 gap-8">
           {allTestimonials.filter(t => !t.status || t.status === 'approved').slice(0, 3).map(t => (
             <TestimonialCard key={t.id} data={t} />
           ))}
         </div>
         <div className="text-center mt-10">
-          <p className="text-gray-400 text-sm italic">Join 45,000+ businesses already growing with Grantify intelligence.</p>
+          <p className="text-gray-400 dark:text-gray-500 text-sm italic">Join 45,000+ businesses already growing with Grantify intelligence.</p>
         </div>
       </section>
 
@@ -432,15 +439,15 @@ export const Home: React.FC = () => {
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/5 rounded-full blur-[100px] -ml-48 -mb-48"></div>
         
         <div className="max-w-4xl mx-auto px-4 relative z-10">
-          <div className="bg-white rounded-[3rem] shadow-2xl overflow-hidden flex flex-col md:flex-row">
-            <div className="md:w-2/5 bg-gray-50 p-12 flex flex-col justify-center border-r border-gray-100">
+          <div className="bg-white dark:bg-gray-900 rounded-[3rem] shadow-2xl overflow-hidden flex flex-col md:flex-row border border-gray-100 dark:border-gray-800">
+            <div className="md:w-2/5 bg-gray-50 dark:bg-gray-950 p-12 flex flex-col justify-center border-r border-gray-100 dark:border-gray-800">
               <div className="w-16 h-16 bg-grantify-gold/20 rounded-2xl flex items-center justify-center text-grantify-green mb-6">
                 <MessageSquarePlus size={32} />
               </div>
-              <h2 className="text-3xl font-black font-heading text-gray-900 mb-4 leading-tight">
+              <h2 className="text-3xl font-black font-heading text-gray-900 dark:text-gray-100 mb-4 leading-tight">
                 Share Your <br/>Success Story
               </h2>
-              <p className="text-gray-500 text-sm leading-relaxed">
+              <p className="text-gray-500 dark:text-gray-300 text-sm leading-relaxed">
                 Your feedback helps us improve and inspires other business owners to take the first step towards growth.
               </p>
             </div>
@@ -497,11 +504,11 @@ const TestimonialForm: React.FC<{ onSubmit: (data: { name: string; amount: numbe
   if (isSuccess) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-center py-8 animate-in fade-in zoom-in duration-500">
-        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center text-green-600 mb-6">
+        <div className="w-20 h-20 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center text-green-600 mb-6">
           <CheckCircle size={40} />
         </div>
-        <h3 className="text-2xl font-black text-gray-900 mb-2">Submission Received!</h3>
-        <p className="text-gray-500 text-sm mb-8">Your success story has been sent for review. It will appear on our home page once approved by our team.</p>
+        <h3 className="text-2xl font-black text-gray-900 dark:text-gray-100 mb-2">Submission Received!</h3>
+        <p className="text-gray-500 dark:text-gray-300 text-sm mb-8">Your success story has been sent for review. It will appear on our home page once approved by our team.</p>
         <button 
           onClick={() => setIsSuccess(false)}
           className="text-grantify-green font-black uppercase text-xs tracking-widest hover:underline"
@@ -515,10 +522,10 @@ const TestimonialForm: React.FC<{ onSubmit: (data: { name: string; amount: numbe
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
-        <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1">Your Full Name</label>
+        <label className="text-[10px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest ml-1">Your Full Name</label>
         <input 
           required
-          className="w-full p-4 bg-gray-50 rounded-2xl border-none ring-1 ring-gray-100 focus:ring-2 focus:ring-grantify-green outline-none transition-all shadow-inner text-sm"
+          className="w-full p-4 bg-gray-50 dark:bg-gray-950 rounded-2xl border-none ring-1 ring-gray-100 dark:ring-gray-700 focus:ring-2 focus:ring-grantify-green outline-none transition-all shadow-inner text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
           placeholder="e.g. Kola Ibrahim"
           value={name}
           onChange={e => setName(e.target.value)}
@@ -526,22 +533,22 @@ const TestimonialForm: React.FC<{ onSubmit: (data: { name: string; amount: numbe
       </div>
 
       <div className="space-y-2">
-        <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1">Photo URL (optional)</label>
+        <label className="text-[10px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest ml-1">Photo URL (optional)</label>
         <input 
-          className="w-full p-4 bg-gray-50 rounded-2xl border-none ring-1 ring-gray-100 focus:ring-2 focus:ring-grantify-green outline-none transition-all shadow-inner text-sm"
+          className="w-full p-4 bg-gray-50 dark:bg-gray-950 rounded-2xl border-none ring-1 ring-gray-100 dark:ring-gray-700 focus:ring-2 focus:ring-grantify-green outline-none transition-all shadow-inner text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
           placeholder="https://..."
           value={photoUrl}
           onChange={e => setPhotoUrl(e.target.value)}
         />
-        <p className="text-[10px] text-gray-400 ml-1">If left empty, we will generate an avatar.</p>
+        <p className="text-[10px] text-gray-400 dark:text-gray-500 ml-1">If left empty, we will generate an avatar.</p>
       </div>
       
       <div className="space-y-2">
-        <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1">Amount Disbursed (₦)</label>
+        <label className="text-[10px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest ml-1">Funding Secured (₦)</label>
         <input 
           required
           type="number"
-          className="w-full p-4 bg-gray-50 rounded-2xl border-none ring-1 ring-gray-100 focus:ring-2 focus:ring-grantify-green outline-none transition-all shadow-inner text-sm"
+          className="w-full p-4 bg-gray-50 dark:bg-gray-950 rounded-2xl border-none ring-1 ring-gray-100 dark:ring-gray-700 focus:ring-2 focus:ring-grantify-green outline-none transition-all shadow-inner text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
           placeholder="e.g. 500000"
           value={amount}
           onChange={e => setAmount(e.target.value)}
@@ -549,11 +556,11 @@ const TestimonialForm: React.FC<{ onSubmit: (data: { name: string; amount: numbe
       </div>
       
       <div className="space-y-2">
-        <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1">Your Story</label>
+        <label className="text-[10px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest ml-1">Your Story</label>
         <textarea 
           required
           rows={4}
-          className="w-full p-4 bg-gray-50 rounded-2xl border-none ring-1 ring-gray-100 focus:ring-2 focus:ring-grantify-green outline-none transition-all shadow-inner resize-none text-sm"
+          className="w-full p-4 bg-gray-50 dark:bg-gray-950 rounded-2xl border-none ring-1 ring-gray-100 dark:ring-gray-700 focus:ring-2 focus:ring-grantify-green outline-none transition-all shadow-inner resize-none text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
           placeholder="How did Grantify help your business?"
           value={content}
           onChange={e => setContent(e.target.value)}

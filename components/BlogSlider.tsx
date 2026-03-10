@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { BlogPost } from '../types';
-import { BookOpen, ChevronRight, Share2 } from 'lucide-react';
+import { BookOpen, ChevronRight, Eye } from 'lucide-react';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
 
 interface Props {
@@ -12,14 +12,14 @@ export const BlogSlider: React.FC<Props> = ({ posts }) => {
   if (posts.length === 0) return null;
 
   return (
-    <section className="py-12 bg-white overflow-hidden">
+    <section className="py-12 bg-white dark:bg-gray-950 overflow-hidden">
       <div className="max-w-6xl mx-auto px-4 mb-8 flex justify-between items-end">
         <div>
-          <h2 className="text-2xl font-black font-heading text-gray-900 mb-1 flex items-center gap-2">
+          <h2 className="text-2xl font-black font-heading text-gray-900 dark:text-gray-100 mb-1 flex items-center gap-2">
             <span className="w-2 h-6 bg-grantify-gold rounded-full"></span>
             Recommended Reading
           </h2>
-          <p className="text-gray-500 text-sm">Intelligence to help you scale your business</p>
+          <p className="text-gray-500 dark:text-gray-300 text-sm">Intelligence to help you scale your business</p>
         </div>
         <Link 
           to="/blog" 
@@ -38,7 +38,7 @@ export const BlogSlider: React.FC<Props> = ({ posts }) => {
             >
               <Link 
                 to={`/blog/${post.id}`}
-                className="block h-full bg-gray-50 rounded-[2rem] border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-500 group/card hover:-translate-y-2"
+                className="block h-full bg-gray-50 dark:bg-gray-900 rounded-[2rem] border border-gray-100 dark:border-gray-800 overflow-hidden hover:shadow-2xl transition-all duration-500 group/card hover:-translate-y-2"
               >
                 <div className="h-40 relative overflow-hidden">
                   <img
@@ -55,19 +55,20 @@ export const BlogSlider: React.FC<Props> = ({ posts }) => {
                 </div>
                 
                 <div className="p-6">
-                  <h3 className="font-bold text-gray-800 line-clamp-2 min-h-[3rem] mb-4 group-hover/card:text-grantify-green transition-colors">
+                  <h3 className="font-bold text-gray-800 dark:text-gray-100 line-clamp-2 min-h-[3rem] mb-4 group-hover/card:text-grantify-green transition-colors">
                     {post.title}
                   </h3>
                   
-                  <div className="flex items-center justify-between border-t border-gray-100 pt-4">
+                  <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-800 pt-4">
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded-full bg-grantify-green flex items-center justify-center text-[10px] text-white font-bold">
                         {post.author.charAt(0)}
                       </div>
-                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">{post.author}</span>
+                      <span className="text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-tighter">{post.author}</span>
                     </div>
-                    <div className="flex items-center gap-3 text-gray-400">
+                    <div className="flex items-center gap-3 text-gray-400 dark:text-gray-500">
                       <span className="flex items-center gap-1 text-[10px] font-bold"><BookOpen size={10} /> {post.likes}</span>
+                      <span className="flex items-center gap-1 text-[10px] font-bold"><Eye size={10} /> {Number(post.views || 0).toLocaleString()}</span>
                     </div>
                   </div>
                 </div>

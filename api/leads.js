@@ -16,6 +16,18 @@ export default async function handler(req, res) {
     // --- APPLICATIONS ---
     if (type === 'applications') {
       if (req.method === 'GET') {
+        const isStats = req.query.stats === '1' || req.query.stats === 'true';
+        if (isStats) {
+          const result = await pool.query(
+            'SELECT COUNT(*)::int AS applications_count, COALESCE(SUM(amount), 0) AS total_requested_amount FROM applications'
+          );
+          const row = result.rows[0] || { applications_count: 0, total_requested_amount: 0 };
+          return res.status(200).json({
+            applicationsCount: Number(row.applications_count) || 0,
+            totalRequestedAmount: Number(row.total_requested_amount) || 0
+          });
+        }
+
         const isPublic = req.query.public === '1' || req.query.public === 'true';
 
         if (isPublic) {

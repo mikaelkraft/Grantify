@@ -15,8 +15,11 @@ export default async function handler(req, res) {
       const { id, category } = req.query;
       
       if (id) {
-        // Fetch single post
-        const postRes = await client.query('SELECT * FROM blog_posts WHERE id = $1', [id]);
+        // Fetch single post + increment views
+        const postRes = await client.query(
+          'UPDATE blog_posts SET views = COALESCE(views, 0) + 1 WHERE id = $1 RETURNING *',
+          [id]
+        );
         if (postRes.rows.length === 0) return res.status(404).json({ error: 'Not found' });
         
         const post = postRes.rows[0];
@@ -34,6 +37,7 @@ export default async function handler(req, res) {
           tags: post.tags,
           sourceName: post.source_name,
           sourceUrl: post.source_url,
+          views: post.views ?? 0,
           comments: comments.rows.map(c => ({
             id: c.id,
             postId: c.post_id,
@@ -68,6 +72,7 @@ export default async function handler(req, res) {
         sourceName: row.source_name,
         sourceUrl: row.source_url,
         likes: row.likes,
+        views: row.views ?? 0,
         commentsCount: parseInt(row.comments_count),
         createdAt: row.created_at,
         updatedAt: row.updated_at
@@ -75,7 +80,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const { action, postId, name, content, parentId, title, author, authorRole, category, image, tags, sourceName, sourceUrl } = req.body;
+      const { action, postId, name, content, parentId, title, author, authorRole, category, image, tags, sourceName, sourceUrl, views, createdAt } = req.body;
 
       if (action === 'comment') {
         const id = Date.now().toString();
@@ -100,20 +105,33 @@ export default async function handler(req, res) {
       // Create new post (Admin)
       const id = Date.now().toString();
       const seededLikes = Math.floor(12 + Math.random() * 64); // 12..75
+      const seededViews = typeof views === 'number' ? views : Math.floor(120 + Math.random() * 900); // 120..1019
       await client.query(
-        `INSERT INTO blog_posts (id, title, content, author, author_role, category, image, tags, source_name, source_url, likes)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-        [id, title, content, author, authorRole, category, image, tags || [], sourceName, sourceUrl, seededLikes]
+        `INSERT INTO blog_posts (id, title, content, author, author_role, category, image, tags, source_name, source_url, likes, views, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, COALESCE($13, CURRENT_TIMESTAMP))`,
+        [id, title, content, author, authorRole, category, image, tags || [], sourceName, sourceUrl, seededLikes, seededViews, createdAt || null]
       );
       return res.status(200).json({ success: true, id });
     }
 
     if (req.method === 'PUT') {
-      const { id, title, content, author, authorRole, category, image, tags, sourceName, sourceUrl } = req.body;
+      const { id, title, content, author, authorRole, category, image, tags, sourceName, sourceUrl, views, createdAt } = req.body;
       await client.query(
-        `UPDATE blog_posts SET title = $1, content = $2, author = $3, author_role = $4, category = $5, image = $6, tags = $7, source_name = $8, source_url = $9, updated_at = CURRENT_TIMESTAMP
-         WHERE id = $10`,
-        [title, content, author, authorRole, category, image, tags || [], sourceName, sourceUrl, id]
+        `UPDATE blog_posts
+         SET title = $1,
+             content = $2,
+             author = $3,
+             author_role = $4,
+             category = $5,
+             image = $6,
+             tags = $7,
+             source_name = $8,
+             source_url = $9,
+             views = COALESCE($10, views),
+             created_at = COALESCE($11, created_at),
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $12`,
+        [title, content, author, authorRole, category, image, tags || [], sourceName, sourceUrl, typeof views === 'number' ? views : null, createdAt || null, id]
       );
       return res.status(200).json({ success: true });
     }

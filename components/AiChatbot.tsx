@@ -56,7 +56,7 @@ export const AiChatbot: React.FC = () => {
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
       {/* Chat Window */}
       {isOpen && (
-        <div className="mb-4 w-80 md:w-96 h-[500px] bg-white rounded-3xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-300">
+        <div className="mb-4 w-80 md:w-96 h-[500px] bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-800 flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-300">
           {/* Header */}
           <div className="p-6 bg-grantify-green text-white flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -81,13 +81,13 @@ export const AiChatbot: React.FC = () => {
           </div>
 
           {/* Messages Area */}
-          <div className="flex-grow overflow-y-auto p-6 space-y-4 bg-gray-50/50">
+          <div className="flex-grow overflow-y-auto p-6 space-y-4 bg-gray-50/50 dark:bg-gray-950">
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[85%] p-4 rounded-2xl text-sm ${
                   msg.role === 'user' 
                     ? 'bg-grantify-green text-white rounded-tr-none' 
-                    : 'bg-white text-gray-800 shadow-sm border border-gray-100 rounded-tl-none'
+                    : 'bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 shadow-sm border border-gray-100 dark:border-gray-800 rounded-tl-none'
                 }`}>
                   {msg.content}
                 </div>
@@ -95,7 +95,7 @@ export const AiChatbot: React.FC = () => {
             ))}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-gray-100">
+                <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl rounded-tl-none shadow-sm border border-gray-100 dark:border-gray-800">
                   <Loader2 size={16} className="animate-spin text-grantify-green" />
                 </div>
               </div>
@@ -104,13 +104,13 @@ export const AiChatbot: React.FC = () => {
           </div>
 
           {/* Input Area */}
-          <form onSubmit={handleSend} className="p-4 bg-white border-t border-gray-100 flex gap-2">
+          <form onSubmit={handleSend} className="p-4 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 flex gap-2">
             <input 
               type="text" 
               value={input}
               onChange={e => setInput(e.target.value)}
               placeholder="Ask anything..."
-              className="flex-grow px-4 py-3 bg-gray-50 rounded-xl outline-none focus:ring-2 focus:ring-grantify-green transition text-sm"
+              className="flex-grow px-4 py-3 bg-gray-50 dark:bg-gray-950 rounded-xl outline-none focus:ring-2 focus:ring-grantify-green transition text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
               disabled={isLoading}
             />
             <button 
