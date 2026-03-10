@@ -280,6 +280,8 @@ export default async function handler(req, res) {
         source_name TEXT,
         source_url TEXT,
         likes INTEGER DEFAULT 0,
+        loves INTEGER DEFAULT 0,
+        claps INTEGER DEFAULT 0,
         views INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -292,7 +294,21 @@ export default async function handler(req, res) {
       ADD COLUMN IF NOT EXISTS tags TEXT[],
       ADD COLUMN IF NOT EXISTS source_name TEXT,
       ADD COLUMN IF NOT EXISTS source_url TEXT,
-      ADD COLUMN IF NOT EXISTS views INTEGER DEFAULT 0
+      ADD COLUMN IF NOT EXISTS views INTEGER DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS loves INTEGER DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS claps INTEGER DEFAULT 0
+    `);
+
+    // Per-user reaction tracking (prevents repeated counting from same user)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS blog_post_reactions (
+        post_id TEXT REFERENCES blog_posts(id) ON DELETE CASCADE,
+        user_id TEXT NOT NULL,
+        reaction_type TEXT NOT NULL CHECK (reaction_type IN ('likes', 'loves', 'claps')),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (post_id, user_id)
+      )
     `);
 
     // Create blog_comments table
@@ -304,6 +320,19 @@ export default async function handler(req, res) {
         content TEXT NOT NULL,
         likes INTEGER DEFAULT 0,
         parent_id TEXT REFERENCES blog_comments(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Create contact_messages table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS contact_messages (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL,
+        phone TEXT,
+        subject TEXT NOT NULL,
+        message TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -320,6 +349,8 @@ export default async function handler(req, res) {
           author_role: 'Chief Financial Strategist',
           category: 'Grants',
           likes: 45,
+          loves: 18,
+          claps: 9,
           views: 420
         },
         {
@@ -330,14 +361,16 @@ export default async function handler(req, res) {
           author_role: 'Business Consultant',
           category: 'Strategy',
           likes: 89,
+          loves: 40,
+          claps: 22,
           views: 780
         }
       ];
       for (const p of initialPosts) {
         await client.query(
-          `INSERT INTO blog_posts (id, title, content, author, author_role, category, likes, views)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-          [p.id, p.title, p.content, p.author, p.author_role, p.category, p.likes, p.views]
+          `INSERT INTO blog_posts (id, title, content, author, author_role, category, likes, loves, claps, views)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+          [p.id, p.title, p.content, p.author, p.author_role, p.category, p.likes, p.loves, p.claps, p.views]
         );
       }
     }

@@ -19,26 +19,25 @@ export const Contact: React.FC = () => {
     message: ''
   });
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const subject = `Contact Form: ${formData.subject}`;
-    const body = `Dear Grantify Team,
-
-${formData.message}
-
----
-Contact Details:
-Name: ${formData.name}
-Email: ${formData.email}
-Phone: ${formData.phone}
-
-Sent from Grantify Contact Form`;
-
-    // Construct mailto link
-    window.location.href = `mailto:grantifiedme@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    setSubmitted(true);
+    setIsSubmitting(true);
+    try {
+      await ApiService.submitContactMessage({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone || undefined,
+        subject: formData.subject,
+        message: formData.message
+      });
+      setSubmitted(true);
+    } catch (e) {
+      alert('Failed to send message. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Consistent dark input style
@@ -48,12 +47,15 @@ Sent from Grantify Contact Form`;
     return (
       <div className="max-w-2xl mx-auto bg-white dark:bg-gray-900 p-8 rounded-lg shadow-lg text-center my-10 border border-gray-100 dark:border-gray-800">
         <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Message Ready!</h2>
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Message Sent!</h2>
         <p className="text-gray-600 dark:text-gray-300 mb-6">
-          Your email client should have opened with your message. If it didn't, please send your inquiry directly to <strong>grantifiedme@gmail.com</strong>
+          Thanks — we’ve received your message and will get back to you as soon as possible. If you need to follow up, email <strong>grantifiedme@gmail.com</strong>.
         </p>
         <button 
-          onClick={() => setSubmitted(false)}
+          onClick={() => {
+            setSubmitted(false);
+            setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
+          }}
           className="bg-grantify-green text-white px-6 py-2 rounded hover:bg-green-800"
         >
           Send Another Message
@@ -196,14 +198,11 @@ Sent from Grantify Contact Form`;
 
             <button 
               type="submit" 
-              className="w-full bg-grantify-green text-white font-bold py-3 rounded-lg hover:bg-green-800 flex items-center justify-center gap-2 shadow-lg transition"
+              disabled={isSubmitting}
+              className="w-full bg-grantify-green text-white font-bold py-3 rounded-lg hover:bg-green-800 flex items-center justify-center gap-2 shadow-lg transition disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              <Send size={18} /> Send Message
+              <Send size={18} /> {isSubmitting ? 'Sending…' : 'Send Message'}
             </button>
-
-            <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
-              * Clicking send will open your email client to complete the message.
-            </p>
           </form>
         </div>
       </div>

@@ -13,7 +13,7 @@ import {
   Calculator, CheckCircle, AlertCircle, ArrowRight, Share2, Copy, 
   Info, Loader2, MessageSquarePlus, Send, Zap, Landmark, 
   ExternalLink, ShieldCheck, Search, Award, TrendingUp, Sparkles,
-  BookOpen, ChevronRight
+  BookOpen, ChevronRight, Eye, ThumbsUp
 } from 'lucide-react';
 import { formatNaira, formatNairaCompact } from '../utils/currency';
 
@@ -411,7 +411,10 @@ export const Home: React.FC = () => {
                   </h3>
                   <div className="mt-4 flex items-center justify-between text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
                     <span>{post.author}</span>
-                    <span className="flex items-center gap-1"><BookOpen size={12} /> {post.likes}</span>
+                    <span className="flex items-center gap-3">
+                      <span className="flex items-center gap-1"><Eye size={12} /> {Number(post.views || 0).toLocaleString()}</span>
+                      <span className="flex items-center gap-1"><ThumbsUp size={12} /> {Number(post.likes || 0).toLocaleString()}</span>
+                    </span>
                   </div>
                 </div>
               </Link>
@@ -429,7 +432,7 @@ export const Home: React.FC = () => {
           ))}
         </div>
         <div className="text-center mt-10">
-          <p className="text-gray-400 dark:text-gray-500 text-sm italic">Join 45,000+ businesses already growing with Grantify intelligence.</p>
+          <p className="text-gray-400 dark:text-gray-500 text-sm italic">Join thousands of business owners exploring funding opportunities with Grantify.</p>
         </div>
       </section>
 

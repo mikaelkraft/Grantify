@@ -113,6 +113,8 @@ export interface ProviderReview {
   createdAt: string;
 }
 
+export type ReactionType = 'likes' | 'loves' | 'claps';
+
 export interface BlogPost {
   id: string;
   title: string;
@@ -125,6 +127,8 @@ export interface BlogPost {
   sourceName?: string;
   sourceUrl?: string;
   likes: number;
+  loves: number;
+  claps: number;
   views: number;
   commentsCount: number;
   createdAt: string;

@@ -50,6 +50,9 @@ export const Admin: React.FC = () => {
     sourceName: string;
     sourceUrl: string;
     views?: number;
+    likes?: number;
+    loves?: number;
+    claps?: number;
     createdAt?: string;
   }>({ 
     title: '', 
@@ -62,6 +65,9 @@ export const Admin: React.FC = () => {
     sourceName: '',
     sourceUrl: '',
     views: undefined,
+    likes: undefined,
+    loves: undefined,
+    claps: undefined,
     createdAt: undefined
   });
 
@@ -531,6 +537,9 @@ export const Admin: React.FC = () => {
         sourceName: '',
         sourceUrl: '',
         views: undefined,
+        likes: undefined,
+        loves: undefined,
+        claps: undefined,
         createdAt: undefined
       });
       setIsEditingPost(false);
@@ -555,6 +564,9 @@ export const Admin: React.FC = () => {
       sourceName: post.sourceName || '',
       sourceUrl: post.sourceUrl || '',
       views: post.views,
+      likes: post.likes,
+      loves: post.loves,
+      claps: post.claps,
       createdAt: post.createdAt
     });
     setIsEditingPost(true);
@@ -1437,6 +1449,39 @@ export const Admin: React.FC = () => {
                            aria-label="Views"
                            title="Views"
                          />
+
+                         <input
+                           type="number"
+                           min={0}
+                           className={inputClassSmall}
+                           placeholder="Likes (optional)"
+                           value={typeof newPost.likes === 'number' ? newPost.likes : ''}
+                           onChange={e => setNewPost({ ...newPost, likes: e.target.value === '' ? undefined : Number(e.target.value) })}
+                           aria-label="Likes"
+                           title="Likes"
+                         />
+
+                         <input
+                           type="number"
+                           min={0}
+                           className={inputClassSmall}
+                           placeholder="Loves (optional)"
+                           value={typeof newPost.loves === 'number' ? newPost.loves : ''}
+                           onChange={e => setNewPost({ ...newPost, loves: e.target.value === '' ? undefined : Number(e.target.value) })}
+                           aria-label="Loves"
+                           title="Loves"
+                         />
+
+                         <input
+                           type="number"
+                           min={0}
+                           className={inputClassSmall}
+                           placeholder="Claps (optional)"
+                           value={typeof newPost.claps === 'number' ? newPost.claps : ''}
+                           onChange={e => setNewPost({ ...newPost, claps: e.target.value === '' ? undefined : Number(e.target.value) })}
+                           aria-label="Claps"
+                           title="Claps"
+                         />
                          
                          <div className="md:col-span-2 flex flex-col md:flex-row gap-3">
                            <input
@@ -1525,8 +1570,13 @@ export const Admin: React.FC = () => {
                                 </div>
                               </td>
                               <td className="p-3 text-xs text-gray-500">
-                                <div>{post.likes} Likes</div>
-                                <div>{post.commentsCount} Comments</div>
+                                <div className="flex flex-col gap-0.5">
+                                  <div>{Number(post.likes || 0).toLocaleString()} Likes</div>
+                                  <div>{Number(post.loves || 0).toLocaleString()} Loves</div>
+                                  <div>{Number(post.claps || 0).toLocaleString()} Claps</div>
+                                  <div>{Number(post.views || 0).toLocaleString()} Views</div>
+                                  <div>{post.commentsCount} Comments</div>
+                                </div>
                               </td>
                               <td className="p-3">
                                 <div className="flex gap-1">

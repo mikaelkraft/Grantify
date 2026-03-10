@@ -10,7 +10,8 @@ import {
   LoanProvider,
   BlogPost,
   BlogComment,
-  ProviderReview
+  ProviderReview,
+  ReactionType
 } from '../types';
 
 // --- CONFIGURATION ---
@@ -18,6 +19,23 @@ import {
 // For local development: set VITE_API_URL to your local server (e.g., http://localhost:3000)
 // When deployed to Vercel, leave VITE_API_URL empty to use same-origin API routes
 const API_URL = import.meta.env.VITE_API_URL || ''; 
+
+const getOrCreateAnonUserId = (): string => {
+  try {
+    const key = 'grantify_uid';
+    let id = localStorage.getItem(key);
+    if (!id) {
+      const random = (globalThis.crypto && 'randomUUID' in globalThis.crypto)
+        ? (globalThis.crypto as Crypto).randomUUID()
+        : `anon_${Math.random().toString(36).slice(2)}_${Date.now().toString(36)}`;
+      id = random;
+      localStorage.setItem(key, id);
+    }
+    return id;
+  } catch {
+    return `anon_${Math.random().toString(36).slice(2)}_${Date.now().toString(36)}`;
+  }
+};
 
 // Initial Seed Data (Used for Mock Mode if API fails or is empty)
 const initialTestimonials: Testimonial[] = [
@@ -361,6 +379,17 @@ export const ApiService = {
     return await res.json();
   },
 
+  reactToBlogPost: async (postId: string, reactionType: ReactionType): Promise<{ likes: number; loves: number; claps: number; myReaction: ReactionType | null }> => {
+    const userId = getOrCreateAnonUserId();
+    const res = await fetch(`${API_URL}/api/blog`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'react', postId, userId, reactionType })
+    });
+    if (!res.ok) throw new Error('Failed to react to blog post');
+    return await res.json();
+  },
+
   deleteBlogPost: async (id: string): Promise<void> => {
     const res = await fetch(`${API_URL}/api/blog?id=${id}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Failed to delete blog post');
@@ -390,5 +419,15 @@ export const ApiService = {
       method: 'DELETE'
     });
     if (!res.ok) throw new Error('Failed to delete review via API');
+  },
+
+  // -- Contact --
+  submitContactMessage: async (data: { name: string; email: string; phone?: string; subject: string; message: string }): Promise<void> => {
+    const res = await fetch(`${API_URL}/api/contact`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to submit contact message');
   }
 };

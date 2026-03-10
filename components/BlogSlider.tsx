@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { BlogPost } from '../types';
-import { BookOpen, ChevronRight, Eye } from 'lucide-react';
+import { ThumbsUp, ChevronRight, Eye } from 'lucide-react';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
 
 interface Props {
@@ -67,7 +67,7 @@ export const BlogSlider: React.FC<Props> = ({ posts }) => {
                       <span className="text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-tighter">{post.author}</span>
                     </div>
                     <div className="flex items-center gap-3 text-gray-400 dark:text-gray-500">
-                      <span className="flex items-center gap-1 text-[10px] font-bold"><BookOpen size={10} /> {post.likes}</span>
+                      <span className="flex items-center gap-1 text-[10px] font-bold"><ThumbsUp size={10} /> {Number((post.likes || 0) + (post.loves || 0) + (post.claps || 0)).toLocaleString()}</span>
                       <span className="flex items-center gap-1 text-[10px] font-bold"><Eye size={10} /> {Number(post.views || 0).toLocaleString()}</span>
                     </div>
                   </div>

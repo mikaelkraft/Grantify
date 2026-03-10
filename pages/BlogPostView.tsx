@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ApiService } from '../services/storage';
 import { BlogPost, BlogComment, AdConfig } from '../types';
-import { Loader2, ThumbsUp, MessageSquare, ArrowLeft, Send, Calendar, User, Shield, Share2, Eye, ArrowUp } from 'lucide-react';
+import { Loader2, ThumbsUp, Heart, Hand, MessageSquare, ArrowLeft, Send, Calendar, User, Shield, Share2, Eye, ArrowUp } from 'lucide-react';
 import { AdSlot } from '../components/AdSlot';
 import { FacebookShareButton, TwitterShareButton, WhatsappShareButton, LinkedinShareButton, FacebookIcon, TwitterIcon, WhatsappIcon, LinkedinIcon } from 'react-share';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
@@ -17,6 +17,32 @@ export const BlogPostView: React.FC = () => {
   const [commentForm, setCommentForm] = useState({ name: '', content: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [myReaction, setMyReaction] = useState<'likes' | 'loves' | 'claps' | null>(null);
+
+  useEffect(() => {
+    if (!post) return;
+    try {
+      document.title = `${post.title} | Grantify`;
+
+      const stripHtml = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      const description = stripHtml(post.content || '').slice(0, 160) || 'Discover funding options and learn from community intelligence.';
+      const image = (post.image && !String(post.image).startsWith('data:')) ? String(post.image) : '/og-default.svg';
+
+      const setMeta = (selector: string, attr: 'content', value: string) => {
+        const el = document.head.querySelector(selector) as HTMLMetaElement | null;
+        if (el) el.setAttribute(attr, value);
+      };
+
+      setMeta('meta[property="og:title"]', 'content', post.title);
+      setMeta('meta[property="og:description"]', 'content', description);
+      setMeta('meta[property="og:image"]', 'content', image);
+      setMeta('meta[name="twitter:title"]', 'content', post.title);
+      setMeta('meta[name="twitter:description"]', 'content', description);
+      setMeta('meta[name="twitter:image"]', 'content', image);
+    } catch {
+      // no-op
+    }
+  }, [post?.id]);
 
   useEffect(() => {
     if (id) fetchPost();
@@ -33,6 +59,15 @@ export const BlogPostView: React.FC = () => {
     try {
       const data = await ApiService.getBlogPost(id!);
       setPost(data);
+
+      // Restore client-side reaction highlight (server enforces de-dupe)
+      try {
+        const stored = localStorage.getItem(`grantify_blog_reaction_${data.id}`);
+        if (stored === 'likes' || stored === 'loves' || stored === 'claps') setMyReaction(stored);
+        else setMyReaction(null);
+      } catch {
+        setMyReaction(null);
+      }
       
       // Fetch recommended posts (excluding current one)
       const allPosts = await ApiService.getBlogPosts();
@@ -49,13 +84,20 @@ export const BlogPostView: React.FC = () => {
     }
   };
 
-  const handleLike = async () => {
+  const handleReact = async (reactionType: 'likes' | 'loves' | 'claps') => {
     if (!post) return;
     try {
-      await ApiService.submitBlogAction({ action: 'like', postId: post.id });
-      setPost({ ...post, likes: post.likes + 1 });
+      const res = await ApiService.reactToBlogPost(post.id, reactionType);
+      setPost({ ...post, likes: res.likes, loves: res.loves, claps: res.claps });
+      setMyReaction(res.myReaction);
+      try {
+        if (res.myReaction) localStorage.setItem(`grantify_blog_reaction_${post.id}`, res.myReaction);
+        else localStorage.removeItem(`grantify_blog_reaction_${post.id}`);
+      } catch {
+        // no-op
+      }
     } catch (e) {
-      alert('Failed to like post');
+      alert('Failed to react');
     }
   };
 
@@ -102,43 +144,66 @@ export const BlogPostView: React.FC = () => {
     );
   }
 
+  const shareUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/share/blog/${post.id}`
+    : '';
+
+  const shareSummary = (() => {
+    try {
+      return String(post.content || '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 160);
+    } catch {
+      return '';
+    }
+  })();
+
+  const totalReactions = Number(post.likes || 0) + Number(post.loves || 0) + Number(post.claps || 0);
+
   return (
-    <div className="max-w-4xl mx-auto py-12 px-4">
+    <div className="max-w-5xl mx-auto py-12 px-3 sm:px-4 md:px-6">
       <Link to="/blog" className="inline-flex items-center gap-2 text-gray-500 dark:text-gray-300 hover:text-grantify-green mb-8 transition-colors">
         <ArrowLeft size={16} /> Back to Hub
       </Link>
 
-      <article className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden mb-12">
-        <img
-          src={post.image || getBlogPlaceholderImage(post.title)}
-          alt={post.title}
-          className="w-full h-80 object-cover"
-          loading="lazy"
-        />
+      <article className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm mb-12">
+        <div className="overflow-hidden rounded-t-3xl">
+          <img
+            src={post.image || getBlogPlaceholderImage(post.title)}
+            alt={post.title}
+            className="w-full h-80 object-cover"
+            loading="lazy"
+          />
+        </div>
         
-        <div className="p-8 md:p-12">
-          <div className="flex flex-wrap items-center gap-3 text-gray-500 dark:text-gray-400 text-xs mb-6 uppercase tracking-widest font-bold">
-            <span className="bg-grantify-gold/20 text-grantify-green px-2 py-1 rounded">{post.category}</span>
-            <span className="inline-flex items-center gap-1 bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 px-2 py-1 rounded">
+        <div className="p-6 sm:p-8 md:p-12">
+          <div className="flex flex-wrap items-center gap-2 text-gray-500 dark:text-gray-400 text-xs mb-6 font-bold">
+            <span className="bg-grantify-gold/20 text-grantify-green px-3 py-1 rounded-full uppercase tracking-widest">{post.category}</span>
+            <span className="inline-flex items-center gap-1 bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 px-3 py-1 rounded-full">
               <Calendar size={14} /> {new Date(post.createdAt).toLocaleDateString()}
             </span>
-            <span className="inline-flex items-center gap-1 bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 px-2 py-1 rounded">
+            <span className="inline-flex items-center gap-1 bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 px-3 py-1 rounded-full">
               <User size={14} /> {post.author}
             </span>
-            <span className="inline-flex items-center gap-1 bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 px-2 py-1 rounded">
+            <span className="inline-flex items-center gap-1 bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 px-3 py-1 rounded-full">
               <Shield size={14} /> {post.authorRole}
             </span>
-            <span className="inline-flex items-center gap-1 bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 px-2 py-1 rounded">
+            <span className="inline-flex items-center gap-1 bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 px-3 py-1 rounded-full">
               <Eye size={14} /> {Number(post.views || 0).toLocaleString()} views
+            </span>
+            <span className="inline-flex items-center gap-1 bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 px-3 py-1 rounded-full">
+              <ThumbsUp size={14} /> {Number(totalReactions).toLocaleString()} reactions
             </span>
           </div>
 
-          <h1 className="text-3xl md:text-5xl font-black font-heading text-gray-900 dark:text-gray-100 mb-8 leading-tight">
+          <h1 className="text-3xl md:text-5xl font-black font-heading text-gray-900 dark:text-gray-100 mb-8 leading-tight break-words">
             {post.title}
           </h1>
 
 
-          <div className="prose prose-lg max-w-none text-gray-700 dark:text-gray-200 leading-relaxed quill-content dark:prose-invert">
+          <div className="prose prose-lg max-w-none text-gray-700 dark:text-gray-200 leading-relaxed quill-content dark:prose-invert break-words overflow-x-auto">
             {ads?.body ? (
               (() => {
                 // Since content is now HTML from ReactQuill
@@ -171,24 +236,41 @@ export const BlogPostView: React.FC = () => {
             )}
           </div>
 
-          <div className="mt-8 flex items-center justify-between gap-4 border-y border-gray-100 dark:border-gray-800 py-6">
-             <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2"><Share2 size={16} /> Share:</span>
-                <FacebookShareButton url={window.location.href} className="hover:opacity-80 transition-opacity"><FacebookIcon size={32} round /></FacebookShareButton>
-                <TwitterShareButton url={window.location.href} title={post.title} className="hover:opacity-80 transition-opacity"><TwitterIcon size={32} round /></TwitterShareButton>
-                <WhatsappShareButton url={window.location.href} title={post.title} separator=" - " className="hover:opacity-80 transition-opacity"><WhatsappIcon size={32} round /></WhatsappShareButton>
-                <LinkedinShareButton url={window.location.href} title={post.title} summary={post.content.substring(0, 100)} source="Grantify" className="hover:opacity-80 transition-opacity"><LinkedinIcon size={32} round /></LinkedinShareButton>
-             </div>
+          <div className="mt-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-y border-gray-100 dark:border-gray-800 py-6">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2"><Share2 size={16} /> Share:</span>
+              <FacebookShareButton url={shareUrl} className="hover:opacity-80 transition-opacity"><FacebookIcon size={32} round /></FacebookShareButton>
+              <TwitterShareButton url={shareUrl} title={post.title} className="hover:opacity-80 transition-opacity"><TwitterIcon size={32} round /></TwitterShareButton>
+              <WhatsappShareButton url={shareUrl} title={post.title} separator=" - " className="hover:opacity-80 transition-opacity"><WhatsappIcon size={32} round /></WhatsappShareButton>
+              <LinkedinShareButton url={shareUrl} title={post.title} summary={shareSummary} source="Grantify" className="hover:opacity-80 transition-opacity"><LinkedinIcon size={32} round /></LinkedinShareButton>
+            </div>
           </div>
 
-          <div className="mt-12 pt-8 border-t border-gray-50 dark:border-gray-800 flex items-center justify-between">
-            <button 
-              onClick={handleLike}
-              className="flex items-center gap-2 bg-gray-50 dark:bg-gray-950 hover:bg-red-50 hover:text-red-500 px-6 py-3 rounded-full transition-all group font-bold"
-            >
-              <ThumbsUp size={20} className="group-hover:scale-110 transition-transform" />
-              {post.likes} Likes
-            </button>
+          <div className="mt-12 pt-8 border-t border-gray-50 dark:border-gray-800 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => handleReact('likes')}
+                className={`flex items-center gap-2 px-5 py-3 rounded-full transition-all font-bold border ${myReaction === 'likes' ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-200 dark:border-blue-800' : 'bg-gray-50 dark:bg-gray-950 text-gray-700 dark:text-gray-200 border-gray-100 dark:border-gray-800 hover:border-blue-200 dark:hover:border-blue-800 hover:text-blue-700'}`}
+              >
+                <ThumbsUp size={18} className={myReaction === 'likes' ? 'fill-blue-100' : ''} />
+                {Number(post.likes || 0).toLocaleString()}
+              </button>
+              <button
+                onClick={() => handleReact('loves')}
+                className={`flex items-center gap-2 px-5 py-3 rounded-full transition-all font-bold border ${myReaction === 'loves' ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-200 dark:border-red-800' : 'bg-gray-50 dark:bg-gray-950 text-gray-700 dark:text-gray-200 border-gray-100 dark:border-gray-800 hover:border-red-200 dark:hover:border-red-800 hover:text-red-700'}`}
+              >
+                <Heart size={18} className={myReaction === 'loves' ? 'fill-red-100' : ''} />
+                {Number(post.loves || 0).toLocaleString()}
+              </button>
+              <button
+                onClick={() => handleReact('claps')}
+                className={`flex items-center gap-2 px-5 py-3 rounded-full transition-all font-bold border ${myReaction === 'claps' ? 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-200 dark:border-orange-800' : 'bg-gray-50 dark:bg-gray-950 text-gray-700 dark:text-gray-200 border-gray-100 dark:border-gray-800 hover:border-orange-200 dark:hover:border-orange-800 hover:text-orange-700'}`}
+              >
+                <Hand size={18} className={myReaction === 'claps' ? 'fill-orange-100' : ''} />
+                {Number(post.claps || 0).toLocaleString()}
+              </button>
+            </div>
+
             <div className="flex items-center gap-2 text-gray-400 dark:text-gray-400 font-bold">
               <MessageSquare size={20} />
               {post.comments.length} Comments

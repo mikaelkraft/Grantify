@@ -37,6 +37,9 @@ export default async function handler(req, res) {
           tags: post.tags,
           sourceName: post.source_name,
           sourceUrl: post.source_url,
+          likes: post.likes ?? 0,
+          loves: post.loves ?? 0,
+          claps: post.claps ?? 0,
           views: post.views ?? 0,
           comments: comments.rows.map(c => ({
             id: c.id,
@@ -71,7 +74,9 @@ export default async function handler(req, res) {
         tags: row.tags,
         sourceName: row.source_name,
         sourceUrl: row.source_url,
-        likes: row.likes,
+        likes: row.likes ?? 0,
+        loves: row.loves ?? 0,
+        claps: row.claps ?? 0,
         views: row.views ?? 0,
         commentsCount: parseInt(row.comments_count),
         createdAt: row.created_at,
@@ -80,7 +85,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const { action, postId, name, content, parentId, title, author, authorRole, category, image, tags, sourceName, sourceUrl, views, createdAt } = req.body;
+      const { action, postId, name, content, parentId, title, author, authorRole, category, image, tags, sourceName, sourceUrl, views, createdAt, likes, loves, claps } = req.body;
 
       if (action === 'comment') {
         const id = Date.now().toString();
@@ -96,6 +101,84 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true });
       }
 
+      if (action === 'react') {
+        const { userId, reactionType } = req.body;
+        const allowed = new Set(['likes', 'loves', 'claps']);
+        if (!postId || !userId || !reactionType || !allowed.has(reactionType)) {
+          return res.status(400).json({ error: 'Invalid reaction request' });
+        }
+
+        const col = reactionType; // safe due to allowlist above
+        await client.query('BEGIN');
+        try {
+          const existing = await client.query(
+            'SELECT reaction_type FROM blog_post_reactions WHERE post_id = $1 AND user_id = $2',
+            [postId, userId]
+          );
+          const prev = existing.rows[0]?.reaction_type || null;
+
+          let myReaction = reactionType;
+          let updated;
+
+          if (prev === reactionType) {
+            // Toggle OFF
+            await client.query('DELETE FROM blog_post_reactions WHERE post_id = $1 AND user_id = $2', [postId, userId]);
+            updated = await client.query(
+              `UPDATE blog_posts
+               SET ${col} = GREATEST(COALESCE(${col}, 0) - 1, 0)
+               WHERE id = $1
+               RETURNING likes, loves, claps`,
+              [postId]
+            );
+            myReaction = null;
+          } else if (prev) {
+            // Switch reaction
+            await client.query(
+              'UPDATE blog_post_reactions SET reaction_type = $3, updated_at = CURRENT_TIMESTAMP WHERE post_id = $1 AND user_id = $2',
+              [postId, userId, reactionType]
+            );
+            // prev is allowlisted by CHECK constraint in table, but validate anyway
+            if (!allowed.has(prev)) throw new Error('Invalid previous reaction type');
+            updated = await client.query(
+              `UPDATE blog_posts
+               SET ${prev} = GREATEST(COALESCE(${prev}, 0) - 1, 0),
+                   ${col} = COALESCE(${col}, 0) + 1
+               WHERE id = $1
+               RETURNING likes, loves, claps`,
+              [postId]
+            );
+          } else {
+            // First reaction
+            await client.query(
+              `INSERT INTO blog_post_reactions (post_id, user_id, reaction_type)
+               VALUES ($1, $2, $3)
+               ON CONFLICT (post_id, user_id) DO UPDATE
+               SET reaction_type = EXCLUDED.reaction_type, updated_at = CURRENT_TIMESTAMP`,
+              [postId, userId, reactionType]
+            );
+            updated = await client.query(
+              `UPDATE blog_posts
+               SET ${col} = COALESCE(${col}, 0) + 1
+               WHERE id = $1
+               RETURNING likes, loves, claps`,
+              [postId]
+            );
+          }
+
+          await client.query('COMMIT');
+          return res.status(200).json({
+            success: true,
+            likes: updated.rows[0]?.likes ?? 0,
+            loves: updated.rows[0]?.loves ?? 0,
+            claps: updated.rows[0]?.claps ?? 0,
+            myReaction
+          });
+        } catch (e) {
+          await client.query('ROLLBACK');
+          throw e;
+        }
+      }
+
       if (action === 'likeComment') {
         const { commentId } = req.body;
         await client.query('UPDATE blog_comments SET likes = likes + 1 WHERE id = $1', [commentId]);
@@ -104,18 +187,20 @@ export default async function handler(req, res) {
 
       // Create new post (Admin)
       const id = Date.now().toString();
-      const seededLikes = Math.floor(12 + Math.random() * 64); // 12..75
+      const seededLikes = typeof likes === 'number' ? likes : Math.floor(12 + Math.random() * 64); // 12..75
+      const seededLoves = typeof loves === 'number' ? loves : Math.floor(6 + Math.random() * 28); // 6..33
+      const seededClaps = typeof claps === 'number' ? claps : Math.floor(3 + Math.random() * 18); // 3..20
       const seededViews = typeof views === 'number' ? views : Math.floor(120 + Math.random() * 900); // 120..1019
       await client.query(
-        `INSERT INTO blog_posts (id, title, content, author, author_role, category, image, tags, source_name, source_url, likes, views, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, COALESCE($13, CURRENT_TIMESTAMP))`,
-        [id, title, content, author, authorRole, category, image, tags || [], sourceName, sourceUrl, seededLikes, seededViews, createdAt || null]
+        `INSERT INTO blog_posts (id, title, content, author, author_role, category, image, tags, source_name, source_url, likes, loves, claps, views, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, COALESCE($15, CURRENT_TIMESTAMP))`,
+        [id, title, content, author, authorRole, category, image, tags || [], sourceName, sourceUrl, seededLikes, seededLoves, seededClaps, seededViews, createdAt || null]
       );
       return res.status(200).json({ success: true, id });
     }
 
     if (req.method === 'PUT') {
-      const { id, title, content, author, authorRole, category, image, tags, sourceName, sourceUrl, views, createdAt } = req.body;
+      const { id, title, content, author, authorRole, category, image, tags, sourceName, sourceUrl, views, createdAt, likes, loves, claps } = req.body;
       await client.query(
         `UPDATE blog_posts
          SET title = $1,
@@ -133,6 +218,18 @@ export default async function handler(req, res) {
          WHERE id = $12`,
         [title, content, author, authorRole, category, image, tags || [], sourceName, sourceUrl, typeof views === 'number' ? views : null, createdAt || null, id]
       );
+
+      // Allow updating initial reaction counters from admin (optional)
+      if (typeof likes === 'number' || typeof loves === 'number' || typeof claps === 'number') {
+        await client.query(
+          `UPDATE blog_posts
+           SET likes = COALESCE($1, likes),
+               loves = COALESCE($2, loves),
+               claps = COALESCE($3, claps)
+           WHERE id = $4`,
+          [typeof likes === 'number' ? likes : null, typeof loves === 'number' ? loves : null, typeof claps === 'number' ? claps : null, id]
+        );
+      }
       return res.status(200).json({ success: true });
     }
 
