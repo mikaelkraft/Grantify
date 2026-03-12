@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="Grantify logo">
+  <title>Grantify</title>
+  <circle cx="128" cy="128" r="120" fill="#006400"/>
+  <circle cx="128" cy="128" r="108" fill="none" stroke="#FFD700" stroke-width="10"/>
+  <text x="128" y="168" text-anchor="middle" font-family="Roboto, Arial, sans-serif" font-size="140" font-weight="800" fill="#FFD700">G</text>
+</svg>

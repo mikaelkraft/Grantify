@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { AdSlot } from './AdSlot';
 import { ApiService } from '../services/storage';
 import { AdConfig } from '../types';
-import { Menu, X, Banknote, AlertTriangle, ShieldAlert, RefreshCw, HelpCircle, Moon, Sun } from 'lucide-react';
+import { Menu, X, AlertTriangle, ShieldAlert, RefreshCw, HelpCircle, Moon, Sun } from 'lucide-react';
 import { AiChatbot } from './AiChatbot';
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -278,7 +278,13 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       <header className="bg-grantify-green/95 dark:bg-gray-950 backdrop-blur-md text-white shadow-lg sticky top-0 z-[60] transition-all duration-300">
         <div className="mx-auto w-full max-w-7xl px-3 sm:px-4 md:px-6 py-4 flex justify-between items-center">
           <Link to="/" className="flex items-center gap-2 text-2xl font-bold font-heading text-grantify-gold">
-            <Banknote className="w-8 h-8" />
+            <img
+              src="/logo.svg"
+              alt="Grantify"
+              className="w-8 h-8"
+              loading="eager"
+              decoding="async"
+            />
             <span>Grantify</span>
           </Link>
 

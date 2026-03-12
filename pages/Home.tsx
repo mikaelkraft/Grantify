@@ -12,7 +12,7 @@ import { LoanType, ApplicationStatus, LoanApplication, Testimonial, AdConfig, Bl
 import { 
   Calculator, CheckCircle, AlertCircle, ArrowRight, Share2, Copy, 
   Info, Loader2, MessageSquarePlus, Send, Zap, Landmark, 
-  ExternalLink, ShieldCheck, Search, Award, TrendingUp, Sparkles,
+  ExternalLink, ShieldCheck, Search, Award, TrendingUp,
   BookOpen, ChevronRight, Eye, ThumbsUp
 } from 'lucide-react';
 import { formatNaira, formatNairaCompact } from '../utils/currency';
@@ -197,7 +197,7 @@ export const Home: React.FC = () => {
         
         <div className="relative z-10 text-center px-6 max-w-5xl">
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full text-xs font-black text-grantify-gold uppercase tracking-[0.2em] mb-8 border border-white/5">
-            <Sparkles size={14} /> Nigeria's #1 Grant Intelligence Hub
+            <Award size={14} /> Nigeria's #1 Grant Intelligence Hub
           </div>
           <h1 className="text-4xl md:text-7xl font-black font-heading text-white mb-8 leading-[1.1]">
             Bridge the Gap Between <br/>
@@ -228,7 +228,7 @@ export const Home: React.FC = () => {
         <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2.5rem] p-6 md:p-10">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           {[
-            { label: 'Requests Matched', value: applicationStats ? applicationStats.applicationsCount.toLocaleString() : '—', icon: Sparkles },
+            { label: 'Requests Matched', value: applicationStats ? applicationStats.applicationsCount.toLocaleString() : '—', icon: CheckCircle },
             { label: 'Funding Requested', value: applicationStats ? formatNairaCompact(applicationStats.totalRequestedAmount) : '—', icon: Award },
             { label: 'Success Rate', value: '85%', icon: TrendingUp },
             { label: 'Trusted Partners', value: '12+', icon: Landmark },
@@ -253,7 +253,7 @@ export const Home: React.FC = () => {
         <div className="lg:col-span-3">
           <div className="bg-white dark:bg-gray-900 p-8 md:p-12 rounded-[2.5rem] shadow-2xl border border-gray-100 dark:border-gray-800 relative">
             <div className="absolute top-0 right-0 p-8 z-0 opacity-50">
-              <Sparkles className="text-gray-100 dark:text-gray-800" size={60} />
+              <Search className="text-gray-100 dark:text-gray-800" size={60} />
             </div>
             
             <h2 className="text-3xl font-black font-heading text-gray-900 dark:text-gray-100 mb-10 flex items-center gap-4 relative z-10">
@@ -359,7 +359,7 @@ export const Home: React.FC = () => {
                       <h4 className="text-sm font-bold text-gray-800 dark:text-gray-100 group-hover:text-grantify-green transition-colors">{network.name}</h4>
                       <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Verified Provider</p>
                     </div>
-                    <ArrowRight size={14} className="ml-auto text-gray-300 group-hover:text-grantify-green group-hover:translate-x-1 transition-all" />
+                    <ChevronRight className="ml-auto w-5 h-5 text-gray-300 group-hover:text-grantify-green group-hover:translate-x-1 transition-all" />
                   </div>
                 ))}
               </div>
