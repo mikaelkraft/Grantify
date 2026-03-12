@@ -60,6 +60,81 @@
       h1, h2, h3, h4, h5, h6 {
         font-family: 'Roboto', sans-serif;
       }
+
+      /* Horizontal ticker (Latest News) */
+      @keyframes ticker-marquee {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+      }
+      .ticker-marquee {
+        animation: ticker-marquee 40s linear infinite;
+        will-change: transform;
+      }
+
+      /* Blog post / AI article HTML styling (ReactQuill output) */
+      .quill-content {
+        overflow-wrap: anywhere;
+        word-break: normal;
+        hyphens: auto;
+        line-height: 1.8;
+      }
+      .quill-content p {
+        margin: 0.9em 0;
+      }
+      .quill-content h1,
+      .quill-content h2,
+      .quill-content h3 {
+        font-weight: 800;
+        line-height: 1.25;
+        margin: 1.25em 0 0.55em;
+      }
+      .quill-content h1 { font-size: 2em; }
+      .quill-content h2 { font-size: 1.6em; }
+      .quill-content h3 { font-size: 1.25em; }
+      .quill-content ul,
+      .quill-content ol {
+        padding-left: 1.4em;
+        margin: 0.9em 0;
+      }
+      .quill-content li { margin: 0.3em 0; }
+      .quill-content blockquote {
+        margin: 1em 0;
+        padding: 0.8em 1em;
+        border-left: 4px solid rgba(0,100,0,0.35);
+        background: rgba(0,0,0,0.02);
+      }
+      .dark .quill-content blockquote {
+        background: rgba(255,255,255,0.04);
+        border-left-color: rgba(255,215,0,0.35);
+      }
+      .quill-content a { text-decoration: underline; }
+      .quill-content img { max-width: 100%; height: auto; border-radius: 12px; }
+
+      /* Admin editor (ReactQuill) - sticky toolbar + dark mode */
+      .admin-quill .ql-toolbar.ql-snow {
+        position: sticky;
+        top: 84px; /* sits below the sticky site header */
+        z-index: 30;
+      }
+      .admin-quill .ql-toolbar.ql-snow,
+      .admin-quill .ql-container.ql-snow {
+        border-color: rgba(0,0,0,0.08);
+      }
+      .dark .admin-quill .ql-toolbar.ql-snow {
+        background: #0b1220;
+        border-color: rgba(255,255,255,0.08);
+      }
+      .dark .admin-quill .ql-container.ql-snow {
+        background: #030712;
+        border-color: rgba(255,255,255,0.08);
+        color: #e5e7eb;
+      }
+      .dark .admin-quill .ql-editor.ql-blank::before { color: rgba(229,231,235,0.45); }
+      .dark .admin-quill .ql-stroke { stroke: #e5e7eb; }
+      .dark .admin-quill .ql-fill { fill: #e5e7eb; }
+      .dark .admin-quill .ql-picker { color: #e5e7eb; }
+      .dark .admin-quill .ql-picker-options { background: #0b1220; border-color: rgba(255,255,255,0.08); }
+
       @keyframes slide-up {
         from { transform: translateY(100%); opacity: 0; }
         to { transform: translateY(0); opacity: 1; }

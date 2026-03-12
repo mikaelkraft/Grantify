@@ -38,6 +38,7 @@ export const Home: React.FC = () => {
   // Data State
   const [ads, setAds] = useState<AdConfig | null>(null);
   const [allTestimonials, setAllTestimonials] = useState<Testimonial[]>([]);
+  const [visibleTestimonialsCount, setVisibleTestimonialsCount] = useState(3);
   const [recentApplicants, setRecentApplicants] = useState<Array<{ id: string; fullName: string }>>([]);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [applicationStats, setApplicationStats] = useState<{ applicationsCount: number; totalRequestedAmount: number } | null>(null);
@@ -427,10 +428,26 @@ export const Home: React.FC = () => {
       <section className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-12">
         <h2 className="text-3xl font-black font-heading text-center text-gray-900 dark:text-gray-100 mb-12">Successful Grant Matches</h2>
         <div className="grid md:grid-cols-3 gap-8">
-          {allTestimonials.filter(t => !t.status || t.status === 'approved').slice(0, 3).map(t => (
+          {allTestimonials
+            .filter(t => !t.status || t.status === 'approved')
+            .slice(0, visibleTestimonialsCount)
+            .map(t => (
             <TestimonialCard key={t.id} data={t} />
           ))}
         </div>
+
+        {allTestimonials.filter(t => !t.status || t.status === 'approved').length > visibleTestimonialsCount && (
+          <div className="text-center mt-10">
+            <button
+              type="button"
+              onClick={() => setVisibleTestimonialsCount(c => c + 3)}
+              className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-grantify-green text-white font-black uppercase text-xs tracking-widest hover:bg-green-800 transition shadow-lg"
+            >
+              Load More
+            </button>
+          </div>
+        )}
+
         <div className="text-center mt-10">
           <p className="text-gray-400 dark:text-gray-500 text-sm italic">Join thousands of business owners exploring funding opportunities with Grantify.</p>
         </div>

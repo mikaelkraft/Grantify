@@ -17,6 +17,19 @@ export default async function handler(req, res) {
 
   const client = await pool.connect();
   try {
+    // Ensure table exists (seed may not have been run yet)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS contact_messages (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL,
+        phone TEXT,
+        subject TEXT NOT NULL,
+        message TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     const id = Date.now().toString();
     await client.query(
       `INSERT INTO contact_messages (id, name, email, phone, subject, message)

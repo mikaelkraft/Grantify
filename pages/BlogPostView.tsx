@@ -16,6 +16,8 @@ export const BlogPostView: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [commentForm, setCommentForm] = useState({ name: '', content: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [replyContent, setReplyContent] = useState('');
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [myReaction, setMyReaction] = useState<'likes' | 'loves' | 'claps' | null>(null);
 
@@ -114,25 +116,47 @@ export const BlogPostView: React.FC = () => {
     }
   };
 
-  const handleCommentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!id || !commentForm.name || !commentForm.content) return;
-    
+  const submitComment = async (payload: { content: string; parentId?: string | null }) => {
+    if (!id) return;
+    const name = commentForm.name.trim();
+    const content = payload.content.trim();
+    if (!name || !content) return;
+
+    // Mirror server-side rule to avoid spam/link drops
+    if (/(https?:\/\/|\bwww\.)/i.test(content)) {
+      alert('Links are not allowed in comments. Please remove any URLs and try again.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await ApiService.submitBlogAction({
         action: 'comment',
         postId: id,
-        name: commentForm.name,
-        content: commentForm.content
+        name,
+        content,
+        parentId: payload.parentId || undefined
       });
-      setCommentForm({ name: '', content: '' });
-      await fetchPost(); // Refresh
+      await fetchPost();
     } catch (e) {
       alert('Failed to post comment');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleCommentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await submitComment({ content: commentForm.content, parentId: null });
+    setCommentForm(prev => ({ ...prev, content: '' }));
+  };
+
+  const handleReplySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!replyTo) return;
+    await submitComment({ content: replyContent, parentId: replyTo });
+    setReplyContent('');
+    setReplyTo(null);
   };
 
   if (isLoading || !post) {
@@ -161,6 +185,17 @@ export const BlogPostView: React.FC = () => {
   })();
 
   const totalReactions = Number(post.likes || 0) + Number(post.loves || 0) + Number(post.claps || 0);
+
+  const repliesByParent = post.comments.reduce<Record<string, BlogComment[]>>((acc, c) => {
+    if (c.parentId) {
+      const key = String(c.parentId);
+      acc[key] = acc[key] || [];
+      acc[key].push(c);
+    }
+    return acc;
+  }, {});
+
+  const topLevelComments = post.comments.filter(c => !c.parentId);
 
   return (
     <div className="max-w-5xl mx-auto py-12 px-3 sm:px-4 md:px-6">
@@ -331,6 +366,11 @@ export const BlogPostView: React.FC = () => {
               onChange={e => setCommentForm({...commentForm, content: e.target.value})}
               required
             />
+
+            <div className="text-[11px] text-gray-500 dark:text-gray-400">
+              Links are blocked to reduce spam. Consider registering for richer discussions and notifications.
+            </div>
+
             <button 
               disabled={isSubmitting}
               className="bg-grantify-green text-white font-black py-4 px-8 rounded-xl shadow-lg hover:shadow-2xl hover:bg-green-700 transition-all flex items-center gap-2 ml-auto disabled:opacity-70 disabled:cursor-not-allowed"
@@ -343,10 +383,10 @@ export const BlogPostView: React.FC = () => {
 
         {/* Comments List */}
         <div className="space-y-6">
-          {post.comments.length === 0 ? (
+          {topLevelComments.length === 0 ? (
             <p className="text-center text-gray-400 dark:text-gray-500 italic py-8">Be the first to share your thoughts!</p>
           ) : (
-            post.comments.map(comment => (
+            topLevelComments.map(comment => (
               <div key={comment.id} className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-50 dark:border-gray-800 shadow-sm flex flex-col gap-3">
                 <div className="flex justify-between items-center">
                   <span className="font-black text-gray-800 dark:text-gray-100 flex items-center gap-2">
@@ -359,16 +399,85 @@ export const BlogPostView: React.FC = () => {
                     {new Date(comment.createdAt!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(comment.createdAt!).toLocaleDateString()}
                   </span>
                 </div>
+
                 <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">{comment.content}</p>
+
                 <div className="flex items-center gap-4 pt-2">
                   <button 
                     onClick={() => handleLikeComment(comment.id)}
-                    className="flex items-center gap-1 text-gray-400 dark:text-gray-500 hover:text-red-500 transition-colors"
+                    className="flex items-center gap-1 text-gray-400 dark:text-gray-500 hover:text-grantify-green transition-colors"
+                    title="Like"
+                    aria-label="Like"
                   >
                     <ThumbsUp size={14} />
                     <span className="text-xs font-bold">{comment.likes}</span>
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReplyTo(comment.id);
+                      setReplyContent('');
+                    }}
+                    className="text-xs font-black uppercase tracking-widest text-gray-400 dark:text-gray-500 hover:text-grantify-green transition-colors"
+                  >
+                    Reply
+                  </button>
                 </div>
+
+                {replyTo === comment.id && (
+                  <form onSubmit={handleReplySubmit} className="mt-3 space-y-2">
+                    <textarea
+                      rows={3}
+                      className="w-full p-3 rounded-xl border-none ring-1 ring-gray-200 dark:ring-gray-700 focus:ring-2 focus:ring-grantify-green bg-white dark:bg-gray-950 shadow-inner outline-none text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                      placeholder="Write a reply (no links)..."
+                      value={replyContent}
+                      onChange={e => setReplyContent(e.target.value)}
+                      required
+                    />
+                    <div className="flex items-center gap-2 justify-end">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setReplyTo(null);
+                          setReplyContent('');
+                        }}
+                        className="text-xs font-black uppercase tracking-widest text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="inline-flex items-center gap-2 bg-grantify-green text-white font-black px-4 py-2 rounded-xl shadow hover:bg-green-700 transition disabled:opacity-70"
+                      >
+                        <Send size={16} /> Reply
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {(repliesByParent[comment.id] || []).length > 0 && (
+                  <div className="mt-4 space-y-3 border-l border-gray-100 dark:border-gray-800 pl-4">
+                    {(repliesByParent[comment.id] || []).map(r => (
+                      <div key={r.id} className="bg-gray-50 dark:bg-gray-950 p-4 rounded-2xl border border-gray-100 dark:border-gray-800">
+                        <div className="flex justify-between items-center mb-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-grantify-green/90 text-white flex items-center justify-center text-[10px] font-black">
+                              {r.name[0]}
+                            </div>
+                            <span className="font-black text-gray-800 dark:text-gray-100 text-sm">{r.name}</span>
+                            <span className="text-[10px] bg-blue-100 dark:bg-blue-950/40 text-blue-600 dark:text-blue-200 px-1.5 py-0.5 rounded font-black uppercase">Reply</span>
+                          </div>
+                          <span className="text-[10px] text-gray-400 dark:text-gray-500 uppercase font-bold">
+                            {new Date(r.createdAt!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(r.createdAt!).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">{r.content}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))
           )}

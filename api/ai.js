@@ -1,6 +1,58 @@
 // API: /api/ai - AI Content Generation and Assistant
 // Uses Groq (OpenAI-compatible Chat Completions)
 
+const fetchNewsContext = async (query, { regionHint } = {}) => {
+  // Free, no-key source of fresh context: Google News RSS
+  // Note: this provides headlines + links only (no scraping of full articles).
+  const q = `${String(query || '').trim()} ${regionHint || 'Nigeria'}`.trim();
+  const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-NG&gl=NG&ceid=NG:en`;
+  const res = await fetch(url, { headers: { 'User-Agent': 'GrantifyBot/1.0' } });
+  if (!res.ok) return { items: [], contextText: '' };
+  const xml = await res.text();
+
+  const items = [];
+  const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
+  let match;
+  while ((match = itemRegex.exec(xml)) && items.length < 6) {
+    const itemXml = match[1];
+    const title = (itemXml.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>/i) || itemXml.match(/<title>([\s\S]*?)<\/title>/i) || [])[1];
+    const link = (itemXml.match(/<link>([\s\S]*?)<\/link>/i) || [])[1];
+    const pubDate = (itemXml.match(/<pubDate>([\s\S]*?)<\/pubDate>/i) || [])[1];
+    if (!title || !link) continue;
+    items.push({
+      title: String(title).replace(/<[^>]+>/g, '').trim(),
+      link: String(link).trim(),
+      pubDate: pubDate ? String(pubDate).trim() : ''
+    });
+  }
+
+  if (items.length === 0) return { items: [], contextText: '' };
+  const contextText = items
+    .map((i, idx) => `${idx + 1}. ${i.title}${i.pubDate ? ` (${i.pubDate})` : ''} - ${i.link}`)
+    .join('\n');
+
+  return { items, contextText };
+};
+
+const buildSourcesHtml = (items) => {
+  if (!Array.isArray(items) || items.length === 0) return '';
+  const safeItems = items
+    .filter((i) => i && typeof i.title === 'string' && typeof i.link === 'string')
+    .slice(0, 8);
+
+  if (safeItems.length === 0) return '';
+
+  const listItems = safeItems
+    .map((i) => {
+      const title = i.title.replace(/</g, '&lt;').replace(/>/g, '&gt;').trim();
+      const href = i.link.replace(/"/g, '&quot;').trim();
+      return `<li><a href="${href}" target="_blank" rel="noopener noreferrer">${title}</a></li>`;
+    })
+    .join('');
+
+  return `<h3>Sources</h3><ul>${listItems}</ul>`;
+};
+
 export default async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -10,7 +62,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { prompt, type, history } = req.body || {};
+  const { prompt, type, history, useSearch } = req.body || {};
   const groqKey = process.env.GROQ_API_KEY;
 
   if (!prompt || typeof prompt !== 'string') {
@@ -32,6 +84,8 @@ export default async function handler(req, res) {
   try {
     let systemInstruction = "";
     let userPrompt = prompt;
+    let newsContext = '';
+    let sources = [];
 
     if (type === 'blog') {
       systemInstruction = `You are a top-tier Nigerian business consultant and financial journalist.
@@ -42,12 +96,38 @@ export default async function handler(req, res) {
       2. AVOID generic AI openings or conclusions.
       3. FOCUS deeply on Nigeria: use Naira (₦), mention local states, or CBN/BOI policies.
       4. SOUND like a person, not a textbook. Be strategic and actionable.
-      5. FORMAT: Use <h2>, <h3>, <p>, <strong>, and <ul> tags only.`;
+      5. LINKS: If you include any links in the article body, use named anchors (descriptive link text). Do NOT show raw URLs in the body.
+      6. FORMAT: Use <h2>, <h3>, <p>, <strong>, <ul>, <li>, and <a> tags only.`;
       
       userPrompt = `Topic: "${prompt}". Write a deep-dive strategy article for Nigerian entrepreneurs.`;
+
+      if (useSearch) {
+        try {
+          const { items, contextText } = await fetchNewsContext(prompt);
+          sources = items;
+          newsContext = contextText;
+        } catch {
+          newsContext = '';
+          sources = [];
+        }
+      }
     } else {
       systemInstruction = `You are the Grantify Concierge. You help people find grants and loans in Nigeria.
       Rules: No em dashes (—). Be concise, professional, and friendly. Speak specifically about Nigerian opportunities.`;
+
+      if (useSearch) {
+        try {
+          const { items, contextText } = await fetchNewsContext(`${prompt} grants loans funding`, { regionHint: 'Nigeria' });
+          sources = items;
+          newsContext = contextText;
+          if (newsContext) {
+            systemInstruction += `\n\nYou may use the provided headlines/links as fresh context. If you reference a headline, include its link. Prefer descriptive named anchors when writing HTML.`;
+          }
+        } catch {
+          newsContext = '';
+          sources = [];
+        }
+      }
     }
 
     const groqUrl = `https://api.groq.com/openai/v1/chat/completions`;
@@ -62,10 +142,16 @@ export default async function handler(req, res) {
     const messages = type === 'blog'
       ? [
           { role: 'system', content: systemInstruction },
+          ...(newsContext
+            ? [{ role: 'user', content: `Use these recent headlines and links as context (do not invent facts beyond them):\n${newsContext}` }]
+            : []),
           { role: 'user', content: userPrompt }
         ]
       : [
           { role: 'system', content: systemInstruction },
+          ...(newsContext
+            ? [{ role: 'user', content: `Fresh context (headlines + links). Use only if relevant and do not invent facts beyond them:\n${newsContext}` }]
+            : []),
           ...normalizedHistory,
           { role: 'user', content: userPrompt }
         ];
@@ -86,7 +172,16 @@ export default async function handler(req, res) {
     if (!response.ok) throw new Error('Groq API Error');
     const data = await response.json();
     const aiText = data.choices?.[0]?.message?.content || 'No response generated.';
-    return res.status(200).json(type === 'blog' ? { content: aiText } : { text: aiText });
+
+    if (type === 'blog') {
+      const sourcesHtml = buildSourcesHtml(sources);
+      const finalHtml = sourcesHtml && !String(aiText).includes('<h3>Sources</h3>')
+        ? `${aiText}\n${sourcesHtml}`
+        : aiText;
+      return res.status(200).json({ content: finalHtml, sources });
+    }
+
+    return res.status(200).json({ text: aiText, sources });
   } catch (err) {
     console.error('AI API Error:', err);
     return res.status(500).json({ error: err.message });

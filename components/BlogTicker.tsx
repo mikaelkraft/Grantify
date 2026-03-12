@@ -8,38 +8,60 @@ interface Props {
 }
 
 export const BlogTicker: React.FC<Props> = ({ posts }) => {
-  const [offset, setOffset] = useState(0);
+  const [reducedMotion, setReducedMotion] = useState(false);
 
   useEffect(() => {
-    if (posts.length === 0) return;
-    const interval = setInterval(() => {
-      setOffset(prev => (prev + 1) % posts.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [posts.length]);
+    try {
+      const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+      const update = () => setReducedMotion(Boolean(mq.matches));
+      update();
+      mq.addEventListener?.('change', update);
+      return () => mq.removeEventListener?.('change', update);
+    } catch {
+      // no-op
+    }
+  }, []);
 
-  if (posts.length === 0) return null;
-
-  const current = posts[offset];
+  const items = (posts || []).filter(p => p && p.title).slice(0, 12);
+  if (items.length === 0) return null;
 
   return (
     <div className="bg-grantify-gold text-grantify-green py-2 px-4 flex items-center justify-center gap-4 overflow-hidden relative border-b border-yellow-500/20">
       <div className="flex items-center gap-2 text-grantify-green text-[10px] font-black uppercase tracking-widest whitespace-nowrap animate-pulse">
         <Megaphone size={12} /> Latest News
       </div>
-      
+
       <div className="h-6 flex items-center overflow-hidden flex-grow justify-center md:justify-start">
-        <div key={offset} className="animate-slide-up">
-          <Link 
-            to={`/blog/${current.id}`}
-            className="flex items-center gap-2 hover:underline transition-all duration-500 ease-in-out whitespace-nowrap"
-          >
-            <span className="text-xs font-bold truncate max-w-[200px] md:max-w-none">{current.title}</span>
-            <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded text-green-900 font-mono hidden md:inline-block">
-              {new Date(current.createdAt).toLocaleDateString()}
-            </span>
-          </Link>
-        </div>
+        {reducedMotion ? (
+          <div className="flex items-center gap-2 whitespace-nowrap">
+            <Link
+              to={`/blog/${items[0].id}`}
+              className="flex items-center gap-2 hover:underline transition-colors whitespace-nowrap"
+            >
+              <span className="text-xs font-bold truncate max-w-[240px] md:max-w-none">{items[0].title}</span>
+              <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded text-green-900 font-mono hidden md:inline-block">
+                {new Date(items[0].createdAt).toLocaleDateString()}
+              </span>
+            </Link>
+          </div>
+        ) : (
+          <div className="w-full overflow-hidden">
+            <div className="ticker-marquee flex items-center gap-10 w-max whitespace-nowrap">
+              {[...items, ...items].map((post, idx) => (
+                <Link
+                  key={`${post.id}_${idx}`}
+                  to={`/blog/${post.id}`}
+                  className="flex items-center gap-2 hover:underline transition-colors"
+                >
+                  <span className="text-xs font-bold">{post.title}</span>
+                  <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded text-green-900 font-mono hidden md:inline-block">
+                    {new Date(post.createdAt).toLocaleDateString()}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="hidden md:flex ml-auto items-center gap-4 opacity-70 text-[10px] font-bold uppercase tracking-wider">

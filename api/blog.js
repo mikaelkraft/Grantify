@@ -1,6 +1,20 @@
 // API: /api/blog - Manage community blog
 import pool from './_db.js';
 
+const sanitizePlainText = (value) => {
+  const s = String(value ?? '')
+    .replace(/<[^>]*>/g, ' ') // strip HTML tags
+    .replace(/[\u0000-\u001F\u007F]/g, ' ') // control chars
+    .replace(/\s+/g, ' ')
+    .trim();
+  return s;
+};
+
+const containsLinkLikeText = (value) => {
+  const s = String(value ?? '').toLowerCase();
+  return /https?:\/\//.test(s) || /\bwww\./.test(s);
+};
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, PUT, OPTIONS');
@@ -88,10 +102,37 @@ export default async function handler(req, res) {
       const { action, postId, name, content, parentId, title, author, authorRole, category, image, tags, sourceName, sourceUrl, views, createdAt, likes, loves, claps } = req.body;
 
       if (action === 'comment') {
+        if (!postId) return res.status(400).json({ error: 'Missing postId' });
+
+        const safeName = sanitizePlainText(name).slice(0, 48);
+        const safeContent = sanitizePlainText(content).slice(0, 1200);
+
+        if (safeName.length < 2) return res.status(400).json({ error: 'Name is too short' });
+        if (safeContent.length < 3) return res.status(400).json({ error: 'Comment is too short' });
+
+        // Basic anti-spam: disallow links
+        if (containsLinkLikeText(safeContent)) {
+          return res.status(400).json({ error: 'Links are not allowed in comments' });
+        }
+
+        let validatedParentId = null;
+        if (parentId) {
+          const parentRes = await client.query(
+            'SELECT id, post_id, parent_id FROM blog_comments WHERE id = $1',
+            [parentId]
+          );
+          const parent = parentRes.rows[0];
+          if (!parent) return res.status(400).json({ error: 'Parent comment not found' });
+          if (String(parent.post_id) !== String(postId)) return res.status(400).json({ error: 'Parent comment mismatch' });
+          // Keep it one-level deep to avoid abuse
+          if (parent.parent_id) return res.status(400).json({ error: 'Nested replies are not supported' });
+          validatedParentId = String(parent.id);
+        }
+
         const id = Date.now().toString();
         await client.query(
           'INSERT INTO blog_comments (id, post_id, name, content, parent_id) VALUES ($1, $2, $3, $4, $5)',
-          [id, postId, name, content, parentId || null]
+          [id, postId, safeName, safeContent, validatedParentId]
         );
         return res.status(200).json({ success: true, id });
       }

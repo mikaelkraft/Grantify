@@ -6,7 +6,7 @@ interface AdSlotProps {
   label?: string;
 }
 
-export const AdSlot: React.FC<AdSlotProps> = ({ htmlContent, className = "", label = "Advertisement" }) => {
+export const AdSlot: React.FC<AdSlotProps> = ({ htmlContent, className = "", label = "" }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const scriptsLoadedRef = useRef<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
@@ -195,15 +195,13 @@ export const AdSlot: React.FC<AdSlotProps> = ({ htmlContent, className = "", lab
 
   return (
     <div className={`flex flex-col items-center justify-center w-full ${className}`}>
-      <span className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">{label}</span>
+      {label && label.trim() ? (
+        <span className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">{label}</span>
+      ) : null}
       <div 
         className="w-full overflow-hidden min-h-[50px] flex items-center justify-center relative"
       >
-        {isLoading && !hasError ? (
-          <div className="text-gray-400 text-[10px] animate-pulse py-2">Loading sponsor content...</div>
-        ) : hasError ? (
-          <div className="text-gray-300 text-[9px] py-1">Sponsor content temporarily unavailable</div>
-        ) : null}
+        {/* No placeholder copy: keep slots quiet until filled */}
         <div ref={containerRef} className="w-full flex justify-center" />
       </div>
     </div>

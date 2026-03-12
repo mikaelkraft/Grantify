@@ -39,7 +39,8 @@ export const AiChatbot: React.FC = () => {
         body: JSON.stringify({ 
           prompt: userMessage, 
           type: 'chat',
-          history: messages 
+          history: messages,
+          useSearch: true
         })
       });
 
@@ -61,7 +62,7 @@ export const AiChatbot: React.FC = () => {
           <div className="p-6 bg-grantify-green text-white flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                <Zap size={20} className="text-grantify-gold" />
+                <Bot size={20} className="text-grantify-gold" />
               </div>
               <div>
                 <h4 className="font-bold text-sm">Grantify AI Assistant</h4>

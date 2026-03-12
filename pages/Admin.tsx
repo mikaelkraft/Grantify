@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ApiService } from '../services/storage';
-import { AdminUser, LoanApplication, Testimonial, QualifiedPerson, AdConfig, UserRole, RepaymentContent, LoanProvider, BlogPost, ProviderReview } from '../types';
+import { AdminUser, LoanApplication, Testimonial, AdConfig, UserRole, RepaymentContent, LoanProvider, BlogPost, ProviderReview } from '../types';
 import { LogOut, Download, Trash2, Plus, UserPlus, Shield, Loader2, Save, Zap, BookOpen, MessageSquare, Image as ImageIcon, Link as LinkIcon, Type, Hash } from 'lucide-react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
@@ -29,7 +29,6 @@ export const Admin: React.FC = () => {
   // Data State
   const [applications, setApplications] = useState<LoanApplication[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
-  const [qualified, setQualified] = useState<QualifiedPerson[]>([]);
   const [ads, setAds] = useState<AdConfig | null>(null);
   const [repayment, setRepayment] = useState<RepaymentContent | null>(null);
   const [admins, setAdmins] = useState<AdminUser[]>([]);
@@ -57,8 +56,8 @@ export const Admin: React.FC = () => {
   }>({ 
     title: '', 
     content: '', 
-    author: user?.name || '', 
-    authorRole: user?.role === UserRole.SUPER_ADMIN ? 'Chief Strategist' : 'Team Member', 
+    author: user?.username || user?.name || '', 
+    authorRole: user?.role === UserRole.SUPER_ADMIN ? 'Chief Strategist' : 'Editor', 
     category: 'Grants', 
     image: '',
     tags: [],
@@ -73,11 +72,102 @@ export const Admin: React.FC = () => {
 
   const [isEditingPost, setIsEditingPost] = useState(false);
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [autoLinkUrls, setAutoLinkUrls] = useState(true);
+
+  const linkifyHtml = (html: string): string => {
+    if (!html || typeof html !== 'string') return html;
+    try {
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
+
+      const urlRegex = /\bhttps?:\/\/[^\s<]+[^\s<\.)\]\}]/gi;
+      const wwwRegex = /\bwww\.[^\s<]+[^\s<\.)\]\}]/gi;
+
+      const textNodes: Text[] = [];
+      while (walker.nextNode()) {
+        const node = walker.currentNode as Text;
+        const parent = node.parentElement;
+        if (!parent) continue;
+        const tag = parent.tagName;
+        if (tag === 'A' || tag === 'SCRIPT' || tag === 'STYLE') continue;
+        textNodes.push(node);
+      }
+
+      for (const node of textNodes) {
+        const text = node.nodeValue || '';
+        if (!text) continue;
+        if (!urlRegex.test(text) && !wwwRegex.test(text)) continue;
+        urlRegex.lastIndex = 0;
+        wwwRegex.lastIndex = 0;
+
+        const parts: Array<{ kind: 'text' | 'link'; value: string }> = [];
+        let idx = 0;
+        const combinedRegex = new RegExp(`${urlRegex.source}|${wwwRegex.source}`, 'gi');
+        let match: RegExpExecArray | null;
+        while ((match = combinedRegex.exec(text))) {
+          const start = match.index;
+          const raw = match[0];
+          if (start > idx) parts.push({ kind: 'text', value: text.slice(idx, start) });
+          parts.push({ kind: 'link', value: raw });
+          idx = start + raw.length;
+        }
+        if (idx < text.length) parts.push({ kind: 'text', value: text.slice(idx) });
+
+        if (parts.length <= 1) continue;
+
+        const frag = doc.createDocumentFragment();
+        for (const part of parts) {
+          if (part.kind === 'text') {
+            frag.appendChild(doc.createTextNode(part.value));
+          } else {
+            const href = part.value.startsWith('http') ? part.value : `https://${part.value}`;
+            const a = doc.createElement('a');
+            a.setAttribute('href', href);
+            a.setAttribute('target', '_blank');
+            a.setAttribute('rel', 'noopener noreferrer');
+            a.textContent = part.value;
+            frag.appendChild(a);
+          }
+        }
+
+        node.parentNode?.replaceChild(frag, node);
+      }
+
+      return doc.body.innerHTML;
+    } catch {
+      return html;
+    }
+  };
+
+  const quillModules = {
+    toolbar: [
+      [{ header: [2, 3, false] }],
+      ['bold', 'italic', 'underline'],
+      [{ color: [] }, { background: [] }],
+      [{ list: 'ordered' }, { list: 'bullet' }],
+      ['blockquote', 'link'],
+      ['clean']
+    ]
+  };
+
+  const quillFormats = [
+    'header',
+    'bold',
+    'italic',
+    'underline',
+    'color',
+    'background',
+    'list',
+    'bullet',
+    'blockquote',
+    'link'
+  ];
 
   // Update author if user name changes
   useEffect(() => {
-    if (user?.name && !newPost.author) {
-      setNewPost(prev => ({ ...prev, author: user.name }));
+    const seededAuthor = user?.username || user?.name;
+    if (seededAuthor && !newPost.author) {
+      setNewPost(prev => ({ ...prev, author: seededAuthor }));
     }
   }, [user]);
 
@@ -86,7 +176,6 @@ export const Admin: React.FC = () => {
 
   // Track unsaved changes
   const [hasUnsavedTestimonials, setHasUnsavedTestimonials] = useState(false);
-  const [hasUnsavedQualified, setHasUnsavedQualified] = useState(false);
   const [hasUnsavedAds, setHasUnsavedAds] = useState(false);
   const [hasUnsavedRepayment, setHasUnsavedRepayment] = useState(false);
   const [hasUnsavedProviders, setHasUnsavedProviders] = useState(false);
@@ -99,10 +188,9 @@ export const Admin: React.FC = () => {
   const refreshData = async () => {
     setIsLoading(true);
     try {
-      const [apps, tests, qual, adConfig, repay, adminList, providers, reviews, posts] = await Promise.all([
+      const [apps, tests, adConfig, repay, adminList, providers, reviews, posts] = await Promise.all([
         ApiService.getApplications(),
         ApiService.getTestimonials(),
-        ApiService.getQualified(),
         ApiService.getAds(),
         ApiService.getRepaymentContent(),
         ApiService.getAdmins(),
@@ -112,7 +200,6 @@ export const Admin: React.FC = () => {
       ]);
       setApplications(apps);
       setTestimonials(tests);
-      setQualified(qual);
       setAds(adConfig);
       setRepayment(repay);
       setAdmins(adminList);
@@ -357,55 +444,6 @@ export const Admin: React.FC = () => {
     await ApiService.saveTestimonials(newData);
   };
 
-  // --- Qualified Person Logic ---
-  const handleAddQualified = () => {
-    const newPerson: QualifiedPerson = { 
-        id: Date.now().toString(), 
-        name: 'New Person', 
-        amount: 0, 
-        status: 'Pending', 
-        notes: '' 
-    };
-    const newData = [newPerson, ...qualified];
-    setQualified(newData);
-    setHasUnsavedQualified(true);
-  };
-
-  const handleUpdateQualifiedLocal = (id: string, field: keyof QualifiedPerson, value: any) => {
-    const newData = qualified.map(q => q.id === id ? { ...q, [field]: value } : q);
-    setQualified(newData);
-    setHasUnsavedQualified(true);
-  };
-
-  const handleDeleteQualifiedLocal = (id: string) => {
-    const confirm = window.confirm("Delete this person?");
-    if(confirm) {
-        const n = qualified.filter(x => x.id !== id);
-        setQualified(n);
-        setHasUnsavedQualified(true);
-    }
-  };
-
-  const handleSaveQualified = async () => {
-    setIsSaving(true);
-    try {
-      await ApiService.saveQualified(qualified);
-      setHasUnsavedQualified(false);
-      alert('Qualified persons saved successfully!');
-    } catch (e) {
-      console.error('Failed to save qualified persons', e);
-      alert('Failed to save changes. Please try again.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleUpdateQualified = async (id: string, field: keyof QualifiedPerson, value: any) => {
-    const newData = qualified.map(q => q.id === id ? { ...q, [field]: value } : q);
-    setQualified(newData);
-    await ApiService.saveQualified(newData);
-  };
-
   // --- Admin Management Logic ---
   const handleAddAdmin = async () => {
     if (!newAdmin.username || !newAdmin.password || !newAdmin.name) {
@@ -518,7 +556,11 @@ export const Admin: React.FC = () => {
     setIsSaving(true);
     try {
       const derivedImage = (newPost.image || '').trim() || extractFirstImageSrcFromHtml(newPost.content) || '';
-      const payload = { ...newPost, image: derivedImage };
+      const payload = {
+        ...newPost,
+        image: derivedImage,
+        content: autoLinkUrls ? linkifyHtml(newPost.content) : newPost.content
+      };
 
       if (isEditingPost && newPost.id) {
         await ApiService.submitBlogAction({ ...payload, action: 'update' });
@@ -529,8 +571,8 @@ export const Admin: React.FC = () => {
       setNewPost({ 
         title: '', 
         content: '', 
-        author: user?.name || '', 
-        authorRole: user?.role === UserRole.SUPER_ADMIN ? 'Chief Strategist' : 'Team Member', 
+        author: user?.username || user?.name || '', 
+        authorRole: user?.role === UserRole.SUPER_ADMIN ? 'Chief Strategist' : 'Editor', 
         category: 'Grants', 
         image: '',
         tags: [],
@@ -584,7 +626,7 @@ export const Admin: React.FC = () => {
       const res = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: newPost.title, type: 'blog' })
+        body: JSON.stringify({ prompt: newPost.title, type: 'blog', useSearch: true })
       });
       const data = await res.json();
       if (data.content) {
@@ -650,7 +692,6 @@ export const Admin: React.FC = () => {
         <div className="w-full md:w-64 bg-gray-100 dark:bg-gray-950 p-4 space-y-2 border-r border-gray-200 dark:border-gray-800">
            {[
              {id: 'applications', label: 'Applications'},
-             {id: 'qualified', label: 'Qualified Persons'},
              {id: 'testimonials', label: 'Testimonials'},
              {id: 'ads', label: 'Ad Management'},
              {id: 'providers', label: 'Loan Providers'},
@@ -747,68 +788,6 @@ export const Admin: React.FC = () => {
                         ))}
                       </tbody>
                     </table>
-                  </div>
-                </div>
-              )}
-
-              {/* Qualified Persons Tab */}
-              {activeTab === 'qualified' && (
-                <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xl font-bold">Qualified List</h3>
-                    <div className="flex gap-2">
-                      <button onClick={handleAddQualified} className="flex items-center gap-2 bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">
-                        <Plus size={16} /> Add New
-                      </button>
-                      <button 
-                        onClick={handleSaveQualified} 
-                        disabled={!hasUnsavedQualified || isSaving}
-                        className={`flex items-center gap-2 px-3 py-1 rounded text-sm ${hasUnsavedQualified ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
-                      >
-                        <Save size={16} /> {isSaving ? 'Saving...' : 'Save Changes'}
-                      </button>
-                    </div>
-                  </div>
-                  {hasUnsavedQualified && (
-                    <div className="mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm">
-                      You have unsaved changes. Click "Save Changes" to sync with the database.
-                    </div>
-                  )}
-                  <div className="space-y-2">
-                    {qualified.map(q => (
-                      <div key={q.id} className="flex flex-col md:flex-row gap-2 border p-2 rounded items-center bg-gray-50">
-                          <input 
-                            className={`${inputClassSmall} flex-grow`} 
-                            value={q.name} 
-                            onChange={(e) => handleUpdateQualifiedLocal(q.id, 'name', e.target.value)} 
-                            placeholder="Name"
-                          />
-                          <input 
-                            className={`${inputClassSmall} w-32`} 
-                            type="number"
-                            value={q.amount} 
-                            onChange={(e) => handleUpdateQualifiedLocal(q.id, 'amount', parseInt(e.target.value))} 
-                            placeholder="Amount"
-                          />
-                          <select 
-                            className={inputClassSmall}
-                            value={q.status}
-                            onChange={(e) => handleUpdateQualifiedLocal(q.id, 'status', e.target.value)}
-                            aria-label="Application Status"
-                          >
-                            <option value="Pending">Pending</option>
-                            <option value="Contacted">Contacted</option>
-                            <option value="Disbursed">Disbursed</option>
-                          </select>
-                          <input 
-                            className={`${inputClassSmall} flex-grow`} 
-                            value={q.notes} 
-                            onChange={(e) => handleUpdateQualifiedLocal(q.id, 'notes', e.target.value)} 
-                            placeholder="Public Note (Optional)"
-                          />
-                          <button onClick={() => handleDeleteQualifiedLocal(q.id)} className="text-red-500 p-2 hover:bg-red-100 rounded" title="Delete Person"><Trash2 size={16}/></button>
-                      </div>
-                    ))}
                   </div>
                 </div>
               )}
@@ -1366,9 +1345,9 @@ export const Admin: React.FC = () => {
                    </div>
 
                     {/* Add New/Edit Post Form */}
-                    <div id="new-post-form" className={`p-6 rounded-xl border mb-8 transition-all ${isEditingPost ? 'bg-blue-50 border-blue-200 shadow-md' : 'bg-gray-100'}`}>
+                    <div id="new-post-form" className={`p-6 rounded-xl border mb-8 transition-all ${isEditingPost ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900 shadow-md' : 'bg-gray-100 dark:bg-gray-950 border-gray-200 dark:border-gray-800'}`}>
                       <div className="flex justify-between items-center mb-4">
-                        <h4 className="font-bold flex items-center gap-2 text-gray-700">
+                        <h4 className="font-bold flex items-center gap-2 text-gray-700 dark:text-gray-100">
                           {isEditingPost ? <Zap className="text-blue-600 animate-pulse" size={18} /> : null}
                           {isEditingPost ? 'Editing Article' : 'Add New Article'}
                         </h4>
@@ -1377,8 +1356,8 @@ export const Admin: React.FC = () => {
                             onClick={() => {
                               setIsEditingPost(false);
                               setNewPost({ 
-                                title: '', content: '', author: user?.name || '', 
-                                authorRole: user?.role === UserRole.SUPER_ADMIN ? 'Chief Strategist' : 'Team Member', 
+                                title: '', content: '', author: user?.username || user?.name || '', 
+                                authorRole: user?.role === UserRole.SUPER_ADMIN ? 'Chief Strategist' : 'Editor', 
                                 category: 'Grants', image: '', tags: [], sourceName: '', sourceUrl: '' 
                               });
                             }}
@@ -1405,8 +1384,27 @@ export const Admin: React.FC = () => {
                            </div>
                          </div>
                          
-                         <input className={inputClassSmall} placeholder="Author Name" value={newPost.author} onChange={e => setNewPost({...newPost, author: e.target.value})} required />
-                         <input className={inputClassSmall} placeholder="Author Role" value={newPost.authorRole} onChange={e => setNewPost({...newPost, authorRole: e.target.value})} required />
+                         <input
+                           className={inputClassSmall}
+                           placeholder="Author"
+                           value={newPost.author}
+                           disabled
+                           aria-label="Author"
+                           title="Author is set from the logged-in admin"
+                         />
+
+                         <select
+                           className={inputClassSmall}
+                           value={newPost.authorRole}
+                           onChange={e => setNewPost({ ...newPost, authorRole: e.target.value })}
+                           aria-label="Author role"
+                           title="Author role shown on the post"
+                         >
+                           <option value="Chief Strategist">Chief Strategist</option>
+                           <option value="Editor">Editor</option>
+                           <option value="Contributor">Contributor</option>
+                           <option value="Team Member">Team Member</option>
+                         </select>
                          
                          <select 
                            className={inputClassSmall} 
@@ -1513,8 +1511,19 @@ export const Admin: React.FC = () => {
                            </div>
                          )}
                          
-                         <div className="md:col-span-2 bg-white rounded border overflow-hidden min-h-[300px] flex flex-col">
-                            <div className="p-2 bg-gray-50 border-b text-[10px] font-bold text-gray-500 uppercase tracking-wider">Article Content</div>
+                         <div className="md:col-span-2 bg-white dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-800 overflow-hidden min-h-[300px] flex flex-col">
+                            <div className="p-2 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Article Content</div>
+                            <div className="px-3 py-2 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between gap-3">
+                              <label className="flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-gray-200">
+                                <input
+                                  type="checkbox"
+                                  checked={autoLinkUrls}
+                                  onChange={(e) => setAutoLinkUrls(e.target.checked)}
+                                />
+                                Auto hyperlink URLs
+                              </label>
+                              <div className="text-[10px] text-gray-400">Uncheck for bare plaintext links</div>
+                            </div>
                             <ReactQuill
                               theme="snow"
                               value={newPost.content}
@@ -1523,7 +1532,9 @@ export const Admin: React.FC = () => {
                                 const extracted = extractFirstImageSrcFromHtml(content);
                                 return { ...prev, content, image: extracted || prev.image };
                               })}
-                              className="flex-grow"
+                              modules={quillModules}
+                              formats={quillFormats}
+                              className="flex-grow admin-quill"
                               placeholder="Write your article here..."
                             />
                          </div>
@@ -1534,9 +1545,9 @@ export const Admin: React.FC = () => {
                       </form>
                     </div>
  
-                    <div className="bg-white rounded border overflow-x-auto">
+                    <div className="bg-white dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-800 overflow-x-auto">
                       <table className="w-full text-sm min-w-[800px]">
-                        <thead className="bg-gray-50 border-b">
+                        <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
                           <tr>
                             <th className="p-3 text-left">Article</th>
                             <th className="p-3 text-left">Author</th>
