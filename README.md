@@ -1,12 +1,11 @@
 ### Disclaimer ⚠️ 
 
-` To whom it may concern, this script does not offer you loans nor trade user inputs, but you will surely see many ads and mock data. It's a mere demonstration. Do not hesitate to read the Privacy Policy and Terms. In the future, it might come as one, but for now, it has detailed page to CBN-licensed loan apps ` 
+` To whom it may concern, this script does not offer you loans nor trade user inputs, but it does match you to reputable grants and verified loan apps. Do not hesitate to read the Privacy Policy and Terms. In the future, it might come as one, but for now, it has a detailed page for CBN-licensed loan apps ` 
 
- ``` ADS WILL SHOCK YOU 🥶 ```
 
 ### Grantify - Loans and Grants 
 
-A mock loan and grants application platform for Nigerian small businesses and families.
+A loan and grants application platform for Nigerian small businesses and families.
 
 ## Features
 
@@ -21,7 +20,6 @@ A mock loan and grants application platform for Nigerian small businesses and fa
 
 Grantify includes a comprehensive ad management system supporting:
 - Google AdSense
-- Advertica Ads
 - Custom HTML/JavaScript ad codes
 - Multiple ad placements (Head, Header, Body, Sidebar, Footer)
 - Ad blocker detection
@@ -35,4 +33,4 @@ Grantify includes a comprehensive ad management system supporting:
 - **Database**: Neon PostgreSQL
 - **Deployment**: Vercel
 
-## That is all for now... I can't encourage you to run it...
+## That is all for now...
