@@ -94,6 +94,101 @@ const seedDatabase = async () => {
         }
     }
 
+    // 3. Applications (drives public Live Updates ticker)
+    console.log("Seeding Applications...");
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS applications (
+        id TEXT PRIMARY KEY,
+        full_name TEXT NOT NULL,
+        phone_number TEXT NOT NULL,
+        email TEXT,
+        country TEXT NOT NULL,
+        amount NUMERIC(12, 2) NOT NULL,
+        purpose TEXT NOT NULL,
+        type TEXT NOT NULL CHECK (type IN ('Standard', 'Fast-Track')),
+        repayment_amount NUMERIC(12, 2) NOT NULL,
+        duration_months INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending', 'Approved', 'Rejected')),
+        date_applied TEXT NOT NULL,
+        referral_code TEXT,
+        business_type TEXT,
+        matched_network TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    const appsCount = await client.query('SELECT COUNT(*) FROM applications');
+    const currentApps = parseInt(appsCount.rows[0].count, 10);
+    const targetApps = 25;
+    if (currentApps < targetApps) {
+      const missing = targetApps - currentApps;
+      const names = [
+        'Aisha Abdullahi', 'Chinedu Nwankwo', 'Ifeoma Okafor', 'Sani Bello', 'Kemi Adeyemi',
+        'Tolu Akinyemi', 'Uche Eze', 'Hauwa Ibrahim', 'Segun Oladipo', 'Zainab Musa',
+        'Oluwaseun Ajayi', 'Fatima Garba', 'Samuel Oke', 'Ngozi Nnamdi', 'Ibrahim Shehu',
+        'Blessing John', 'Maryam Lawal', 'Emeka Ibe', 'Rita Nwachukwu', 'Bashir Abubakar',
+        'Amaka Umeh', 'Suleiman Abba', 'Esther Okon', 'Kabiru Sani', 'Hadiza Danladi',
+        'Ijeoma Chukwu', 'Ahmed Yusuf', 'Peace Eze', 'Lukman Adamu', 'Temitope Ogunleye'
+      ];
+      const purposes = [
+        'Inventory restock for retail shop',
+        'Equipment purchase for small production',
+        'Working capital for expansion',
+        'Bulk purchase for trading',
+        'Marketing and customer acquisition'
+      ];
+      const businessTypes = ['Retail', 'Services', 'Agribusiness', 'Fashion', 'Food', 'Logistics'];
+      const networks = ['SME Network', 'Women in Business', 'Youth Enterprise', 'Local Trade Association', ''];
+
+      const toPhone = (n) => `+23480${String(10000000 + n).slice(-8)}`;
+      const toEmail = (name, n) => {
+        const base = String(name).toLowerCase().replace(/[^a-z]+/g, '.').replace(/^\.|\.$/g, '');
+        return `${base}.${n}@example.com`;
+      };
+
+      for (let i = 0; i < missing; i++) {
+        const idx = (currentApps + i) % names.length;
+        const fullName = names[idx];
+        const amount = 100000 + Math.floor(Math.random() * 900000);
+        const duration = [3, 4, 6, 9, 12][Math.floor(Math.random() * 5)];
+        const repaymentAmount = Math.round(amount * 1.12);
+        const createdAt = new Date(Date.now() - (i * 1000 * 60 * 42));
+        const dateApplied = createdAt.toISOString().slice(0, 10);
+        const id = `app_${createdAt.getTime()}_${Math.random().toString(36).slice(2, 8)}`;
+
+        await client.query(
+          `INSERT INTO applications (
+            id, full_name, phone_number, email, country, amount, purpose, type,
+            repayment_amount, duration_months, status, date_applied, referral_code,
+            business_type, matched_network, created_at, updated_at
+          ) VALUES (
+            $1,$2,$3,$4,$5,$6,$7,$8,
+            $9,$10,$11,$12,$13,
+            $14,$15,$16,$16
+          )`,
+          [
+            id,
+            fullName,
+            toPhone(currentApps + i),
+            toEmail(fullName, currentApps + i),
+            'Nigeria',
+            amount,
+            purposes[Math.floor(Math.random() * purposes.length)],
+            'Standard',
+            repaymentAmount,
+            duration,
+            'Pending',
+            dateApplied,
+            null,
+            businessTypes[Math.floor(Math.random() * businessTypes.length)],
+            networks[Math.floor(Math.random() * networks.length)],
+            createdAt
+          ]
+        );
+      }
+    }
+
     await client.query('COMMIT');
     console.log("✅ Database seeded successfully!");
 

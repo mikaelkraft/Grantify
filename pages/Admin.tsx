@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ApiService } from '../services/storage';
-import { AdminUser, LoanApplication, Testimonial, AdConfig, UserRole, RepaymentContent, LoanProvider, BlogPost, ProviderReview } from '../types';
-import { LogOut, Download, Trash2, Plus, UserPlus, Shield, Loader2, Save, Zap, BookOpen, MessageSquare, Image as ImageIcon, Link as LinkIcon, Type, Hash } from 'lucide-react';
+import { AdminUser, LoanApplication, Testimonial, AdConfig, UserRole, RepaymentContent, LoanProvider, BlogPost, ProviderReview, ContactMessage } from '../types';
+import { LogOut, Download, Trash2, Plus, UserPlus, Shield, Loader2, Save, Zap, BookOpen, MessageSquare, Image as ImageIcon, Link as LinkIcon, Type, Hash, Mail } from 'lucide-react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { formatNaira } from '../utils/currency';
@@ -35,6 +35,7 @@ export const Admin: React.FC = () => {
   const [loanProviders, setLoanProviders] = useState<LoanProvider[]>([]);
   const [allReviews, setAllReviews] = useState<ProviderReview[]>([]);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
 
   // New Blog Post Form
   const [newPost, setNewPost] = useState<{
@@ -139,15 +140,104 @@ export const Admin: React.FC = () => {
     }
   };
 
+  const quillRef = React.useRef<any>(null);
+  const inlineImageInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const normalizeEmbedUrl = (raw: string): string => {
+    const url = String(raw || '').trim();
+    if (!url) return '';
+
+    try {
+      const u = new URL(url.startsWith('http') ? url : `https://${url}`);
+
+      // YouTube
+      if (u.hostname.includes('youtube.com')) {
+        const id = u.searchParams.get('v');
+        return id ? `https://www.youtube.com/embed/${id}` : url;
+      }
+      if (u.hostname === 'youtu.be') {
+        const id = u.pathname.split('/').filter(Boolean)[0];
+        return id ? `https://www.youtube.com/embed/${id}` : url;
+      }
+
+      // Vimeo
+      if (u.hostname.includes('vimeo.com')) {
+        const id = u.pathname.split('/').filter(Boolean)[0];
+        if (id && /^\d+$/.test(id)) return `https://player.vimeo.com/video/${id}`;
+      }
+
+      // Spotify
+      if (u.hostname.includes('open.spotify.com')) {
+        // Convert /track/... => /embed/track/...
+        const parts = u.pathname.split('/').filter(Boolean);
+        if (parts.length >= 2 && parts[0] !== 'embed') {
+          return `https://open.spotify.com/embed/${parts[0]}/${parts[1]}`;
+        }
+        return u.toString();
+      }
+
+      return u.toString();
+    } catch {
+      return url;
+    }
+  };
+
+  const insertQuillEmbed = (type: 'image' | 'video', value: string) => {
+    const editor = quillRef.current?.getEditor?.();
+    if (!editor || !value) return;
+    const range = editor.getSelection?.(true);
+    const index = typeof range?.index === 'number' ? range.index : editor.getLength?.() || 0;
+    editor.insertEmbed(index, type, value, 'user');
+    editor.setSelection?.(index + 1, 0);
+  };
+
+  const handleToolbarImage = () => {
+    inlineImageInputRef.current?.click();
+  };
+
+  const handleToolbarVideo = () => {
+    const raw = window.prompt('Paste a YouTube/Vimeo/Spotify embed or share link:');
+    const url = normalizeEmbedUrl(raw || '');
+    if (!url) return;
+    insertQuillEmbed('video', url);
+  };
+
+  const handleInlineImagePicked: React.ChangeEventHandler<HTMLInputElement> = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file.');
+      return;
+    }
+
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(new Error('Failed to read image file'));
+      reader.readAsDataURL(file);
+    });
+
+    insertQuillEmbed('image', dataUrl);
+  };
+
   const quillModules = {
-    toolbar: [
-      [{ header: [2, 3, false] }],
-      ['bold', 'italic', 'underline'],
-      [{ color: [] }, { background: [] }],
-      [{ list: 'ordered' }, { list: 'bullet' }],
-      ['blockquote', 'link'],
-      ['clean']
-    ]
+    toolbar: {
+      container: [
+        [{ header: [2, 3, false] }],
+        ['bold', 'italic', 'underline'],
+        [{ color: [] }, { background: [] }],
+        [{ list: 'ordered' }, { list: 'bullet' }],
+        ['blockquote', 'link'],
+        ['image', 'video'],
+        ['clean']
+      ],
+      handlers: {
+        image: handleToolbarImage,
+        video: handleToolbarVideo
+      }
+    }
   };
 
   const quillFormats = [
@@ -160,7 +250,9 @@ export const Admin: React.FC = () => {
     'list',
     'bullet',
     'blockquote',
-    'link'
+    'link',
+    'image',
+    'video'
   ];
 
   // Update author if user name changes
@@ -188,7 +280,7 @@ export const Admin: React.FC = () => {
   const refreshData = async () => {
     setIsLoading(true);
     try {
-      const [apps, tests, adConfig, repay, adminList, providers, reviews, posts] = await Promise.all([
+      const [apps, tests, adConfig, repay, adminList, providers, reviews, posts, contact] = await Promise.all([
         ApiService.getApplications(),
         ApiService.getTestimonials(),
         ApiService.getAds(),
@@ -196,7 +288,8 @@ export const Admin: React.FC = () => {
         ApiService.getAdmins(),
         ApiService.getLoanProviders(),
         ApiService.getProviderReviews(),
-        ApiService.getBlogPosts()
+        ApiService.getBlogPosts(),
+        ApiService.getContactMessages(120)
       ]);
       setApplications(apps);
       setTestimonials(tests);
@@ -206,6 +299,7 @@ export const Admin: React.FC = () => {
       setLoanProviders(providers);
       setAllReviews(reviews);
       setBlogPosts(posts);
+      setContactMessages(contact);
     } catch (e) {
       console.error("Failed to load admin data", e);
       const message =
@@ -695,7 +789,7 @@ export const Admin: React.FC = () => {
              {id: 'testimonials', label: 'Testimonials'},
              {id: 'ads', label: 'Ad Management'},
              {id: 'providers', label: 'Loan Providers'},
-             {id: 'reviews', label: 'Provider Reviews'},
+             {id: 'contact', label: 'Contact Messages'},
              {id: 'content', label: 'Page Content'}
            ].map(tab => (
              <button
@@ -713,6 +807,13 @@ export const Admin: React.FC = () => {
              className={`w-full flex items-center gap-2 p-3 rounded transition ${activeTab === 'reviews' ? 'bg-grantify-green text-white shadow-md' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
            >
              <MessageSquare size={18} /> Provider Reviews
+           </button>
+
+           <button 
+             onClick={() => setActiveTab('contact')}
+             className={`w-full flex items-center gap-2 p-3 rounded transition ${activeTab === 'contact' ? 'bg-grantify-green text-white shadow-md' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
+           >
+             <Mail size={18} /> Contact Messages
            </button>
 
            <button 
@@ -743,6 +844,70 @@ export const Admin: React.FC = () => {
 
           {!isLoading && (
             <>
+              {/* Contact Messages Tab */}
+              {activeTab === 'contact' && (
+                <div>
+                  <div className="flex items-end justify-between gap-4 mb-4">
+                    <div>
+                      <h3 className="text-xl font-bold">Contact Messages ({contactMessages.length})</h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-300">Messages submitted from the public Contact page.</p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        try {
+                          setIsLoading(true);
+                          const msgs = await ApiService.getContactMessages(120);
+                          setContactMessages(msgs);
+                        } catch {
+                          alert('Failed to refresh contact messages');
+                        } finally {
+                          setIsLoading(false);
+                        }
+                      }}
+                      className="bg-gray-900 dark:bg-gray-950 text-white px-3 py-2 rounded text-xs font-bold hover:bg-gray-800"
+                      title="Refresh"
+                    >
+                      Refresh
+                    </button>
+                  </div>
+
+                  <div className="bg-white dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-800 overflow-x-auto">
+                    <table className="w-full text-sm min-w-[900px]">
+                      <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+                        <tr>
+                          <th className="p-3 text-left">Date</th>
+                          <th className="p-3 text-left">From</th>
+                          <th className="p-3 text-left">Subject</th>
+                          <th className="p-3 text-left">Message</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                        {contactMessages.length === 0 ? (
+                          <tr>
+                            <td className="p-4 text-gray-500" colSpan={4}>No messages yet.</td>
+                          </tr>
+                        ) : (
+                          contactMessages.map((m) => (
+                            <tr key={m.id}>
+                              <td className="p-3 text-xs text-gray-500 dark:text-gray-300 whitespace-nowrap">
+                                {new Date(m.createdAt).toLocaleString()}
+                              </td>
+                              <td className="p-3">
+                                <div className="font-bold text-gray-900 dark:text-gray-100">{m.name}</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-300">{m.email}</div>
+                                {m.phone && <div className="text-xs text-gray-400">{m.phone}</div>}
+                              </td>
+                              <td className="p-3 text-xs font-bold text-gray-800 dark:text-gray-100">{m.subject}</td>
+                              <td className="p-3 text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{m.message}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
               {/* Applications Tab */}
               {activeTab === 'applications' && (
                 <div>
@@ -1281,6 +1446,63 @@ export const Admin: React.FC = () => {
                 </div>
               )}
 
+              {/* Contact Messages Tab */}
+              {activeTab === 'contact' && (
+                <div>
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                    <div>
+                      <h3 className="text-xl font-bold flex items-center gap-2">
+                        <Mail size={18} /> Contact Messages ({contactMessages.length})
+                      </h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Messages submitted from the public Contact page are stored here.
+                      </p>
+                    </div>
+                    <button
+                      onClick={refreshData}
+                      className="bg-grantify-green text-white px-4 py-2 rounded text-sm font-bold"
+                      title="Refresh"
+                    >
+                      Refresh
+                    </button>
+                  </div>
+
+                  {contactMessages.length === 0 ? (
+                    <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 text-sm text-gray-600 dark:text-gray-300">
+                      No messages yet.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto bg-white dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-800">
+                      <table className="min-w-full text-sm">
+                        <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+                          <tr>
+                            <th className="p-3 text-left text-xs uppercase text-gray-400 dark:text-gray-500">From</th>
+                            <th className="p-3 text-left text-xs uppercase text-gray-400 dark:text-gray-500">Subject</th>
+                            <th className="p-3 text-left text-xs uppercase text-gray-400 dark:text-gray-500">Message</th>
+                            <th className="p-3 text-left text-xs uppercase text-gray-400 dark:text-gray-500">Date</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                          {contactMessages.map((m) => (
+                            <tr key={m.id}>
+                              <td className="p-3">
+                                <div className="font-bold text-gray-900 dark:text-gray-100">{m.name}</div>
+                                <div className="text-[10px] text-gray-500 dark:text-gray-400 font-mono break-all">{m.email}{m.phone ? ` • ${m.phone}` : ''}</div>
+                              </td>
+                              <td className="p-3 font-bold text-gray-800 dark:text-gray-100">{m.subject}</td>
+                              <td className="p-3 max-w-[520px]">
+                                <div className="text-gray-700 dark:text-gray-200 line-clamp-3 whitespace-pre-wrap">{m.message}</div>
+                              </td>
+                              <td className="p-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{new Date(m.createdAt).toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Provider Reviews Tab */}
               {activeTab === 'reviews' && (
                 <div>
@@ -1511,7 +1733,7 @@ export const Admin: React.FC = () => {
                            </div>
                          )}
                          
-                         <div className="md:col-span-2 bg-white dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-800 overflow-hidden min-h-[300px] flex flex-col">
+                         <div className="md:col-span-2 bg-white dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-800 overflow-visible min-h-[300px] flex flex-col">
                             <div className="p-2 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Article Content</div>
                             <div className="px-3 py-2 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between gap-3">
                               <label className="flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-gray-200">
@@ -1524,7 +1746,16 @@ export const Admin: React.FC = () => {
                               </label>
                               <div className="text-[10px] text-gray-400">Uncheck for bare plaintext links</div>
                             </div>
+                            <input
+                              ref={inlineImageInputRef}
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleInlineImagePicked}
+                              aria-label="Insert image into post"
+                            />
                             <ReactQuill
+                              ref={quillRef}
                               theme="snow"
                               value={newPost.content}
                               onChange={(content) => setNewPost(prev => {

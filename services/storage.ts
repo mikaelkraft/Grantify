@@ -11,7 +11,8 @@ import {
   BlogPost,
   BlogComment,
   ProviderReview,
-  ReactionType
+  ReactionType,
+  ContactMessage
 } from '../types';
 
 // --- CONFIGURATION ---
@@ -429,5 +430,12 @@ export const ApiService = {
       body: JSON.stringify(data)
     });
     if (!res.ok) throw new Error('Failed to submit contact message');
+  },
+
+  getContactMessages: async (limit = 100): Promise<ContactMessage[]> => {
+    const safeLimit = Math.min(Math.max(Number(limit) || 100, 1), 200);
+    const res = await fetch(`${API_URL}/api/contact?limit=${encodeURIComponent(String(safeLimit))}`);
+    if (!res.ok) throw new Error('Failed to fetch contact messages');
+    return await res.json();
   }
 };

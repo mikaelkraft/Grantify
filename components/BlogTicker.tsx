@@ -9,6 +9,7 @@ interface Props {
 
 export const BlogTicker: React.FC<Props> = ({ posts }) => {
   const [reducedMotion, setReducedMotion] = useState(false);
+  const [carouselIndex, setCarouselIndex] = useState(0);
 
   useEffect(() => {
     try {
@@ -21,6 +22,16 @@ export const BlogTicker: React.FC<Props> = ({ posts }) => {
       // no-op
     }
   }, []);
+
+  useEffect(() => {
+    if (!reducedMotion) return;
+    const items = (posts || []).filter(p => p && p.title).slice(0, 12);
+    if (items.length <= 1) return;
+    const id = window.setInterval(() => {
+      setCarouselIndex(prev => (prev + 1) % items.length);
+    }, 4500);
+    return () => window.clearInterval(id);
+  }, [posts, reducedMotion]);
 
   const items = (posts || []).filter(p => p && p.title).slice(0, 12);
   if (items.length === 0) return null;
@@ -35,18 +46,21 @@ export const BlogTicker: React.FC<Props> = ({ posts }) => {
         {reducedMotion ? (
           <div className="flex items-center gap-2 whitespace-nowrap">
             <Link
-              to={`/blog/${items[0].id}`}
+              to={`/blog/${items[carouselIndex]?.id || items[0].id}`}
               className="flex items-center gap-2 hover:underline transition-colors whitespace-nowrap"
             >
-              <span className="text-xs font-bold truncate max-w-[240px] md:max-w-none">{items[0].title}</span>
+              <span className="text-xs font-bold truncate max-w-[240px] md:max-w-none">{(items[carouselIndex]?.title || items[0].title)}</span>
               <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded text-green-900 font-mono hidden md:inline-block">
-                {new Date(items[0].createdAt).toLocaleDateString()}
+                {new Date((items[carouselIndex]?.createdAt || items[0].createdAt)).toLocaleDateString()}
               </span>
             </Link>
           </div>
         ) : (
           <div className="w-full overflow-hidden">
-            <div className="ticker-marquee flex items-center gap-10 w-max whitespace-nowrap">
+            <div
+              className="ticker-marquee flex items-center gap-10 w-max whitespace-nowrap"
+              style={{ animation: 'ticker-marquee 35s linear infinite' }}
+            >
               {[...items, ...items].map((post, idx) => (
                 <Link
                   key={`${post.id}_${idx}`}

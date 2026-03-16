@@ -33,4 +33,14 @@ Grantify includes a comprehensive ad management system supporting:
 - **Database**: Neon PostgreSQL
 - **Deployment**: Vercel
 
+## Autoblog (Vercel Cron)
+
+Grantify can auto-publish a daily blog post via the cron defined in [vercel.json](vercel.json) (path: `/api/cron/daily-blog`).
+
+Environment variables:
+- `GROQ_API_KEY` (required): used to generate the daily article.
+- `AUTOBLOG_ENABLED` (required): set to `true` to allow cron publishing.
+- `UNSPLASH_ACCESS_KEY` (optional): higher-quality featured images via the Unsplash API. If omitted, the cron falls back to `source.unsplash.com` (no key required).
+- `BLOG_CRON_SECRET` (optional): enables manual triggering without the Vercel cron header.
+
 ## That is all for now...

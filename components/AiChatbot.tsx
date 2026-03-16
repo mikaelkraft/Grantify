@@ -1,10 +1,13 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { MessageSquare, X, Send, Loader2, Zap, User, Bot, ChevronDown } from 'lucide-react';
+import React, { useMemo, useRef, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { MessageSquare, X, Send, Loader2, Bot, ChevronDown } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
 }
+
+type ChatPos = { x: number; y: number };
 
 export const AiChatbot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -15,6 +18,59 @@ export const AiChatbot: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  const buttonSize = 64;
+  const margin = 24;
+  const storageKey = 'grantify_chat_pos_v1';
+
+  const clampPos = (pos: ChatPos): ChatPos => {
+    const maxX = Math.max(0, window.innerWidth - buttonSize - margin);
+    const maxY = Math.max(0, window.innerHeight - buttonSize - margin);
+    return {
+      x: Math.min(Math.max(margin, pos.x), maxX),
+      y: Math.min(Math.max(margin, pos.y), maxY)
+    };
+  };
+
+  const getDefaultPos = (): ChatPos => {
+    return clampPos({
+      x: window.innerWidth - buttonSize - margin,
+      y: window.innerHeight - buttonSize - margin
+    });
+  };
+
+  const [pos, setPos] = useState<ChatPos>(() => ({ x: margin, y: margin }));
+  const dragStateRef = useRef<{
+    pointerId: number | null;
+    startX: number;
+    startY: number;
+    originX: number;
+    originY: number;
+    moved: boolean;
+  }>({ pointerId: null, startX: 0, startY: 0, originX: 0, originY: 0, moved: false });
+
+  useEffect(() => {
+    // Load initial position after mount (needs window size).
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed.x === 'number' && typeof parsed.y === 'number') {
+          setPos(clampPos({ x: parsed.x, y: parsed.y }));
+          return;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    setPos(getDefaultPos());
+  }, []);
+
+  useEffect(() => {
+    const onResize = () => setPos((p) => clampPos(p));
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -22,6 +78,58 @@ export const AiChatbot: React.FC = () => {
   useEffect(() => {
     if (isOpen) scrollToBottom();
   }, [messages, isOpen]);
+
+  const partsToNodes = useMemo(() => {
+    const urlRegex = /((?:https?:\/\/|www\.)[^\s<]+)|((?:\/blog\/|\/loan-providers|\/blog)\/?[^\s<]*)/gi;
+
+    const renderTextWithLinks = (text: string) => {
+      const nodes: React.ReactNode[] = [];
+      const safe = String(text || '');
+      let lastIndex = 0;
+      let match: RegExpExecArray | null;
+      // eslint-disable-next-line no-cond-assign
+      while ((match = urlRegex.exec(safe))) {
+        const full = match[0];
+        const index = match.index;
+        if (index > lastIndex) nodes.push(safe.slice(lastIndex, index));
+
+        const external = match[1];
+        const internal = match[2];
+
+        if (internal) {
+          nodes.push(
+            <Link
+              key={`l_${index}`}
+              to={internal}
+              className="underline break-all"
+              onClick={() => setIsOpen(false)}
+            >
+              {internal}
+            </Link>
+          );
+        } else if (external) {
+          const href = external.startsWith('http') ? external : `https://${external}`;
+          nodes.push(
+            <a
+              key={`a_${index}`}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline break-all"
+            >
+              {external}
+            </a>
+          );
+        }
+
+        lastIndex = index + full.length;
+      }
+      if (lastIndex < safe.length) nodes.push(safe.slice(lastIndex));
+      return nodes;
+    };
+
+    return { renderTextWithLinks };
+  }, []);
 
   const handleSend = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -53,11 +161,65 @@ export const AiChatbot: React.FC = () => {
     }
   };
 
+  const handleTogglePointerDown: React.PointerEventHandler<HTMLButtonElement> = (e) => {
+    // Left click or touch only
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    (e.currentTarget as HTMLButtonElement).setPointerCapture?.(e.pointerId);
+    dragStateRef.current = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      originX: pos.x,
+      originY: pos.y,
+      moved: false
+    };
+  };
+
+  const handleTogglePointerMove: React.PointerEventHandler<HTMLButtonElement> = (e) => {
+    const st = dragStateRef.current;
+    if (st.pointerId !== e.pointerId) return;
+    const dx = e.clientX - st.startX;
+    const dy = e.clientY - st.startY;
+    if (!st.moved && Math.hypot(dx, dy) < 6) return;
+    st.moved = true;
+    setPos(clampPos({ x: st.originX + dx, y: st.originY + dy }));
+  };
+
+  const handleTogglePointerUp: React.PointerEventHandler<HTMLButtonElement> = (e) => {
+    const st = dragStateRef.current;
+    if (st.pointerId !== e.pointerId) return;
+    dragStateRef.current.pointerId = null;
+
+    if (st.moved) {
+      setPos((p) => {
+        const next = clampPos(p);
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(next));
+        } catch {
+          // ignore
+        }
+        return next;
+      });
+      return;
+    }
+    setIsOpen((v) => !v);
+  };
+
+  const popDirection = pos.y > 560 ? 'up' : 'down';
+  const chatWindowClass = popDirection === 'up'
+    ? 'bottom-[76px] right-0'
+    : 'top-[76px] right-0';
+
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+    <div
+      className="fixed z-40"
+      style={{ left: pos.x, top: pos.y }}
+    >
       {/* Chat Window */}
       {isOpen && (
-        <div className="mb-4 w-80 md:w-96 h-[500px] bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-800 flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-300">
+        <div
+          className={`absolute ${chatWindowClass} w-80 md:w-96 h-[500px] bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-800 flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-300`}
+        >
           {/* Header */}
           <div className="p-6 bg-grantify-green text-white flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -90,7 +252,9 @@ export const AiChatbot: React.FC = () => {
                     ? 'bg-grantify-green text-white rounded-tr-none' 
                     : 'bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 shadow-sm border border-gray-100 dark:border-gray-800 rounded-tl-none'
                 }`}>
-                  {msg.content}
+                  <div className="whitespace-pre-wrap break-words">
+                    {partsToNodes.renderTextWithLinks(msg.content)}
+                  </div>
                 </div>
               </div>
             ))}
@@ -126,11 +290,15 @@ export const AiChatbot: React.FC = () => {
         </div>
       )}
 
-      {/* Toggle Button */}
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-16 h-16 bg-grantify-green text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all group relative"
+      {/* Toggle Button (draggable) */}
+      <button
+        onPointerDown={handleTogglePointerDown}
+        onPointerMove={handleTogglePointerMove}
+        onPointerUp={handleTogglePointerUp}
+        onPointerCancel={handleTogglePointerUp}
+        className="w-16 h-16 bg-grantify-green text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all group relative touch-none"
         title={isOpen ? "Close chat" : "Open AI assistant"}
+        aria-label={isOpen ? 'Close AI assistant' : 'Open AI assistant'}
       >
         {isOpen ? <X size={28} /> : <MessageSquare size={28} />}
         {!isOpen && (

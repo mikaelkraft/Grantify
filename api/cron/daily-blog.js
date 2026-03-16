@@ -4,6 +4,34 @@
 
 import pool from '../_db.js';
 
+const fetchUnsplashImage = async (query) => {
+  const key = process.env.UNSPLASH_ACCESS_KEY;
+  const q = String(query || '').trim();
+  if (!q) return '';
+
+  // If no key is configured, use Unsplash Source (no-auth) as a best-effort fallback.
+  // This returns a dynamic image URL for the given query.
+  if (!key) {
+    return `https://source.unsplash.com/1600x900/?${encodeURIComponent(q)}`;
+  }
+
+  try {
+    const url = `https://api.unsplash.com/photos/random?query=${encodeURIComponent(q)}&orientation=landscape&content_filter=high`;
+    const res = await fetch(url, {
+      headers: {
+        'Accept-Version': 'v1',
+        'Authorization': `Client-ID ${key}`
+      }
+    });
+    if (!res.ok) return '';
+    const data = await res.json();
+    const imageUrl = data?.urls?.regular || data?.urls?.small || '';
+    return typeof imageUrl === 'string' ? imageUrl : '';
+  } catch {
+    return '';
+  }
+};
+
 const fetchNewsItems = async (query) => {
   const q = `${String(query || '').trim()} Nigeria`.trim();
   const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-NG&gl=NG&ceid=NG:en`;
@@ -149,6 +177,9 @@ export default async function handler(req, res) {
     const html = data.choices?.[0]?.message?.content || '';
     const title = extractTitleFromHtml(html) || `Nigeria Funding Briefing (${isoDate})`;
 
+    // Optional featured image (best-effort)
+    const image = await fetchUnsplashImage(`${title} Nigeria business`);
+
     const sourcesHtml = buildSourcesHtml(newsItems);
     const finalHtml = sourcesHtml && !String(html).includes('<h3>Sources</h3>')
       ? `${html}\n${sourcesHtml}`
@@ -170,7 +201,7 @@ export default async function handler(req, res) {
         author,
         authorRole,
         category,
-        '',
+        image || '',
         tags,
         newsItems.length ? 'Google News (RSS)' : '',
         newsItems.length

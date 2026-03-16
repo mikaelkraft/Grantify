@@ -3,17 +3,11 @@ import pool from './_db.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-
-  const { name, email, phone, subject, message } = req.body || {};
-
-  if (!name || !email || !subject || !message) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
+  if (req.method !== 'POST' && req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   const client = await pool.connect();
   try {
@@ -29,6 +23,32 @@ export default async function handler(req, res) {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    if (req.method === 'GET') {
+      const limit = Math.min(Math.max(parseInt(String(req.query?.limit || '50'), 10) || 50, 1), 200);
+      const result = await client.query(
+        `SELECT id, name, email, phone, subject, message, created_at
+         FROM contact_messages
+         ORDER BY created_at DESC
+         LIMIT $1`,
+        [limit]
+      );
+      return res.status(200).json(result.rows.map(r => ({
+        id: r.id,
+        name: r.name,
+        email: r.email,
+        phone: r.phone,
+        subject: r.subject,
+        message: r.message,
+        createdAt: r.created_at
+      })));
+    }
+
+    const { name, email, phone, subject, message } = req.body || {};
+
+    if (!name || !email || !subject || !message) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
 
     const id = Date.now().toString();
     await client.query(

@@ -77,8 +77,9 @@
 
       /* Blog post / AI article HTML styling (ReactQuill output) */
       .quill-content {
-        overflow-wrap: anywhere;
+        overflow-wrap: break-word;
         word-break: normal;
+        -webkit-hyphens: auto;
         hyphens: auto;
         line-height: 1.8;
       }
@@ -91,6 +92,10 @@
         font-weight: 800;
         line-height: 1.25;
         margin: 1.25em 0 0.55em;
+        -webkit-hyphens: none;
+        hyphens: none;
+        overflow-wrap: normal;
+        word-break: normal;
       }
       .quill-content h1 { font-size: 2em; }
       .quill-content h2 { font-size: 1.6em; }
@@ -100,16 +105,58 @@
         padding-left: 1.4em;
         margin: 0.9em 0;
       }
-      .quill-content li { margin: 0.3em 0; }
+      /* Star bullets for unordered lists */
+      .quill-content ul {
+        list-style: none;
+        padding-left: 0;
+      }
+      .quill-content ul > li {
+        position: relative;
+        padding-left: 1.35em;
+        margin: 0.35em 0;
+      }
+      .quill-content ul > li::before {
+        content: '★';
+        position: absolute;
+        left: 0;
+        top: 0.05em;
+        font-size: 0.85em;
+        color: rgba(0, 100, 0, 0.75);
+      }
+      .dark .quill-content ul > li::before {
+        color: rgba(255, 215, 0, 0.7);
+      }
+      .quill-content ol > li { margin: 0.35em 0; }
       .quill-content blockquote {
         margin: 1em 0;
         padding: 0.8em 1em;
         border-left: 4px solid rgba(0,100,0,0.35);
         background: rgba(0,0,0,0.02);
+        font-style: italic;
+        position: relative;
+        overflow: hidden;
       }
+      .quill-content blockquote::before {
+        content: '“';
+        position: absolute;
+        left: 0.2em;
+        top: -0.1em;
+        font-size: 6em;
+        line-height: 1;
+        color: rgba(0, 100, 0, 0.10);
+        pointer-events: none;
+      }
+      .quill-content blockquote p {
+        margin: 0.6em 0;
+      }
+      .quill-content blockquote p:first-child { margin-top: 0; }
+      .quill-content blockquote p:last-child { margin-bottom: 0; }
       .dark .quill-content blockquote {
         background: rgba(255,255,255,0.04);
         border-left-color: rgba(255,215,0,0.35);
+      }
+      .dark .quill-content blockquote::before {
+        color: rgba(255, 215, 0, 0.12);
       }
       .quill-content a { text-decoration: underline; }
       .quill-content img { max-width: 100%; height: auto; border-radius: 12px; }

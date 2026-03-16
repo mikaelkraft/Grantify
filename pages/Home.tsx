@@ -13,7 +13,7 @@ import {
   Calculator, CheckCircle, AlertCircle, ArrowRight, Share2, Copy, 
   Info, Loader2, MessageSquarePlus, Send, Zap, Landmark, 
   ExternalLink, ShieldCheck, Search, Award, TrendingUp,
-  BookOpen, ChevronRight, Eye, ThumbsUp
+  BookOpen, Eye, ThumbsUp
 } from 'lucide-react';
 import { formatNaira, formatNairaCompact } from '../utils/currency';
 
@@ -359,7 +359,6 @@ export const Home: React.FC = () => {
                       <h4 className="text-sm font-bold text-gray-800 dark:text-gray-100 group-hover:text-grantify-green transition-colors">{network.name}</h4>
                       <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Verified Provider</p>
                     </div>
-                    <ChevronRight className="ml-auto w-5 h-5 text-gray-300 group-hover:text-grantify-green group-hover:translate-x-1 transition-all" />
                   </div>
                 ))}
               </div>
@@ -414,7 +413,7 @@ export const Home: React.FC = () => {
                     <span>{post.author}</span>
                     <span className="flex items-center gap-3">
                       <span className="flex items-center gap-1"><Eye size={12} /> {Number(post.views || 0).toLocaleString()}</span>
-                      <span className="flex items-center gap-1"><ThumbsUp size={12} /> {Number(post.likes || 0).toLocaleString()}</span>
+                      <span className="flex items-center gap-1"><ThumbsUp size={12} /> {Number((post.likes || 0) + (post.loves || 0) + (post.claps || 0)).toLocaleString()}</span>
                     </span>
                   </div>
                 </div>
