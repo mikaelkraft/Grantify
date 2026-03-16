@@ -3,8 +3,17 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "crons": [
+    {
+      "path": "/api/cron/daily-blog",
+      "schedule": "0 7 * * *"
+    }
+  ],
   "rewrites": [
     { "source": "/share/blog/:id", "destination": "/api/share?type=blog&id=:id" },
-    { "source": "/((?!api|ads\\.txt|sw\\.js|favicon\\.ico).*)", "destination": "/" }
+    {
+      "source": "/((?!api|ads\\.txt|sw\\.js|favicon\\.ico|favicon\\.svg|favicon-32\\.png|apple-touch-icon\\.png|logo\\.svg|og-default\\.svg).*)",
+      "destination": "/"
+    }
   ]
 }
