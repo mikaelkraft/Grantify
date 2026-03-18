@@ -33,7 +33,8 @@ export const AiChatbot: React.FC = () => {
 
   const getDefaultPos = (): ChatPos => {
     return clampPos({
-      x: window.innerWidth - buttonSize - margin,
+      // Default to bottom-left so it doesn't conflict with right-side trays (e.g. reviews)
+      x: margin,
       y: window.innerHeight - buttonSize - margin
     });
   };
@@ -212,13 +213,13 @@ export const AiChatbot: React.FC = () => {
 
   return (
     <div
-      className="fixed z-40"
+      className="fixed z-10 pointer-events-none"
       style={{ left: pos.x, top: pos.y }}
     >
       {/* Chat Window */}
       {isOpen && (
         <div
-          className={`absolute ${chatWindowClass} w-80 md:w-96 h-[500px] bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-800 flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-300`}
+          className={`pointer-events-auto absolute ${chatWindowClass} w-80 md:w-96 h-[500px] bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-800 flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-300`}
         >
           {/* Header */}
           <div className="p-6 bg-grantify-green text-white flex items-center justify-between">
@@ -296,7 +297,7 @@ export const AiChatbot: React.FC = () => {
         onPointerMove={handleTogglePointerMove}
         onPointerUp={handleTogglePointerUp}
         onPointerCancel={handleTogglePointerUp}
-        className="w-16 h-16 bg-grantify-green text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all group relative touch-none"
+        className="pointer-events-auto w-16 h-16 bg-grantify-green text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all group relative touch-none"
         title={isOpen ? "Close chat" : "Open AI assistant"}
         aria-label={isOpen ? 'Close AI assistant' : 'Open AI assistant'}
       >

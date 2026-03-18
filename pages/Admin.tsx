@@ -1,3 +1,4 @@
+import { Shield, LogOut, Plus, Trash, Edit, Save, AlertCircle, Upload, CheckCircle, XCircle, Clock, X, FileText, Image, Eye, EyeOff, MessageSquare, ThumbsUp, Link as LinkIcon, Heart, Hand, Mail, Smile } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { ApiService } from '../services/storage';
 import { AdminUser, LoanApplication, Testimonial, AdConfig, UserRole, RepaymentContent, LoanProvider, BlogPost, ProviderReview, ContactMessage } from '../types';
@@ -189,6 +190,15 @@ export const Admin: React.FC = () => {
     const index = typeof range?.index === 'number' ? range.index : editor.getLength?.() || 0;
     editor.insertEmbed(index, type, value, 'user');
     editor.setSelection?.(index + 1, 0);
+  };
+
+  const insertQuillText = (text: string) => {
+    const editor = quillRef.current?.getEditor?.();
+    if (!editor || !text) return;
+    const range = editor.getSelection?.(true);
+    const index = typeof range?.index === 'number' ? range.index : editor.getLength?.() || 0;
+    editor.insertText(index, text, 'user');
+    editor.setSelection?.(index + text.length, 0);
   };
 
   const handleToolbarImage = () => {
@@ -1744,7 +1754,41 @@ export const Admin: React.FC = () => {
                                 />
                                 Auto hyperlink URLs
                               </label>
-                              <div className="text-[10px] text-gray-400">Uncheck for bare plaintext links</div>
+                              <div className="flex items-center gap-2">
+                                <select
+                                  className="text-xs bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg px-2 py-1 text-gray-700 dark:text-gray-100"
+                                  defaultValue=""
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (!val) return;
+                                    insertQuillText(val);
+                                    e.currentTarget.value = '';
+                                  }}
+                                  aria-label="Insert special character"
+                                  title="Insert special character"
+                                >
+                                  <option value="">Special</option>
+                                  <option value="₦">₦ (Naira)</option>
+                                  <option value="★">★ (Star)</option>
+                                  <option value="•">• (Bullet)</option>
+                                  <option value="→">→ (Arrow)</option>
+                                  <option value="✓">✓ (Check)</option>
+                                </select>
+                                <button
+                                  type="button"
+                                  className="inline-flex items-center gap-1 text-xs font-bold bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg px-2 py-1 text-gray-700 dark:text-gray-100 hover:border-grantify-green/50"
+                                  onClick={() => {
+                                    const emoji = window.prompt('Insert emoji (or any symbol):', '😀');
+                                    if (!emoji) return;
+                                    insertQuillText(emoji);
+                                  }}
+                                  aria-label="Insert emoji"
+                                  title="Insert emoji"
+                                >
+                                  <Smile size={14} /> Emoji
+                                </button>
+                                <div className="text-[10px] text-gray-400 hidden md:block">Uncheck for bare plaintext links</div>
+                              </div>
                             </div>
                             <input
                               ref={inlineImageInputRef}

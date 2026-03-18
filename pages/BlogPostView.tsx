@@ -233,7 +233,7 @@ export const BlogPostView: React.FC = () => {
             </span>
           </div>
 
-          <h1 className="text-3xl md:text-5xl font-black font-heading text-gray-900 dark:text-gray-100 mb-8 leading-tight break-words">
+          <h1 className="text-3xl md:text-5xl font-black font-heading text-gray-900 dark:text-gray-100 mb-8 leading-tight break-normal">
             {post.title}
           </h1>
 

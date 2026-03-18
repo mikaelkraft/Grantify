@@ -34,7 +34,29 @@ export const Contact: React.FC = () => {
       });
       setSubmitted(true);
     } catch (e) {
-      alert('Failed to send message. Please try again.');
+      // Fallback: open a prefilled email draft so the message still reaches the team.
+      try {
+        const subject = `[Grantify Contact] ${formData.subject || 'Message'}`;
+        const body = [
+          `Name: ${formData.name}`,
+          `Email: ${formData.email}`,
+          formData.phone ? `Phone: ${formData.phone}` : null,
+          '',
+          formData.message
+        ].filter(Boolean).join('\n');
+
+        const mailto = `mailto:grantifiedme@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        window.location.href = mailto;
+
+        try {
+          await navigator.clipboard?.writeText(body);
+        } catch {
+          // ignore
+        }
+        alert('We could not submit the form automatically. Your email app will open with a prefilled message (and we copied the text to your clipboard).');
+      } catch {
+        alert('Failed to send message. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }

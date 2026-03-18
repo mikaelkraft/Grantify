@@ -29,7 +29,7 @@ export const BlogTicker: React.FC<Props> = ({ posts }) => {
     if (items.length <= 1) return;
     const id = window.setInterval(() => {
       setCarouselIndex(prev => (prev + 1) % items.length);
-    }, 4500);
+    }, 2500);
     return () => window.clearInterval(id);
   }, [posts, reducedMotion]);
 
@@ -59,7 +59,7 @@ export const BlogTicker: React.FC<Props> = ({ posts }) => {
           <div className="w-full overflow-hidden">
             <div
               className="ticker-marquee flex items-center gap-10 w-max whitespace-nowrap"
-              style={{ animation: 'ticker-marquee 35s linear infinite' }}
+              style={{ animation: 'ticker-marquee 18s linear infinite' }}
             >
               {[...items, ...items].map((post, idx) => (
                 <Link
