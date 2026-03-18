@@ -7,6 +7,37 @@ import { AdSlot } from '../components/AdSlot';
 import { FacebookShareButton, TwitterShareButton, WhatsappShareButton, LinkedinShareButton, FacebookIcon, TwitterIcon, WhatsappIcon, LinkedinIcon } from 'react-share';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
 
+const looksLikeHtml = (value: string) => {
+  const s = String(value || '').trim();
+  if (!s) return false;
+  // Simple heuristic: if it contains tags other than a literal less-than in text.
+  return /<\s*(p|br|h1|h2|h3|h4|h5|h6|ul|ol|li|strong|em|blockquote|a|img)(\s|>|\/)/i.test(s);
+};
+
+const escapeHtml = (value: string) => {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
+const plainTextToHtml = (value: string) => {
+  const text = String(value || '').replace(/\r\n/g, '\n');
+  const trimmed = text.trim();
+  if (!trimmed) return '';
+
+  // Split into paragraphs on blank lines.
+  const paragraphs = trimmed.split(/\n\s*\n+/g);
+  return paragraphs
+    .map((p) => {
+      const safe = escapeHtml(p).replace(/\n/g, '<br />');
+      return `<p>${safe}</p>`;
+    })
+    .join('\n');
+};
+
 export const BlogPostView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -197,10 +228,16 @@ export const BlogPostView: React.FC = () => {
 
   const topLevelComments = post.comments.filter(c => !c.parentId);
 
+  const postHtml = (() => {
+    const raw = String(post.content || '');
+    if (!raw.trim()) return '';
+    return looksLikeHtml(raw) ? raw : plainTextToHtml(raw);
+  })();
+
   return (
     <div className="max-w-5xl mx-auto py-12 px-3 sm:px-4 md:px-6">
       <Link to="/blog" className="inline-flex items-center gap-2 text-gray-500 dark:text-gray-300 hover:text-grantify-green mb-8 transition-colors">
-        <ArrowLeft size={16} /> Back to Hub
+        <ArrowLeft size={16} /> Back to Blog Intel
       </Link>
 
       <article className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm mb-12">
@@ -238,12 +275,12 @@ export const BlogPostView: React.FC = () => {
           </h1>
 
 
-          <div className="prose prose-lg max-w-none text-gray-700 dark:text-gray-200 leading-relaxed quill-content dark:prose-invert break-words overflow-x-auto">
+          <div lang="en" className="max-w-none text-gray-700 dark:text-gray-200 leading-relaxed quill-content">
             {ads?.body ? (
               (() => {
                 // Since content is now HTML from ReactQuill
                 // We'll try to split by the first paragraph ending
-                const content = post.content;
+                const content = postHtml;
                 const splitIndex = content.indexOf('</p>');
                 
                 if (splitIndex !== -1) {
@@ -267,7 +304,7 @@ export const BlogPostView: React.FC = () => {
                 return <div dangerouslySetInnerHTML={{ __html: content }} />;
               })()
             ) : (
-              <div dangerouslySetInnerHTML={{ __html: post.content }} />
+              <div dangerouslySetInnerHTML={{ __html: postHtml }} />
             )}
           </div>
 

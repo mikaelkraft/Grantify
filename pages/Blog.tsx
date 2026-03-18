@@ -64,7 +64,7 @@ export const Blog: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto py-12 px-3 sm:px-4 md:px-6">
       <div className="mb-12 text-center">
-        <h1 className="text-4xl font-black font-heading text-gray-900 dark:text-gray-100 mb-4">Financial Intelligence Hub</h1>
+        <h1 className="text-4xl font-black font-heading text-gray-900 dark:text-gray-100 mb-4">Blog Intel</h1>
         <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
           Expert insights on Nigerian grants, business strategies, and financial management to help you grow.
         </p>
