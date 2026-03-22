@@ -8,6 +8,7 @@ import { BlogTicker } from '../components/BlogTicker';
 import { BlogSlider } from '../components/BlogSlider';
 import { matchGrantNetwork, GRANT_NETWORKS } from '../utils/grantMatcher';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
+import { makeBlogPath } from '../utils/blogRouting';
 import { LoanType, ApplicationStatus, LoanApplication, Testimonial, AdConfig, BlogPost, GrantNetwork } from '../types';
 import { 
   Calculator, CheckCircle, AlertCircle, ArrowRight, Share2, Copy, 
@@ -393,7 +394,7 @@ export const Home: React.FC = () => {
           
           <div className="grid md:grid-cols-3 gap-8">
             {blogPosts.slice(0, 3).map(post => (
-              <Link key={post.id} to={`/blog/${post.id}`} className="group bg-white dark:bg-gray-900 rounded-3xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-xl transition-all duration-300">
+              <Link key={post.id} to={makeBlogPath(post)} className="group bg-white dark:bg-gray-900 rounded-3xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-xl transition-all duration-300">
                 <div className="h-48 bg-gray-200 dark:bg-gray-950 relative overflow-hidden">
                   <img
                     src={post.image || getBlogPlaceholderImage(post.title)}

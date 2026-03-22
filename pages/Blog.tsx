@@ -4,6 +4,7 @@ import { ApiService } from '../services/storage';
 import { BlogPost } from '../types';
 import { Loader2, MessageSquare, ThumbsUp, Heart, Hand, Calendar, ChevronRight, Eye } from 'lucide-react';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
+import { makeBlogPath } from '../utils/blogRouting';
 
 export const Blog: React.FC = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -86,7 +87,7 @@ export const Blog: React.FC = () => {
               return (
             <Link 
               key={post.id} 
-              to={`/blog/${post.id}`}
+              to={makeBlogPath(post)}
               className="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col"
             >
               <div className="aspect-video bg-gray-100 dark:bg-gray-950 overflow-hidden relative">

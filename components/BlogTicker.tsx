@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { BlogPost } from '../types';
 import { Link } from 'react-router-dom';
 import { Megaphone } from 'lucide-react';
+import { makeBlogPath } from '../utils/blogRouting';
 
 interface Props {
   posts: BlogPost[];
@@ -46,7 +47,7 @@ export const BlogTicker: React.FC<Props> = ({ posts }) => {
         {reducedMotion ? (
           <div className="flex items-center gap-2 whitespace-nowrap">
             <Link
-              to={`/blog/${items[carouselIndex]?.id || items[0].id}`}
+              to={makeBlogPath(items[carouselIndex] || items[0])}
               className="flex items-center gap-2 hover:underline transition-colors whitespace-nowrap"
             >
               <span className="text-xs font-bold truncate max-w-[240px] md:max-w-none">{(items[carouselIndex]?.title || items[0].title)}</span>
@@ -64,7 +65,7 @@ export const BlogTicker: React.FC<Props> = ({ posts }) => {
               {[...items, ...items].map((post, idx) => (
                 <Link
                   key={`${post.id}_${idx}`}
-                  to={`/blog/${post.id}`}
+                  to={makeBlogPath(post)}
                   className="flex items-center gap-2 hover:underline transition-colors"
                 >
                   <span className="text-xs font-bold">{post.title}</span>

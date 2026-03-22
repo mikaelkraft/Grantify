@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ApiService } from '../services/storage';
 import { BlogPost, BlogComment, AdConfig } from '../types';
@@ -6,6 +6,7 @@ import { Loader2, ThumbsUp, Heart, Hand, MessageSquare, ArrowLeft, Send, Calenda
 import { AdSlot } from '../components/AdSlot';
 import { FacebookShareButton, TwitterShareButton, WhatsappShareButton, LinkedinShareButton, FacebookIcon, TwitterIcon, WhatsappIcon, LinkedinIcon } from 'react-share';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
+import { makeBlogSlug, parseBlogParam } from '../utils/blogRouting';
 
 const looksLikeHtml = (value: string) => {
   const s = String(value || '').trim();
@@ -39,7 +40,7 @@ const plainTextToHtml = (value: string) => {
 };
 
 export const BlogPostView: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { slugOrId } = useParams<{ slugOrId: string }>();
   const navigate = useNavigate();
   const [post, setPost] = useState<BlogPost & { comments: BlogComment[] } | null>(null);
   const [recommendedPosts, setRecommendedPosts] = useState<BlogPost[]>([]);
@@ -51,6 +52,10 @@ export const BlogPostView: React.FC = () => {
   const [replyContent, setReplyContent] = useState('');
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [myReaction, setMyReaction] = useState<'likes' | 'loves' | 'claps' | null>(null);
+
+  const effectiveId = useMemo(() => {
+    return slugOrId ? parseBlogParam(slugOrId).id : '';
+  }, [slugOrId]);
 
   useEffect(() => {
     if (!post) return;
@@ -78,8 +83,18 @@ export const BlogPostView: React.FC = () => {
   }, [post?.id]);
 
   useEffect(() => {
-    if (id) fetchPost();
-  }, [id]);
+    if (!effectiveId) return;
+    if (post?.id && String(post.id) === String(effectiveId)) return;
+    fetchPost(effectiveId);
+  }, [effectiveId, post?.id]);
+
+  useEffect(() => {
+    if (!post || !slugOrId) return;
+    const canonical = makeBlogSlug(post.title, post.id);
+    if (slugOrId !== canonical) {
+      navigate(`/blog/${canonical}`, { replace: true });
+    }
+  }, [post?.id, slugOrId, navigate]);
 
   useEffect(() => {
     const onScroll = () => setShowBackToTop(window.scrollY > 600);
@@ -88,9 +103,10 @@ export const BlogPostView: React.FC = () => {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const fetchPost = async () => {
+  const fetchPost = async (effectiveId: string) => {
     try {
-      const data = await ApiService.getBlogPost(id!);
+      setIsLoading(true);
+      const data = await ApiService.getBlogPost(effectiveId);
       setPost(data);
 
       // Restore client-side reaction highlight (server enforces de-dupe)
@@ -104,7 +120,7 @@ export const BlogPostView: React.FC = () => {
       
       // Fetch recommended posts (excluding current one)
       const allPosts = await ApiService.getBlogPosts();
-      setRecommendedPosts(allPosts.filter(p => p.id !== id).slice(0, 3));
+      setRecommendedPosts(allPosts.filter(p => String(p.id) !== String(data.id)).slice(0, 3));
 
       // Fetch ads
       const adData = await ApiService.getAds();
@@ -357,7 +373,7 @@ export const BlogPostView: React.FC = () => {
           <h3 className="text-2xl font-black font-heading text-gray-900 dark:text-gray-100 mb-6">You Might Also Like</h3>
           <div className="grid md:grid-cols-3 gap-6">
             {recommendedPosts.map(rec => (
-              <Link key={rec.id} to={`/blog/${rec.id}`} className="group bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm hover:shadow-md transition-all">
+              <Link key={rec.id} to={`/blog/${makeBlogSlug(rec.title, rec.id)}`} className="group bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm hover:shadow-md transition-all">
                 <div className="h-32 bg-gray-100 dark:bg-gray-950 relative">
                   <img
                     src={rec.image || getBlogPlaceholderImage(rec.title)}

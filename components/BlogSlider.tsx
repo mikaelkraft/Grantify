@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { BlogPost } from '../types';
 import { ThumbsUp, ChevronRight, Eye } from 'lucide-react';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
+import { makeBlogPath } from '../utils/blogRouting';
 
 interface Props {
   posts: BlogPost[];
@@ -37,7 +38,7 @@ export const BlogSlider: React.FC<Props> = ({ posts }) => {
               className="flex-shrink-0 w-[280px] md:w-[320px] snap-start"
             >
               <Link 
-                to={`/blog/${post.id}`}
+                to={makeBlogPath(post)}
                 className="block h-full bg-gray-50 dark:bg-gray-900 rounded-[2rem] border border-gray-100 dark:border-gray-800 overflow-hidden hover:shadow-2xl transition-all duration-500 group/card hover:-translate-y-2"
               >
                 <div className="h-40 relative overflow-hidden">

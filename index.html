@@ -77,12 +77,28 @@
 
       /* Blog post / AI article HTML styling (ReactQuill output) */
       .quill-content {
-        overflow-wrap: normal;
+        overflow-wrap: anywhere;
         word-break: normal;
         -webkit-hyphens: auto;
         hyphens: auto;
         hyphenate-character: '-';
         line-height: 1.8;
+      }
+
+      /* Common overflow culprits */
+      .quill-content pre {
+        max-width: 100%;
+        overflow-x: auto;
+        white-space: pre-wrap;
+      }
+      .quill-content table {
+        display: block;
+        max-width: 100%;
+        overflow-x: auto;
+      }
+      .quill-content iframe,
+      .quill-content video {
+        max-width: 100%;
       }
 
       /* Keep long tokens (URLs, hashes, etc) from overflowing while preserving word hyphenation */
