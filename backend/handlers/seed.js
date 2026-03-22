@@ -1,30 +1,23 @@
-// API: POST /api/seed - Seed the database with initial data if tables are empty
+// Handler: /api/seed
 
-import pool from './_db.js';
+import pool from '../db.js';
 
 export default async function handler(req, res) {
-  // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const client = await pool.connect();
-  
+
   try {
     await client.query('BEGIN');
 
     const bcrypt = await import('bcryptjs').then(m => m.default);
     const saltRounds = 10;
 
-    // Initial Seed Data - All dates in 2025
     const initialTestimonials = [
       { id: '1', name: 'Chinedu Okeke', image: 'https://images.unsplash.com/photo-1531384441138-2736e62e0919?fit=crop&w=150&h=150&q=80', amount: 200000, content: 'Grantify really came through for my grocery business. The 5% interest rate is unbeatable!', likes: 124, loves: 45, claps: 12, date: '2025-10-15' },
       { id: '2', name: 'Amina Yusuf', image: 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?fit=crop&w=150&h=150&q=80', amount: 500000, content: 'I was skeptical at first, but the process was transparent. I received my funds within 48 hours of verification.', likes: 89, loves: 120, claps: 30, date: '2025-11-20' },
@@ -58,99 +51,98 @@ export default async function handler(req, res) {
     };
 
     const initialRepayment = {
-      introText: "We believe in transparent, easy-to-understand repayment terms. No hidden fees, just a flat interest rate.",
-      standardNote: "Standard loans are designed for quick turnaround and small business support.",
-      fastTrackNote: "Fast-track loans support larger capital requirements with a longer repayment duration."
+      introText: 'We believe in transparent, easy-to-understand repayment terms. No hidden fees, just a flat interest rate.',
+      standardNote: 'Standard loans are designed for quick turnaround and small business support.',
+      fastTrackNote: 'Fast-track loans support larger capital requirements with a longer repayment duration.'
     };
 
     const initialAdmins = [
-      { 
-        id: '1', 
-        username: process.env.SEED_ADMIN_USERNAME, 
-        passwordHash: await bcrypt.hash(process.env.SEED_ADMIN_PASSWORD || '', saltRounds), 
-        role: 'SUPER_ADMIN', 
-        name: process.env.SEED_ADMIN_NAME || 'Super Admin' 
+      {
+        id: '1',
+        username: process.env.SEED_ADMIN_USERNAME,
+        passwordHash: await bcrypt.hash(process.env.SEED_ADMIN_PASSWORD || '', saltRounds),
+        role: 'SUPER_ADMIN',
+        name: process.env.SEED_ADMIN_NAME || 'Super Admin'
       },
-      { 
-        id: '2', 
-        username: process.env.SEED_STAFF_USERNAME, 
-        passwordHash: await bcrypt.hash(process.env.SEED_STAFF_PASSWORD || '', saltRounds), 
-        role: 'FLOOR_ADMIN', 
-        name: process.env.SEED_STAFF_NAME || 'Staff' 
+      {
+        id: '2',
+        username: process.env.SEED_STAFF_USERNAME,
+        passwordHash: await bcrypt.hash(process.env.SEED_STAFF_PASSWORD || '', saltRounds),
+        role: 'FLOOR_ADMIN',
+        name: process.env.SEED_STAFF_NAME || 'Staff'
       }
     ];
 
     const initialProviders = [
       {
-        name: "FairMoney",
-        description: "Offers instant loans without collateral. One of the leading digital banks in Nigeria with CBN approval.",
-        loan_range: "NGN 1,500 - NGN 3,000,000",
-        interest_range: "5% - 30% monthly",
-        tenure: "2 - 12 months",
-        website: "https://fairmoney.ng",
-        play_store_url: "https://play.google.com/store/apps/details?id=ng.com.fairmoney.fairmoney",
-        tag: "Most Popular",
+        name: 'FairMoney',
+        description: 'Offers instant loans without collateral. One of the leading digital banks in Nigeria with CBN approval.',
+        loan_range: 'NGN 1,500 - NGN 3,000,000',
+        interest_range: '5% - 30% monthly',
+        tenure: '2 - 12 months',
+        website: 'https://fairmoney.ng',
+        play_store_url: 'https://play.google.com/store/apps/details?id=ng.com.fairmoney.fairmoney',
+        tag: 'Most Popular',
         rating: 4.8,
-        requirements: "NIN, Bank Statement, Smartphone",
+        requirements: 'NIN, Bank Statement, Smartphone',
         is_recommended: true
       },
       {
-        name: "Carbon (Paylater)",
-        description: "Provides quick loans, bill payments, and investment services. Formerly known as Paylater.",
-        loan_range: "NGN 2,000 - NGN 1,000,000",
-        interest_range: "5% - 15% monthly",
-        tenure: "1 - 6 months",
-        website: "https://getcarbon.co",
-        play_store_url: "https://play.google.com/store/apps/details?id=co.paylater.android",
-        tag: "Low Interest",
+        name: 'Carbon (Paylater)',
+        description: 'Provides quick loans, bill payments, and investment services. Formerly known as Paylater.',
+        loan_range: 'NGN 2,000 - NGN 1,000,000',
+        interest_range: '5% - 15% monthly',
+        tenure: '1 - 6 months',
+        website: 'https://getcarbon.co',
+        play_store_url: 'https://play.google.com/store/apps/details?id=co.paylater.android',
+        tag: 'Low Interest',
         rating: 4.5,
-        requirements: "NIN, BVN, Valid ID",
+        requirements: 'NIN, BVN, Valid ID',
         is_recommended: true
       },
       {
-        name: "Branch",
-        description: "International lending app offering loans in Nigeria, Kenya, and other African countries.",
-        loan_range: "NGN 1,000 - NGN 500,000",
-        interest_range: "4% - 21% monthly",
-        tenure: "1 - 12 months",
-        website: "https://branch.co",
-        play_store_url: "https://play.google.com/store/apps/details?id=com.branch_international.branch.branch_demo_android",
-        tag: "International",
+        name: 'Branch',
+        description: 'International lending app offering loans in Nigeria, Kenya, and other African countries.',
+        loan_range: 'NGN 1,000 - NGN 500,000',
+        interest_range: '4% - 21% monthly',
+        tenure: '1 - 12 months',
+        website: 'https://branch.co',
+        play_store_url: 'https://play.google.com/store/apps/details?id=com.branch_international.branch.branch_demo_android',
+        tag: 'International',
         rating: 4.7,
-        requirements: "NIN, Phone Number",
+        requirements: 'NIN, Phone Number',
         is_recommended: false
       },
       {
-        name: "PalmCredit",
-        description: "Quick loan app with simple application process and fast disbursement.",
-        loan_range: "NGN 2,000 - NGN 500,000",
-        interest_range: "5% - 20% monthly",
-        tenure: "14 days - 6 months",
-        website: "https://palmcredit.io",
-        play_store_url: "https://play.google.com/store/apps/details?id=com.transsnetfinancial.palmcredit",
-        tag: "Fastest Approval",
+        name: 'PalmCredit',
+        description: 'Quick loan app with simple application process and fast disbursement.',
+        loan_range: 'NGN 2,000 - NGN 500,000',
+        interest_range: '5% - 20% monthly',
+        tenure: '14 days - 6 months',
+        website: 'https://palmcredit.io',
+        play_store_url: 'https://play.google.com/store/apps/details?id=com.transsnetfinancial.palmcredit',
+        tag: 'Fastest Approval',
         rating: 4.2,
-        requirements: "NIN, BVN",
+        requirements: 'NIN, BVN',
         is_recommended: false
       },
       {
-        name: "Renmoney",
-        description: "Licensed lending company offering personal and business loans with competitive rates.",
-        loan_range: "NGN 50,000 - NGN 6,000,000",
-        interest_range: "2.5% - 4% monthly",
-        tenure: "3 - 24 months",
-        website: "https://renmoney.com",
-        play_store_url: "https://play.google.com/store/apps/details?id=com.renmoney",
-        tag: "High Limits",
+        name: 'Renmoney',
+        description: 'Licensed lending company offering personal and business loans with competitive rates.',
+        loan_range: 'NGN 50,000 - NGN 6,000,000',
+        interest_range: '2.5% - 4% monthly',
+        tenure: '3 - 24 months',
+        website: 'https://renmoney.com',
+        play_store_url: 'https://play.google.com/store/apps/details?id=com.renmoney',
+        tag: 'High Limits',
         rating: 4.6,
-        requirements: "Employment Letter, Bank Statement, ID",
+        requirements: 'Employment Letter, Bank Statement, ID',
         is_recommended: true
       }
     ];
 
     const seeded = { testimonials: false, qualified: false, ads: false, repayment: false, admins: false, providers: false, applications: false };
 
-    // Create loan_providers table
     await client.query(`
       CREATE TABLE IF NOT EXISTS loan_providers (
         id SERIAL PRIMARY KEY,
@@ -169,7 +161,6 @@ export default async function handler(req, res) {
       )
     `);
 
-    // Seed Testimonials if empty
     const testimonialsCount = await client.query('SELECT COUNT(*) FROM testimonials');
     if (parseInt(testimonialsCount.rows[0].count) === 0) {
       for (const t of initialTestimonials) {
@@ -182,19 +173,17 @@ export default async function handler(req, res) {
       seeded.testimonials = true;
     }
 
-    // Seed Qualified Persons if empty
     const qualifiedCount = await client.query('SELECT COUNT(*) FROM qualified_persons');
     if (parseInt(qualifiedCount.rows[0].count) === 0) {
       for (const q of initialQualified) {
         await client.query(
-          `INSERT INTO qualified_persons (id, name, amount, status, notes) VALUES ($1, $2, $3, $4, $5)`,
+          'INSERT INTO qualified_persons (id, name, amount, status, notes) VALUES ($1, $2, $3, $4, $5)',
           [q.id, q.name, q.amount, q.status, q.notes]
         );
       }
       seeded.qualified = true;
     }
 
-    // Seed Ads if empty
     const adsResult = await client.query('SELECT * FROM ads WHERE id=1');
     if (adsResult.rows.length === 0 || (!adsResult.rows[0].head && !adsResult.rows[0].header)) {
       await client.query(
@@ -208,7 +197,6 @@ export default async function handler(req, res) {
       seeded.ads = true;
     }
 
-    // Seed Repayment Content if empty
     const repaymentResult = await client.query('SELECT * FROM repayment_content WHERE id=1');
     if (repaymentResult.rows.length === 0 || (!repaymentResult.rows[0].intro_text && !repaymentResult.rows[0].standard_note)) {
       await client.query(
@@ -221,19 +209,17 @@ export default async function handler(req, res) {
       seeded.repayment = true;
     }
 
-    // Seed Admin Users if empty
     const adminsCount = await client.query('SELECT COUNT(*) FROM admin_users');
     if (parseInt(adminsCount.rows[0].count) === 0) {
       for (const a of initialAdmins) {
         await client.query(
-          `INSERT INTO admin_users (id, username, password_hash, role, name) VALUES ($1, $2, $3, $4, $5)`,
+          'INSERT INTO admin_users (id, username, password_hash, role, name) VALUES ($1, $2, $3, $4, $5)',
           [a.id, a.username, a.passwordHash, a.role, a.name]
         );
       }
       seeded.admins = true;
     }
 
-    // Create provider_reviews table
     await client.query(`
       CREATE TABLE IF NOT EXISTS provider_reviews (
         id TEXT PRIMARY KEY,
@@ -246,7 +232,6 @@ export default async function handler(req, res) {
       )
     `);
 
-    // Seed Loan Providers if empty
     const providersCount = await client.query('SELECT COUNT(*) FROM loan_providers');
     if (parseInt(providersCount.rows[0].count) === 0) {
       for (const p of initialProviders) {
@@ -259,7 +244,6 @@ export default async function handler(req, res) {
       seeded.providers = true;
     }
 
-    // Ensure applications table exists (some environments don't run server/schema.sql)
     await client.query(`
       CREATE TABLE IF NOT EXISTS applications (
         id TEXT PRIMARY KEY,
@@ -282,14 +266,12 @@ export default async function handler(req, res) {
       )
     `);
 
-    // Update applications table schema
     await client.query(`
       ALTER TABLE applications 
       ADD COLUMN IF NOT EXISTS business_type TEXT,
       ADD COLUMN IF NOT EXISTS matched_network TEXT
     `);
 
-    // Seed Applications if fewer than 25 exist (drives the public Live Updates ticker)
     const applicationsCount = await client.query('SELECT COUNT(*) FROM applications');
     const currentApps = parseInt(applicationsCount.rows[0].count, 10);
     const targetApps = 25;
@@ -363,7 +345,6 @@ export default async function handler(req, res) {
       seeded.applications = true;
     }
 
-    // Create blog_posts table
     await client.query(`
       CREATE TABLE IF NOT EXISTS blog_posts (
         id TEXT PRIMARY KEY,
@@ -385,7 +366,6 @@ export default async function handler(req, res) {
       )
     `);
 
-    // Ensure new columns exist for existing databases
     await client.query(`
       ALTER TABLE blog_posts 
       ADD COLUMN IF NOT EXISTS tags TEXT[],
@@ -396,7 +376,6 @@ export default async function handler(req, res) {
       ADD COLUMN IF NOT EXISTS claps INTEGER DEFAULT 0
     `);
 
-    // Per-user reaction tracking (prevents repeated counting from same user)
     await client.query(`
       CREATE TABLE IF NOT EXISTS blog_post_reactions (
         post_id TEXT REFERENCES blog_posts(id) ON DELETE CASCADE,
@@ -408,7 +387,6 @@ export default async function handler(req, res) {
       )
     `);
 
-    // Create blog_comments table
     await client.query(`
       CREATE TABLE IF NOT EXISTS blog_comments (
         id TEXT PRIMARY KEY,
@@ -421,7 +399,6 @@ export default async function handler(req, res) {
       )
     `);
 
-    // Create contact_messages table
     await client.query(`
       CREATE TABLE IF NOT EXISTS contact_messages (
         id TEXT PRIMARY KEY,
@@ -434,7 +411,6 @@ export default async function handler(req, res) {
       )
     `);
 
-    // Seed Blog Posts if empty
     const blogCount = await client.query('SELECT COUNT(*) FROM blog_posts');
     if (parseInt(blogCount.rows[0].count) === 0) {
       const initialPosts = [
@@ -476,7 +452,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, message: 'Database seeded successfully', seeded });
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error('Seed API Error:', err);
+    console.error('Seed handler error:', err);
     return res.status(500).json({ error: err.message });
   } finally {
     client.release();

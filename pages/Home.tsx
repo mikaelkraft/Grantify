@@ -110,7 +110,7 @@ export const Home: React.FC = () => {
         amount: parseInt(formData.amount) || 0,
         purpose: formData.purpose,
         businessType: formData.businessType,
-        matchedNetwork: matchedNetwork?.name || 'General Financial Hub',
+        matchedNetwork: matchedNetwork?.name || 'Grantify Network',
         type: LoanType.GRANT,
         status: ApplicationStatus.PENDING,
         dateApplied: new Date().toISOString().split('T')[0],
@@ -197,7 +197,7 @@ export const Home: React.FC = () => {
         
         <div className="relative z-10 text-center px-6 max-w-5xl">
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full text-xs font-black text-grantify-gold uppercase tracking-[0.2em] mb-8 border border-white/5">
-            <Award size={14} /> Nigeria's #1 Grant Intelligence Hub
+            <Award size={14} /> Nigeria's Blog Intel
           </div>
           <h1 className="text-4xl md:text-7xl font-black font-heading text-white mb-8 leading-[1.1]">
             Bridge the Gap Between <br/>

@@ -1,28 +1,26 @@
-// API: /api/config - Unified Configuration Handler
-// Handles: Ads and Repayment Content
+// Handler: /api/config
 
-import pool, { toCamelCase } from './_db.js';
+import pool, { toCamelCase } from '../db.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
+
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const { type } = req.query;
 
   try {
-    // --- ADS CONFIGURATION ---
     if (type === 'ads') {
       if (req.method === 'GET') {
         const result = await pool.query('SELECT * FROM ads WHERE id=1');
         return res.status(200).json(result.rows.length > 0 ? toCamelCase(result.rows[0]) : {});
       }
-      
+
       if (req.method === 'POST') {
         const { head, header, body, sidebar, footer, promo1Link, promo1Text, promo2Link, promo2Text } = req.body;
-        
+
         await pool.query(`
           ALTER TABLE ads 
           ADD COLUMN IF NOT EXISTS promo1_link TEXT,
@@ -41,11 +39,11 @@ export default async function handler(req, res) {
            promo2_link = EXCLUDED.promo2_link, promo2_text = EXCLUDED.promo2_text`,
           [head, header, body, sidebar, footer, promo1Link, promo1Text, promo2Link, promo2Text]
         );
+
         return res.status(200).json({ success: true });
       }
     }
 
-    // --- REPAYMENT CONTENT ---
     if (type === 'repayment') {
       if (req.method === 'GET') {
         const result = await pool.query('SELECT * FROM repayment_content WHERE id=1');
@@ -58,7 +56,7 @@ export default async function handler(req, res) {
         }
         return res.status(200).json({});
       }
-      
+
       if (req.method === 'POST') {
         const { introText, standardNote, fastTrackNote } = req.body;
         await pool.query(
@@ -74,7 +72,7 @@ export default async function handler(req, res) {
 
     return res.status(405).json({ error: 'Method not allowed or invalid type' });
   } catch (err) {
-    console.error('Config API Error:', err);
+    console.error('Config handler error:', err);
     return res.status(500).json({ error: err.message });
   }
 }

@@ -1,10 +1,11 @@
-// API: /api/blog - Manage community blog
-import pool from './_db.js';
+// Handler: /api/blog
+
+import pool from '../db.js';
 
 const sanitizePlainText = (value) => {
   const s = String(value ?? '')
-    .replace(/<[^>]*>/g, ' ') // strip HTML tags
-    .replace(/[\u0000-\u001F\u007F]/g, ' ') // control chars
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/[\u0000-\u001F\u007F]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
   return s;
@@ -19,26 +20,24 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, PUT, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
+
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const client = await pool.connect();
-
   try {
     if (req.method === 'GET') {
       const { id, category } = req.query;
-      
+
       if (id) {
-        // Fetch single post + increment views
         const postRes = await client.query(
           'UPDATE blog_posts SET views = COALESCE(views, 0) + 1 WHERE id = $1 RETURNING *',
           [id]
         );
         if (postRes.rows.length === 0) return res.status(404).json({ error: 'Not found' });
-        
+
         const post = postRes.rows[0];
         const comments = await client.query('SELECT * FROM blog_comments WHERE post_id = $1 ORDER BY created_at ASC', [id]);
-        
+
         return res.status(200).json({
           ...post,
           id: post.id,
@@ -67,7 +66,6 @@ export default async function handler(req, res) {
         });
       }
 
-      // Fetch all posts
       let query = 'SELECT *, (SELECT COUNT(*) FROM blog_comments WHERE post_id = blog_posts.id) as comments_count FROM blog_posts';
       const params = [];
       if (category) {
@@ -75,7 +73,7 @@ export default async function handler(req, res) {
         params.push(category);
       }
       query += ' ORDER BY created_at DESC';
-      
+
       const result = await client.query(query, params);
       return res.status(200).json(result.rows.map(row => ({
         id: row.id,
@@ -109,22 +107,14 @@ export default async function handler(req, res) {
 
         if (safeName.length < 2) return res.status(400).json({ error: 'Name is too short' });
         if (safeContent.length < 3) return res.status(400).json({ error: 'Comment is too short' });
-
-        // Basic anti-spam: disallow links
-        if (containsLinkLikeText(safeContent)) {
-          return res.status(400).json({ error: 'Links are not allowed in comments' });
-        }
+        if (containsLinkLikeText(safeContent)) return res.status(400).json({ error: 'Links are not allowed in comments' });
 
         let validatedParentId = null;
         if (parentId) {
-          const parentRes = await client.query(
-            'SELECT id, post_id, parent_id FROM blog_comments WHERE id = $1',
-            [parentId]
-          );
+          const parentRes = await client.query('SELECT id, post_id, parent_id FROM blog_comments WHERE id = $1', [parentId]);
           const parent = parentRes.rows[0];
           if (!parent) return res.status(400).json({ error: 'Parent comment not found' });
           if (String(parent.post_id) !== String(postId)) return res.status(400).json({ error: 'Parent comment mismatch' });
-          // Keep it one-level deep to avoid abuse
           if (parent.parent_id) return res.status(400).json({ error: 'Nested replies are not supported' });
           validatedParentId = String(parent.id);
         }
@@ -149,7 +139,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ error: 'Invalid reaction request' });
         }
 
-        const col = reactionType; // safe due to allowlist above
+        const col = reactionType;
         await client.query('BEGIN');
         try {
           const existing = await client.query(
@@ -162,7 +152,6 @@ export default async function handler(req, res) {
           let updated;
 
           if (prev === reactionType) {
-            // Toggle OFF
             await client.query('DELETE FROM blog_post_reactions WHERE post_id = $1 AND user_id = $2', [postId, userId]);
             updated = await client.query(
               `UPDATE blog_posts
@@ -173,12 +162,10 @@ export default async function handler(req, res) {
             );
             myReaction = null;
           } else if (prev) {
-            // Switch reaction
             await client.query(
               'UPDATE blog_post_reactions SET reaction_type = $3, updated_at = CURRENT_TIMESTAMP WHERE post_id = $1 AND user_id = $2',
               [postId, userId, reactionType]
             );
-            // prev is allowlisted by CHECK constraint in table, but validate anyway
             if (!allowed.has(prev)) throw new Error('Invalid previous reaction type');
             updated = await client.query(
               `UPDATE blog_posts
@@ -189,7 +176,6 @@ export default async function handler(req, res) {
               [postId]
             );
           } else {
-            // First reaction
             await client.query(
               `INSERT INTO blog_post_reactions (post_id, user_id, reaction_type)
                VALUES ($1, $2, $3)
@@ -226,17 +212,18 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true });
       }
 
-      // Create new post (Admin)
       const id = Date.now().toString();
-      const seededLikes = typeof likes === 'number' ? likes : Math.floor(12 + Math.random() * 64); // 12..75
-      const seededLoves = typeof loves === 'number' ? loves : Math.floor(6 + Math.random() * 28); // 6..33
-      const seededClaps = typeof claps === 'number' ? claps : Math.floor(3 + Math.random() * 18); // 3..20
-      const seededViews = typeof views === 'number' ? views : Math.floor(120 + Math.random() * 900); // 120..1019
+      const seededLikes = typeof likes === 'number' ? likes : Math.floor(12 + Math.random() * 64);
+      const seededLoves = typeof loves === 'number' ? loves : Math.floor(6 + Math.random() * 28);
+      const seededClaps = typeof claps === 'number' ? claps : Math.floor(3 + Math.random() * 18);
+      const seededViews = typeof views === 'number' ? views : Math.floor(120 + Math.random() * 900);
+
       await client.query(
         `INSERT INTO blog_posts (id, title, content, author, author_role, category, image, tags, source_name, source_url, likes, loves, claps, views, created_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, COALESCE($15, CURRENT_TIMESTAMP))`,
         [id, title, content, author, authorRole, category, image, tags || [], sourceName, sourceUrl, seededLikes, seededLoves, seededClaps, seededViews, createdAt || null]
       );
+
       return res.status(200).json({ success: true, id });
     }
 
@@ -260,7 +247,6 @@ export default async function handler(req, res) {
         [title, content, author, authorRole, category, image, tags || [], sourceName, sourceUrl, typeof views === 'number' ? views : null, createdAt || null, id]
       );
 
-      // Allow updating initial reaction counters from admin (optional)
       if (typeof likes === 'number' || typeof loves === 'number' || typeof claps === 'number') {
         await client.query(
           `UPDATE blog_posts
@@ -271,6 +257,7 @@ export default async function handler(req, res) {
           [typeof likes === 'number' ? likes : null, typeof loves === 'number' ? loves : null, typeof claps === 'number' ? claps : null, id]
         );
       }
+
       return res.status(200).json({ success: true });
     }
 
@@ -282,7 +269,7 @@ export default async function handler(req, res) {
 
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (err) {
-    console.error('Blog API Error:', err);
+    console.error('Blog handler error:', err);
     return res.status(500).json({ error: err.message });
   } finally {
     client.release();

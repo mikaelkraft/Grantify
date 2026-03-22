@@ -1,9 +1,6 @@
-// API: /api/ai - AI Content Generation and Assistant
-// Uses Groq (OpenAI-compatible Chat Completions)
+// Handler: /api/ai
 
 const fetchNewsContext = async (query, { regionHint } = {}) => {
-  // Free, no-key source of fresh context: Google News RSS
-  // Note: this provides headlines + links only (no scraping of full articles).
   const q = `${String(query || '').trim()} ${regionHint || 'Nigeria'}`.trim();
   const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-NG&gl=NG&ceid=NG:en`;
   const res = await fetch(url, { headers: { 'User-Agent': 'GrantifyBot/1.0' } });
@@ -54,35 +51,31 @@ const buildSourcesHtml = (items) => {
 };
 
 export default async function handler(req, res) {
-  // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
+
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { prompt, type, history, useSearch } = req.body || {};
   const groqKey = process.env.GROQ_API_KEY;
 
-  if (!prompt || typeof prompt !== 'string') {
-    return res.status(400).json({ error: 'Missing prompt' });
-  }
+  if (!prompt || typeof prompt !== 'string') return res.status(400).json({ error: 'Missing prompt' });
 
-  // Fallback for missing keys
   if (!groqKey) {
     if (type === 'blog') {
-      return res.status(200).json({ 
-        content: `<h2>${prompt}</h2><p>This is a human-optimized article about <strong>${prompt}</strong>. It avoids common AI traits and focuses on the Nigerian business context. To enable live generation, add GROQ_API_KEY to the environment.</p>` 
+      return res.status(200).json({
+        content: `<h2>${prompt}</h2><p>This is a human-optimized article about <strong>${prompt}</strong>. It avoids common AI traits and focuses on the Nigerian business context. To enable live generation, add GROQ_API_KEY to the environment.</p>`
       });
     }
-    return res.status(200).json({ 
+    return res.status(200).json({
       text: `Hello! I'm the Grantify assistant (running in demo mode). Add GROQ_API_KEY to enable live AI responses.`
     });
   }
 
   try {
-    let systemInstruction = "";
+    let systemInstruction = '';
     let userPrompt = prompt;
     let newsContext = '';
     let sources = [];
@@ -90,7 +83,7 @@ export default async function handler(req, res) {
     if (type === 'blog') {
       systemInstruction = `You are a top-tier Nigerian business consultant and financial journalist.
       Write an authoritative, human-sounding 600-word article in HTML format.
-      
+
       CRITICAL CONTENT RULES:
       1. NEVER use em dashes (—). Use commas, colons, or periods instead.
       2. AVOID generic AI openings or conclusions.
@@ -98,7 +91,7 @@ export default async function handler(req, res) {
       4. SOUND like a person, not a textbook. Be strategic and actionable.
       5. LINKS: If you include any links in the article body, use named anchors (descriptive link text). Do NOT show raw URLs in the body.
       6. FORMAT: Use <h2>, <h3>, <p>, <strong>, <ul>, <li>, and <a> tags only.`;
-      
+
       userPrompt = `Topic: "${prompt}". Write a deep-dive strategy article for Nigerian entrepreneurs.`;
 
       if (useSearch) {
@@ -130,7 +123,7 @@ export default async function handler(req, res) {
       }
     }
 
-    const groqUrl = `https://api.groq.com/openai/v1/chat/completions`;
+    const groqUrl = 'https://api.groq.com/openai/v1/chat/completions';
 
     const normalizedHistory = Array.isArray(history)
       ? history
@@ -183,7 +176,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ text: aiText, sources });
   } catch (err) {
-    console.error('AI API Error:', err);
+    console.error('AI handler error:', err);
     return res.status(500).json({ error: err.message });
   }
 }

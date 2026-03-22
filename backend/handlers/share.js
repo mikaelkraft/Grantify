@@ -1,5 +1,6 @@
-// API: GET /api/share?type=blog&id=... - HTML preview with OG meta + redirect
-import pool from './_db.js';
+// Handler: /api/share
+
+import pool from '../db.js';
 
 const escapeHtml = (str = '') => String(str)
   .replace(/&/g, '&amp;')
@@ -24,7 +25,6 @@ export default async function handler(req, res) {
   const proto = req.headers['x-forwarded-proto'] || 'https';
   const host = req.headers['x-forwarded-host'] || req.headers.host;
   const baseUrl = `${proto}://${host}`;
-
   const defaultOg = `${baseUrl}/og-default.svg`;
 
   let title = 'Grantify';
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
       }
     }
   } catch (err) {
-    console.error('Share API Error:', err);
+    console.error('Share handler error:', err);
   } finally {
     client.release();
   }

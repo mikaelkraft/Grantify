@@ -1,16 +1,12 @@
-// API: /api/cron/daily-blog
-// Generates and publishes a daily blog post.
-// Intended to be called by Vercel Cron (or a scheduler calling this endpoint).
+// Handler: /api/cron/daily-blog
 
-import pool from '../_db.js';
+import pool from '../db.js';
 
 const fetchUnsplashImage = async (query) => {
   const key = process.env.UNSPLASH_ACCESS_KEY;
   const q = String(query || '').trim();
   if (!q) return '';
 
-  // If no key is configured, use Unsplash Source (no-auth) as a best-effort fallback.
-  // This returns a dynamic image URL for the given query.
   if (!key) {
     return `https://source.unsplash.com/1600x900/?${encodeURIComponent(q)}`;
   }
@@ -87,7 +83,6 @@ const extractTitleFromHtml = (html) => {
 };
 
 export default async function handler(req, res) {
-  // Allow GET for cron schedulers.
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -96,10 +91,8 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, skipped: true, reason: 'AUTOBLOG_ENABLED is not true' });
   }
 
-  // Vercel Cron calls include an x-vercel-cron header. We allow that.
   const isVercelCron = Boolean(req.headers['x-vercel-cron']);
 
-  // Optional manual trigger secret (for local testing / one-off runs)
   const expected = process.env.BLOG_CRON_SECRET;
   const auth = String(req.headers.authorization || '');
   const bearer = auth.startsWith('Bearer ') ? auth.slice('Bearer '.length).trim() : '';
@@ -120,7 +113,6 @@ export default async function handler(req, res) {
     const today = new Date();
     const isoDate = today.toISOString().slice(0, 10);
 
-    // Prevent duplicate daily posts.
     const existing = await client.query(
       `SELECT id FROM blog_posts WHERE tags @> ARRAY['daily']::text[] AND created_at::date = CURRENT_DATE LIMIT 1`
     );
@@ -134,17 +126,17 @@ export default async function handler(req, res) {
       .join('\n');
 
     const systemInstruction = `You are a top-tier Nigerian business consultant and financial journalist.
-  Write an authoritative, human-sounding 650-900 word article in HTML format.
+Write an authoritative, human-sounding 650-900 word article in HTML format.
 
-  CRITICAL CONTENT RULES:
-  1. NEVER use em dashes (—). Use commas, colons, or periods instead.
-  2. AVOID generic AI openings or conclusions.
-  3. FOCUS deeply on Nigeria: use Naira (₦), mention local states, or CBN/BOI policies.
-  4. SOUND like a person, not a textbook. Be strategic and actionable.
-  5. LINKS: Use named anchors (descriptive link text). Do NOT show raw URLs in the body.
-  6. FORMAT: Use <h2>, <h3>, <p>, <strong>, <ul>, <li>, and <a> tags only.`;
+CRITICAL CONTENT RULES:
+1. NEVER use em dashes (—). Use commas, colons, or periods instead.
+2. AVOID generic AI openings or conclusions.
+3. FOCUS deeply on Nigeria: use Naira (₦), mention local states, or CBN/BOI policies.
+4. SOUND like a person, not a textbook. Be strategic and actionable.
+5. LINKS: Use named anchors (descriptive link text). Do NOT show raw URLs in the body.
+6. FORMAT: Use <h2>, <h3>, <p>, <strong>, <ul>, <li>, and <a> tags only.`;
 
-    const userPrompt = `Write today's (\"${isoDate}\") Nigeria Funding & Grants Briefing for entrepreneurs.\n\nInclude:\n- 3-5 practical moves founders can take today\n- A short section on avoiding scams\n- Clear next steps\n\nTopic direction: fresh grant/loan opportunities and policy-related updates (if relevant).`;
+    const userPrompt = `Write today's ("${isoDate}") Nigeria Funding & Grants Briefing for entrepreneurs.\n\nInclude:\n- 3-5 practical moves founders can take today\n- A short section on avoiding scams\n- Clear next steps\n\nTopic direction: fresh grant/loan opportunities and policy-related updates (if relevant).`;
 
     const messages = [
       { role: 'system', content: systemInstruction },
@@ -177,7 +169,6 @@ export default async function handler(req, res) {
     const html = data.choices?.[0]?.message?.content || '';
     const title = extractTitleFromHtml(html) || `Nigeria Funding Briefing (${isoDate})`;
 
-    // Optional featured image (best-effort)
     const image = await fetchUnsplashImage(`${title} Nigeria business`);
 
     const sourcesHtml = buildSourcesHtml(newsItems);
