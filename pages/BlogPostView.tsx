@@ -2,12 +2,38 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ApiService } from '../services/storage';
 import { BlogPost, BlogComment, AdConfig } from '../types';
-import { Loader2, ThumbsUp, Heart, Hand, MessageSquare, ArrowLeft, Send, Calendar, User, Shield, Share2, Eye, ArrowUp } from 'lucide-react';
+import { Loader2, ThumbsUp, Heart, Hand, MessageSquare, ArrowLeft, Send, Calendar, User, Shield, Share2, Eye, ArrowUp, Copy } from 'lucide-react';
 import { AdSlot } from '../components/AdSlot';
-import { FacebookShareButton, TwitterShareButton, WhatsappShareButton, LinkedinShareButton, FacebookIcon, TwitterIcon, WhatsappIcon, LinkedinIcon } from 'react-share';
+import { FacebookShareButton, TwitterShareButton, WhatsappShareButton, LinkedinShareButton, FacebookIcon, WhatsappIcon, LinkedinIcon } from 'react-share';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
 import { makeBlogSlug, parseBlogParam } from '../utils/blogRouting';
 import { hyphenateHtml } from '../utils/hyphenateHtml';
+
+const XShareIcon: React.FC<{ size?: number; round?: boolean; bgStyle?: React.CSSProperties; iconFillColor?: string }> = ({
+  size = 32,
+  round = false,
+  bgStyle,
+  iconFillColor = '#ffffff'
+}) => {
+  const r = round ? size / 2 : 6;
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 32 32"
+      role="img"
+      aria-label="X"
+      style={bgStyle}
+    >
+      <rect x="0" y="0" width="32" height="32" rx={r} fill="#000000" />
+      {/* Simple X mark approximating the X logo */}
+      <path
+        d="M10.1 9.2h3.4l4.0 5.3 4.6-5.3h3.0l-6.0 7.0 6.8 8.8h-3.4l-4.6-5.9-5.1 5.9H8.9l6.6-7.6-5.4-7.2z"
+        fill={iconFillColor}
+      />
+    </svg>
+  );
+};
 
 const looksLikeHtml = (value: string) => {
   const s = String(value || '').trim();
@@ -53,6 +79,7 @@ export const BlogPostView: React.FC = () => {
   const [replyContent, setReplyContent] = useState('');
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [myReaction, setMyReaction] = useState<'likes' | 'loves' | 'claps' | null>(null);
+  const [didCopyLink, setDidCopyLink] = useState(false);
 
   const effectiveId = useMemo(() => {
     return slugOrId ? parseBlogParam(slugOrId).id : '';
@@ -226,8 +253,11 @@ export const BlogPostView: React.FC = () => {
     );
   }
 
+  const safeTitle = normalizeNbsp(post.title).replace(/\s+/g, ' ').trim();
+
+  const shareSlug = makeBlogSlug(safeTitle, post.id);
   const shareUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/share/blog/${post.id}`
+    ? `${window.location.origin}/share/blog/${shareSlug}`
     : '';
 
   const shareSummary = (() => {
@@ -255,7 +285,33 @@ export const BlogPostView: React.FC = () => {
 
   const topLevelComments = post.comments.filter(c => !c.parentId);
 
-  const safeTitle = normalizeNbsp(post.title).replace(/\s+/g, ' ').trim();
+  const handleCopyShareLink = async () => {
+    if (!shareUrl) return;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setDidCopyLink(true);
+      window.setTimeout(() => setDidCopyLink(false), 1600);
+      return;
+    } catch {
+      // fall through
+    }
+
+    try {
+      const el = document.createElement('textarea');
+      el.value = shareUrl;
+      el.setAttribute('readonly', '');
+      el.style.position = 'fixed';
+      el.style.left = '-9999px';
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      setDidCopyLink(true);
+      window.setTimeout(() => setDidCopyLink(false), 1600);
+    } catch {
+      alert('Copy failed. Please copy the link from the address bar.');
+    }
+  };
 
   return (
     <div className="max-w-5xl mx-auto py-12 px-3 sm:px-4 md:px-6">
@@ -298,7 +354,7 @@ export const BlogPostView: React.FC = () => {
           </h1>
 
 
-          <div lang="en" className="max-w-none text-gray-700 dark:text-gray-200 leading-relaxed quill-content">
+          <div lang="en" className="max-w-none text-gray-700 dark:text-gray-200 text-sm leading-relaxed quill-content">
             {ads?.body ? (
               (() => {
                 // Since content is now HTML from ReactQuill
@@ -335,9 +391,19 @@ export const BlogPostView: React.FC = () => {
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2"><Share2 size={16} /> Share:</span>
               <FacebookShareButton url={shareUrl} className="hover:opacity-80 transition-opacity"><FacebookIcon size={32} round /></FacebookShareButton>
-              <TwitterShareButton url={shareUrl} title={safeTitle} className="hover:opacity-80 transition-opacity"><TwitterIcon size={32} round /></TwitterShareButton>
+              <TwitterShareButton url={shareUrl} title={safeTitle} className="hover:opacity-80 transition-opacity"><XShareIcon size={32} round /></TwitterShareButton>
               <WhatsappShareButton url={shareUrl} title={safeTitle} separator=" - " className="hover:opacity-80 transition-opacity"><WhatsappIcon size={32} round /></WhatsappShareButton>
               <LinkedinShareButton url={shareUrl} title={safeTitle} summary={shareSummary} source="Grantify" className="hover:opacity-80 transition-opacity"><LinkedinIcon size={32} round /></LinkedinShareButton>
+
+              <button
+                type="button"
+                onClick={handleCopyShareLink}
+                className="w-8 h-8 rounded-full bg-gray-900 text-white inline-flex items-center justify-center hover:opacity-80 transition-opacity"
+                title={didCopyLink ? 'Copied!' : 'Copy link'}
+                aria-label="Copy link"
+              >
+                <Copy size={16} />
+              </button>
             </div>
           </div>
 

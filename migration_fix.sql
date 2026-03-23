@@ -25,3 +25,27 @@ CREATE TABLE IF NOT EXISTS ads (
 INSERT INTO ads (id, head, header, body, sidebar, footer) 
 VALUES (1, '', '', '', '', '')
 ON CONFLICT (id) DO NOTHING;
+
+-- 4. Loan Providers: ensure logo_url exists
+ALTER TABLE loan_providers ADD COLUMN IF NOT EXISTS logo_url TEXT;
+
+-- 5. User submissions queue for suggested loan apps/providers
+CREATE TABLE IF NOT EXISTS loan_provider_submissions (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    loan_range TEXT,
+    interest_range TEXT,
+    tenure TEXT,
+    website TEXT NOT NULL,
+    logo_url TEXT,
+    play_store_url TEXT,
+    tag TEXT,
+    rating DECIMAL(2,1),
+    requirements TEXT,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS loan_provider_submissions_status_created_at_idx
+ON loan_provider_submissions (status, created_at DESC);

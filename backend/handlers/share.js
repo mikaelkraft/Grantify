@@ -11,6 +11,42 @@ const escapeHtml = (str = '') => String(str)
 
 const stripHtml = (html = '') => String(html).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
+const extractBlogId = (param) => {
+  const raw = String(param || '');
+  const sepIndex = raw.lastIndexOf('~');
+  if (sepIndex === -1) return raw;
+
+  const encodedId = raw.slice(sepIndex + 1);
+  try {
+    return decodeURIComponent(encodedId);
+  } catch {
+    return encodedId;
+  }
+};
+
+const slugifyTitle = (title) => {
+  const input = String(title || '').trim();
+  if (!input) return 'post';
+
+  const ascii = input
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
+  const cleaned = ascii
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, '-');
+
+  return cleaned || 'post';
+};
+
+const makeBlogSlug = (title, id) => {
+  const slugPart = slugifyTitle(title);
+  const idPart = encodeURIComponent(String(id));
+  return `${slugPart}~${idPart}`;
+};
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -21,6 +57,8 @@ export default async function handler(req, res) {
 
   const { type, id } = req.query || {};
   if (type !== 'blog' || !id) return res.status(400).send('Bad request');
+
+  const effectiveId = extractBlogId(id);
 
   const proto = req.headers['x-forwarded-proto'] || 'https';
   const host = req.headers['x-forwarded-host'] || req.headers.host;
@@ -33,7 +71,7 @@ export default async function handler(req, res) {
 
   const client = await pool.connect();
   try {
-    const result = await client.query('SELECT title, content, image FROM blog_posts WHERE id = $1', [id]);
+    const result = await client.query('SELECT title, content, image FROM blog_posts WHERE id = $1', [effectiveId]);
     const row = result.rows[0];
     if (row) {
       title = row.title || title;
@@ -52,8 +90,10 @@ export default async function handler(req, res) {
   const safeTitle = escapeHtml(title);
   const safeDescription = escapeHtml(description);
   const safeImage = escapeHtml(image);
-  const redirectTo = `/#/blog/${encodeURIComponent(String(id))}`;
-  const canonical = `${baseUrl}/share/blog/${encodeURIComponent(String(id))}`;
+
+  const slug = makeBlogSlug(title, effectiveId);
+  const redirectTo = `/#/blog/${encodeURIComponent(String(slug))}`;
+  const canonical = `${baseUrl}/share/blog/${encodeURIComponent(String(slug))}`;
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   return res.status(200).send(`<!doctype html>
