@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ExternalLink, AlertTriangle, ShieldCheck, Info, Loader2, Star, CheckCircle, Zap, Award, Smartphone, MessageCircle, X, Send, CornerDownRight } from 'lucide-react';
 import { ApiService } from '../services/storage';
 import { AdSlot } from '../components/AdSlot';
@@ -30,8 +30,9 @@ export const LoanProviders: React.FC = () => {
   const [selectedProvider, setSelectedProvider] = useState<LoanProvider | null>(null);
   const [reviews, setReviews] = useState<ProviderReview[]>([]);
   const [isReviewsLoading, setIsReviewsLoading] = useState(false);
-  const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
   const [newReview, setNewReview] = useState({ name: '', rating: 5, content: '' });
+  const replyTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -79,7 +80,7 @@ export const LoanProviders: React.FC = () => {
         name: newReview.name,
         rating: replyTo ? 0 : newReview.rating,
         content: newReview.content,
-        parentId: replyTo || undefined
+        parentId: replyTo?.id || undefined
       });
       setNewReview({ name: '', rating: 5, content: '' });
       setReplyTo(null);
@@ -119,7 +120,10 @@ export const LoanProviders: React.FC = () => {
           {review.rating > 0 && renderStars(review.rating, 10)}
           <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 leading-relaxed">{review.content}</p>
           <button 
-            onClick={() => setReplyTo(review.id)}
+            onClick={() => {
+              setReplyTo({ id: review.id, name: review.name });
+              window.setTimeout(() => replyTextareaRef.current?.focus(), 0);
+            }}
             className="text-[10px] font-black text-grantify-green uppercase mt-1 hover:underline flex items-center gap-1"
           >
             <CornerDownRight size={10} /> Reply
@@ -625,6 +629,21 @@ export const LoanProviders: React.FC = () => {
             <h3 className="text-xs font-black text-gray-500 dark:text-gray-400 uppercase mb-4 tracking-widest">
               {replyTo ? `Replying to Review` : `Post a Review`}
             </h3>
+
+            {replyTo && (
+              <div className="mb-3 flex items-center justify-between gap-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 py-2">
+                <div className="text-xs text-gray-700 dark:text-gray-200 font-bold">
+                  Replying to <span className="text-grantify-green">{replyTo.name}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setReplyTo(null)}
+                  className="text-[10px] font-black text-red-500 uppercase"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
             
             <form onSubmit={handleSubmitReview} className="space-y-4">
               <div className="flex gap-4">
@@ -663,6 +682,7 @@ export const LoanProviders: React.FC = () => {
                   className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-xl text-sm outline-none focus:ring-2 focus:ring-grantify-green min-h-[100px] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                   value={newReview.content}
                   onChange={(e) => setNewReview({...newReview, content: e.target.value})}
+                  ref={replyTextareaRef}
                 />
                 <button 
                   type="submit"
@@ -673,16 +693,6 @@ export const LoanProviders: React.FC = () => {
                   <Send size={18} />
                 </button>
               </div>
-
-              {replyTo && (
-                <button 
-                  type="button" 
-                  onClick={() => setReplyTo(null)}
-                  className="text-[10px] font-black text-red-500 uppercase"
-                >
-                  Cancel Reply
-                </button>
-              )}
             </form>
           </div>
         </div>

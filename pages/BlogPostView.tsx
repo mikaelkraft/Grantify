@@ -494,7 +494,7 @@ export const BlogPostView: React.FC = () => {
             />
 
             <div className="text-[11px] text-gray-500 dark:text-gray-400">
-              Links are blocked to reduce spam. Consider registering for richer discussions and notifications.
+              Links are blocked to reduce spam.
             </div>
 
             <button 

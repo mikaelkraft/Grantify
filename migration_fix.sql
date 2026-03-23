@@ -49,3 +49,22 @@ CREATE TABLE IF NOT EXISTS loan_provider_submissions (
 
 CREATE INDEX IF NOT EXISTS loan_provider_submissions_status_created_at_idx
 ON loan_provider_submissions (status, created_at DESC);
+
+-- 6. Provider reviews: ensure replies are supported via parent_id
+CREATE TABLE IF NOT EXISTS provider_reviews (
+        id TEXT PRIMARY KEY,
+        provider_id INTEGER REFERENCES loan_providers(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        rating INTEGER,
+        content TEXT NOT NULL,
+        parent_id TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE provider_reviews
+    ADD COLUMN IF NOT EXISTS parent_id TEXT,
+    ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS rating INTEGER;
+
+CREATE INDEX IF NOT EXISTS provider_reviews_provider_id_idx ON provider_reviews (provider_id);
+CREATE INDEX IF NOT EXISTS provider_reviews_parent_id_idx ON provider_reviews (parent_id);
