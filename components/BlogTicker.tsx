@@ -12,6 +12,8 @@ export const BlogTicker: React.FC<Props> = ({ posts }) => {
   const [reducedMotion, setReducedMotion] = useState(false);
   const [carouselIndex, setCarouselIndex] = useState(0);
 
+  const normalizeNbsp = (s: string) => String(s || '').replace(/&nbsp;|\u00A0/g, ' ').replace(/\s+/g, ' ').trim();
+
   useEffect(() => {
     try {
       const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -50,7 +52,7 @@ export const BlogTicker: React.FC<Props> = ({ posts }) => {
               to={makeBlogPath(items[carouselIndex] || items[0])}
               className="flex items-center gap-2 hover:underline transition-colors whitespace-nowrap"
             >
-              <span className="text-xs font-bold truncate max-w-[240px] md:max-w-none">{(items[carouselIndex]?.title || items[0].title)}</span>
+              <span className="text-xs font-bold truncate max-w-[240px] md:max-w-none">{normalizeNbsp(items[carouselIndex]?.title || items[0].title)}</span>
               <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded text-green-900 font-mono hidden md:inline-block">
                 {new Date((items[carouselIndex]?.createdAt || items[0].createdAt)).toLocaleDateString()}
               </span>
@@ -68,7 +70,7 @@ export const BlogTicker: React.FC<Props> = ({ posts }) => {
                   to={makeBlogPath(post)}
                   className="flex items-center gap-2 hover:underline transition-colors"
                 >
-                  <span className="text-xs font-bold">{post.title}</span>
+                  <span className="text-xs font-bold">{normalizeNbsp(post.title)}</span>
                   <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded text-green-900 font-mono hidden md:inline-block">
                     {new Date(post.createdAt).toLocaleDateString()}
                   </span>

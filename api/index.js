@@ -8,6 +8,7 @@ import config from '../backend/handlers/config.js';
 import contact from '../backend/handlers/contact.js';
 import leads from '../backend/handlers/leads.js';
 import loanProviders from '../backend/handlers/loan_providers.js';
+import loanProviderSubmissions from '../backend/handlers/loan_provider_submissions.js';
 import providerReviews from '../backend/handlers/provider_reviews.js';
 import seed from '../backend/handlers/seed.js';
 import share from '../backend/handlers/share.js';
@@ -52,6 +53,7 @@ export default async function handler(req, res) {
     if (root === 'contact') return contact(req, res);
     if (root === 'leads') return leads(req, res);
     if (root === 'loan_providers') return loanProviders(req, res);
+    if (root === 'loan_provider_submissions') return loanProviderSubmissions(req, res);
     if (root === 'provider_reviews') return providerReviews(req, res);
     if (root === 'seed') return seed(req, res);
     if (root === 'share') return share(req, res);

@@ -152,11 +152,36 @@ export default async function handler(req, res) {
         interest_range TEXT,
         tenure TEXT,
         website TEXT,
+        logo_url TEXT,
         play_store_url TEXT,
         tag TEXT,
         rating DECIMAL(2,1),
         requirements TEXT,
         is_recommended BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await client.query(`
+      ALTER TABLE loan_providers
+      ADD COLUMN IF NOT EXISTS logo_url TEXT
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS loan_provider_submissions (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT NOT NULL,
+        loan_range TEXT,
+        interest_range TEXT,
+        tenure TEXT,
+        website TEXT NOT NULL,
+        logo_url TEXT,
+        play_store_url TEXT,
+        tag TEXT,
+        rating DECIMAL(2,1),
+        requirements TEXT,
+        status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -236,9 +261,9 @@ export default async function handler(req, res) {
     if (parseInt(providersCount.rows[0].count) === 0) {
       for (const p of initialProviders) {
         await client.query(
-          `INSERT INTO loan_providers (name, description, loan_range, interest_range, tenure, website, play_store_url, tag, rating, requirements, is_recommended)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-          [p.name, p.description, p.loan_range, p.interest_range, p.tenure, p.website, p.play_store_url, p.tag, p.rating, p.requirements, p.is_recommended]
+          `INSERT INTO loan_providers (name, description, loan_range, interest_range, tenure, website, logo_url, play_store_url, tag, rating, requirements, is_recommended)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+          [p.name, p.description, p.loan_range, p.interest_range, p.tenure, p.website, p.logo_url || null, p.play_store_url, p.tag, p.rating, p.requirements, p.is_recommended]
         );
       }
       seeded.providers = true;

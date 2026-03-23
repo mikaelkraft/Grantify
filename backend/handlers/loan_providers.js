@@ -21,6 +21,7 @@ export default async function handler(req, res) {
         interestRange: row.interest_range,
         tenure: row.tenure,
         website: row.website,
+        logo: row.logo_url,
         playStoreUrl: row.play_store_url,
         tag: row.tag,
         rating: row.rating ? parseFloat(row.rating) : 0,
@@ -34,14 +35,17 @@ export default async function handler(req, res) {
       const providers = req.body;
       if (!Array.isArray(providers)) return res.status(400).json({ error: 'Body must be an array of providers' });
 
+      // Backward-compatible migration: add logo_url if the table predates this field.
+      await client.query('ALTER TABLE loan_providers ADD COLUMN IF NOT EXISTS logo_url TEXT');
+
       await client.query('BEGIN');
       await client.query('DELETE FROM loan_providers');
 
       for (const p of providers) {
         await client.query(
-          `INSERT INTO loan_providers (name, description, loan_range, interest_range, tenure, website, play_store_url, tag, rating, requirements, is_recommended)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-          [p.name, p.description, p.loanRange, p.interestRange, p.tenure, p.website, p.playStoreUrl, p.tag, p.rating, p.requirements, p.isRecommended]
+          `INSERT INTO loan_providers (name, description, loan_range, interest_range, tenure, website, logo_url, play_store_url, tag, rating, requirements, is_recommended)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+          [p.name, p.description, p.loanRange, p.interestRange, p.tenure, p.website, p.logo || null, p.playStoreUrl, p.tag, p.rating, p.requirements, p.isRecommended]
         );
       }
 

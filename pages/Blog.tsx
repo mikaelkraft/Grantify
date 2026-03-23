@@ -79,8 +79,14 @@ export const Blog: React.FC = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {posts.map(post => (
             (() => {
-              const previewText = post.content
+              const normalizeNbsp = (s: string) => String(s || '').replace(/&nbsp;|\u00A0/g, ' ');
+
+              const previewText = normalizeNbsp(post.content)
                 .replace(/<[^>]+>/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+
+              const safeTitle = normalizeNbsp(post.title)
                 .replace(/\s+/g, ' ')
                 .trim();
 
@@ -109,7 +115,7 @@ export const Blog: React.FC = () => {
                 </div>
                 
                 <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-3 group-hover:text-grantify-green transition-colors leading-tight">
-                  {post.title}
+                  {safeTitle}
                 </h3>
                 
                 <p className="text-sm text-gray-500 dark:text-gray-300 line-clamp-3 mb-6 flex-grow">

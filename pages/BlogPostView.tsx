@@ -58,13 +58,23 @@ export const BlogPostView: React.FC = () => {
     return slugOrId ? parseBlogParam(slugOrId).id : '';
   }, [slugOrId]);
 
+  const normalizeNbsp = (s: string) => String(s || '').replace(/&nbsp;|\u00A0/g, ' ');
+
+  const postHtml = useMemo(() => {
+    const raw = String(post?.content || '');
+    if (!raw.trim()) return '';
+    const normalized = looksLikeHtml(raw) ? raw : plainTextToHtml(raw);
+    return hyphenateHtml(normalized);
+  }, [post?.content]);
+
   useEffect(() => {
     if (!post) return;
     try {
-      document.title = `${post.title} | Grantify`;
+      const safeTitle = normalizeNbsp(post.title).replace(/\s+/g, ' ').trim();
+      document.title = `${safeTitle} | Grantify`;
 
       const stripHtml = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-      const description = stripHtml(post.content || '').slice(0, 160) || 'Discover funding options and learn from community intelligence.';
+      const description = normalizeNbsp(stripHtml(post.content || '')).slice(0, 160) || 'Discover funding options and learn from community intelligence.';
       const image = (post.image && !String(post.image).startsWith('data:')) ? String(post.image) : '/og-default.svg';
 
       const setMeta = (selector: string, attr: 'content', value: string) => {
@@ -72,10 +82,10 @@ export const BlogPostView: React.FC = () => {
         if (el) el.setAttribute(attr, value);
       };
 
-      setMeta('meta[property="og:title"]', 'content', post.title);
+      setMeta('meta[property="og:title"]', 'content', safeTitle);
       setMeta('meta[property="og:description"]', 'content', description);
       setMeta('meta[property="og:image"]', 'content', image);
-      setMeta('meta[name="twitter:title"]', 'content', post.title);
+      setMeta('meta[name="twitter:title"]', 'content', safeTitle);
       setMeta('meta[name="twitter:description"]', 'content', description);
       setMeta('meta[name="twitter:image"]', 'content', image);
     } catch {
@@ -165,7 +175,7 @@ export const BlogPostView: React.FC = () => {
   };
 
   const submitComment = async (payload: { content: string; parentId?: string | null }) => {
-    if (!id) return;
+    if (!post?.id) return;
     const name = commentForm.name.trim();
     const content = payload.content.trim();
     if (!name || !content) return;
@@ -180,12 +190,12 @@ export const BlogPostView: React.FC = () => {
     try {
       await ApiService.submitBlogAction({
         action: 'comment',
-        postId: id,
+        postId: post.id,
         name,
         content,
         parentId: payload.parentId || undefined
       });
-      await fetchPost();
+      await fetchPost(String(post.id));
     } catch (e) {
       alert('Failed to post comment');
     } finally {
@@ -222,7 +232,7 @@ export const BlogPostView: React.FC = () => {
 
   const shareSummary = (() => {
     try {
-      return String(post.content || '')
+      return normalizeNbsp(String(post.content || ''))
         .replace(/<[^>]+>/g, ' ')
         .replace(/\s+/g, ' ')
         .trim()
@@ -245,12 +255,7 @@ export const BlogPostView: React.FC = () => {
 
   const topLevelComments = post.comments.filter(c => !c.parentId);
 
-  const postHtml = useMemo(() => {
-    const raw = String(post.content || '');
-    if (!raw.trim()) return '';
-    const normalized = looksLikeHtml(raw) ? raw : plainTextToHtml(raw);
-    return hyphenateHtml(normalized);
-  }, [post.content]);
+  const safeTitle = normalizeNbsp(post.title).replace(/\s+/g, ' ').trim();
 
   return (
     <div className="max-w-5xl mx-auto py-12 px-3 sm:px-4 md:px-6">
@@ -289,7 +294,7 @@ export const BlogPostView: React.FC = () => {
           </div>
 
           <h1 className="text-3xl md:text-5xl font-black font-heading text-gray-900 dark:text-gray-100 mb-8 leading-tight break-normal">
-            {post.title}
+            {safeTitle}
           </h1>
 
 
@@ -330,9 +335,9 @@ export const BlogPostView: React.FC = () => {
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2"><Share2 size={16} /> Share:</span>
               <FacebookShareButton url={shareUrl} className="hover:opacity-80 transition-opacity"><FacebookIcon size={32} round /></FacebookShareButton>
-              <TwitterShareButton url={shareUrl} title={post.title} className="hover:opacity-80 transition-opacity"><TwitterIcon size={32} round /></TwitterShareButton>
-              <WhatsappShareButton url={shareUrl} title={post.title} separator=" - " className="hover:opacity-80 transition-opacity"><WhatsappIcon size={32} round /></WhatsappShareButton>
-              <LinkedinShareButton url={shareUrl} title={post.title} summary={shareSummary} source="Grantify" className="hover:opacity-80 transition-opacity"><LinkedinIcon size={32} round /></LinkedinShareButton>
+              <TwitterShareButton url={shareUrl} title={safeTitle} className="hover:opacity-80 transition-opacity"><TwitterIcon size={32} round /></TwitterShareButton>
+              <WhatsappShareButton url={shareUrl} title={safeTitle} separator=" - " className="hover:opacity-80 transition-opacity"><WhatsappIcon size={32} round /></WhatsappShareButton>
+              <LinkedinShareButton url={shareUrl} title={safeTitle} summary={shareSummary} source="Grantify" className="hover:opacity-80 transition-opacity"><LinkedinIcon size={32} round /></LinkedinShareButton>
             </div>
           </div>
 
@@ -389,7 +394,7 @@ export const BlogPostView: React.FC = () => {
                     {rec.category}
                   </span>
                   <h4 className="font-bold text-gray-800 dark:text-gray-100 leading-tight group-hover:text-grantify-green transition-colors line-clamp-2">
-                    {rec.title}
+                    {normalizeNbsp(rec.title).replace(/\s+/g, ' ').trim()}
                   </h4>
                 </div>
               </Link>

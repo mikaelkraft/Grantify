@@ -8,12 +8,15 @@ import {
   RepaymentContent,
   ReferralData,
   LoanProvider,
+  LoanProviderSubmission,
   BlogPost,
   BlogComment,
   ProviderReview,
   ReactionType,
   ContactMessage
 } from '../types';
+
+
 
 // --- CONFIGURATION ---
 // For Vercel deployment: API routes are automatically available at /api/* (same origin)
@@ -353,6 +356,32 @@ export const ApiService = {
       method: 'DELETE'
     });
     if (!res.ok) throw new Error('Failed to delete loan provider via API');
+  },
+
+  // -- Loan Provider Submissions (public suggestions queue) --
+  getLoanProviderSubmissions: async (status: 'pending' | 'approved' | 'rejected' = 'pending'): Promise<LoanProviderSubmission[]> => {
+    const res = await fetch(`${API_URL}/api/loan_provider_submissions?status=${encodeURIComponent(status)}`);
+    if (!res.ok) throw new Error('Failed to fetch loan provider submissions');
+    return await res.json();
+  },
+
+  submitLoanProviderSubmission: async (data: Partial<LoanProvider>): Promise<{ success: boolean; id: string }> => {
+    const res = await fetch(`${API_URL}/api/loan_provider_submissions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to submit loan provider suggestion');
+    return await res.json();
+  },
+
+  updateLoanProviderSubmissionStatus: async (id: string, status: 'pending' | 'approved' | 'rejected'): Promise<void> => {
+    const res = await fetch(`${API_URL}/api/loan_provider_submissions?id=${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    if (!res.ok) throw new Error('Failed to update submission status');
   },
 
   // -- Blog --

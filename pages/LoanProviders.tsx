@@ -8,6 +8,23 @@ export const LoanProviders: React.FC = () => {
   const [providers, setProviders] = useState<LoanProvider[]>([]);
   const [ads, setAds] = useState<AdConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // User submission (suggest a provider/app)
+  const [showSuggestForm, setShowSuggestForm] = useState(false);
+  const [isSuggestSubmitting, setIsSuggestSubmitting] = useState(false);
+  const [suggestForm, setSuggestForm] = useState<Partial<LoanProvider>>({
+    name: '',
+    website: '',
+    description: '',
+    loanRange: '',
+    interestRange: '',
+    tenure: '',
+    requirements: '',
+    playStoreUrl: '',
+    tag: '',
+    rating: 0,
+    logo: ''
+  });
   
   // Review Modal State
   const [selectedProvider, setSelectedProvider] = useState<LoanProvider | null>(null);
@@ -150,6 +167,190 @@ export const LoanProviders: React.FC = () => {
               The information provided is for reference only. <strong>Always</strong> verify lender details independently and read all terms carefully before sharing sensitive personal data.
             </p>
           </div>
+        </div>
+
+        {/* Suggest a Loan App */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm mb-12">
+          <div className="p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-black text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <Zap size={18} className="text-grantify-gold" /> Suggest a Loan App
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                Know a legit instant-loan app we should list? Submit the details for review.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowSuggestForm(v => !v)}
+              className="inline-flex items-center justify-center gap-2 bg-gray-900 dark:bg-gray-950 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-gray-800"
+            >
+              {showSuggestForm ? (<><X size={16} /> Close</>) : (<><Send size={16} /> Submit Details</>)}
+            </button>
+          </div>
+
+          {showSuggestForm && (
+            <div className="px-6 pb-6">
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setIsSuggestSubmitting(true);
+                  try {
+                    await ApiService.submitLoanProviderSubmission({
+                      name: String(suggestForm.name || '').trim(),
+                      website: String(suggestForm.website || '').trim(),
+                      description: String(suggestForm.description || '').trim(),
+                      loanRange: String(suggestForm.loanRange || '').trim(),
+                      interestRange: String(suggestForm.interestRange || '').trim(),
+                      tenure: String(suggestForm.tenure || '').trim(),
+                      requirements: String(suggestForm.requirements || '').trim(),
+                      playStoreUrl: String(suggestForm.playStoreUrl || '').trim(),
+                      tag: String(suggestForm.tag || '').trim(),
+                      rating: Number(suggestForm.rating || 0),
+                      logo: String(suggestForm.logo || '').trim(),
+                    });
+                    alert('Thanks! Your submission was received for review.');
+                    setSuggestForm({
+                      name: '', website: '', description: '', loanRange: '', interestRange: '', tenure: '',
+                      requirements: '', playStoreUrl: '', tag: '', rating: 0, logo: ''
+                    });
+                    setShowSuggestForm(false);
+                  } catch (err: any) {
+                    alert(err?.message || 'Failed to submit. Please try again.');
+                  } finally {
+                    setIsSuggestSubmitting(false);
+                  }
+                }}
+                className="grid md:grid-cols-2 gap-4"
+              >
+                <div className="md:col-span-2">
+                  <label className="text-[10px] text-gray-500 uppercase block mb-1">App / Provider Name *</label>
+                  <input
+                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 outline-none focus:ring-2 focus:ring-grantify-green"
+                    value={suggestForm.name || ''}
+                    onChange={(e) => setSuggestForm(prev => ({ ...prev, name: e.target.value }))}
+                    required
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="text-[10px] text-gray-500 uppercase block mb-1">Website / Referral Link *</label>
+                  <input
+                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 outline-none focus:ring-2 focus:ring-grantify-green"
+                    value={suggestForm.website || ''}
+                    onChange={(e) => setSuggestForm(prev => ({ ...prev, website: e.target.value }))}
+                    required
+                    placeholder="https://..."
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="text-[10px] text-gray-500 uppercase block mb-1">Description *</label>
+                  <textarea
+                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 outline-none focus:ring-2 focus:ring-grantify-green"
+                    rows={3}
+                    value={suggestForm.description || ''}
+                    onChange={(e) => setSuggestForm(prev => ({ ...prev, description: e.target.value }))}
+                    required
+                    placeholder="What does the app offer? Any licensing/legitimacy notes?"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-gray-500 uppercase block mb-1">Loan Range</label>
+                  <input
+                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 outline-none focus:ring-2 focus:ring-grantify-green"
+                    value={suggestForm.loanRange || ''}
+                    onChange={(e) => setSuggestForm(prev => ({ ...prev, loanRange: e.target.value }))}
+                    placeholder="NGN 10,000 - NGN 500,000"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-gray-500 uppercase block mb-1">Interest Range</label>
+                  <input
+                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 outline-none focus:ring-2 focus:ring-grantify-green"
+                    value={suggestForm.interestRange || ''}
+                    onChange={(e) => setSuggestForm(prev => ({ ...prev, interestRange: e.target.value }))}
+                    placeholder="e.g. 3% - 15% monthly"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-gray-500 uppercase block mb-1">Tenure</label>
+                  <input
+                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 outline-none focus:ring-2 focus:ring-grantify-green"
+                    value={suggestForm.tenure || ''}
+                    onChange={(e) => setSuggestForm(prev => ({ ...prev, tenure: e.target.value }))}
+                    placeholder="e.g. 14 days - 6 months"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-gray-500 uppercase block mb-1">Requirements</label>
+                  <input
+                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 outline-none focus:ring-2 focus:ring-grantify-green"
+                    value={suggestForm.requirements || ''}
+                    onChange={(e) => setSuggestForm(prev => ({ ...prev, requirements: e.target.value }))}
+                    placeholder="NIN, BVN, Valid ID"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-gray-500 uppercase block mb-1">Play Store URL</label>
+                  <input
+                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 outline-none focus:ring-2 focus:ring-grantify-green"
+                    value={suggestForm.playStoreUrl || ''}
+                    onChange={(e) => setSuggestForm(prev => ({ ...prev, playStoreUrl: e.target.value }))}
+                    placeholder="https://play.google.com/..."
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-gray-500 uppercase block mb-1">Tag</label>
+                  <input
+                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 outline-none focus:ring-2 focus:ring-grantify-green"
+                    value={suggestForm.tag || ''}
+                    onChange={(e) => setSuggestForm(prev => ({ ...prev, tag: e.target.value }))}
+                    placeholder="e.g. Fastest Approval"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-gray-500 uppercase block mb-1">Rating (1-5)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={5}
+                    step={0.1}
+                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 outline-none focus:ring-2 focus:ring-grantify-green"
+                    value={Number(suggestForm.rating || 0)}
+                    onChange={(e) => setSuggestForm(prev => ({ ...prev, rating: parseFloat(e.target.value) }))}
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="text-[10px] text-gray-500 uppercase block mb-1">Logo URL (Optional)</label>
+                  <input
+                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 outline-none focus:ring-2 focus:ring-grantify-green"
+                    value={suggestForm.logo || ''}
+                    onChange={(e) => setSuggestForm(prev => ({ ...prev, logo: e.target.value }))}
+                    placeholder="https://example.com/logo.png"
+                  />
+                </div>
+
+                <div className="md:col-span-2 flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={isSuggestSubmitting}
+                    className={`inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest ${isSuggestSubmitting ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-grantify-green text-white hover:bg-green-700'}`}
+                  >
+                    {isSuggestSubmitting ? (<><Loader2 className="animate-spin" size={16} /> Sending...</>) : (<>Submit for Review</>)}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
         </div>
 
         {/* Header Ad Slot */}

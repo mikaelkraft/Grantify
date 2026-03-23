@@ -12,6 +12,8 @@ interface Props {
 export const BlogSlider: React.FC<Props> = ({ posts }) => {
   if (posts.length === 0) return null;
 
+  const normalizeNbsp = (s: string) => String(s || '').replace(/&nbsp;|\u00A0/g, ' ').replace(/\s+/g, ' ').trim();
+
   return (
     <section className="py-12 bg-white dark:bg-gray-950 overflow-hidden">
       <div className="max-w-6xl mx-auto px-4 mb-8 flex justify-between items-end">
@@ -57,7 +59,7 @@ export const BlogSlider: React.FC<Props> = ({ posts }) => {
                 
                 <div className="p-6">
                   <h3 className="font-bold text-gray-800 dark:text-gray-100 line-clamp-2 min-h-[3rem] mb-4 group-hover/card:text-grantify-green transition-colors">
-                    {post.title}
+                    {normalizeNbsp(post.title)}
                   </h3>
                   
                   <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-800 pt-4">

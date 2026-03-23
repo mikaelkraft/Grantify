@@ -103,6 +103,12 @@ export interface LoanProvider {
   isRecommended?: boolean;
 }
 
+export interface LoanProviderSubmission extends Omit<LoanProvider, 'id' | 'isRecommended'> {
+  id: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+}
+
 export interface ProviderReview {
   id: string;
   providerId: number;

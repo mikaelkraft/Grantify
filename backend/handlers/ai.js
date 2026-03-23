@@ -31,6 +31,50 @@ const fetchNewsContext = async (query, { regionHint } = {}) => {
   return { items, contextText };
 };
 
+const fetchDuckDuckGoContext = async (query) => {
+  const q = String(query || '').trim();
+  if (!q) return { items: [], contextText: '' };
+
+  try {
+    const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(q)}&format=json&no_html=1&skip_disambig=1`;
+    const res = await fetch(url, { headers: { 'User-Agent': 'GrantifyBot/1.0' } });
+    if (!res.ok) return { items: [], contextText: '' };
+    const data = await res.json();
+
+    const items = [];
+    const abstractText = String(data?.AbstractText || '').trim();
+    const abstractUrl = String(data?.AbstractURL || '').trim();
+    if (abstractText) {
+      items.push({ title: abstractText.slice(0, 120) + (abstractText.length > 120 ? '…' : ''), link: abstractUrl || '' });
+    }
+
+    const related = Array.isArray(data?.RelatedTopics) ? data.RelatedTopics : [];
+    for (const r of related) {
+      if (items.length >= 6) break;
+      if (r && typeof r.Text === 'string' && typeof r.FirstURL === 'string') {
+        items.push({ title: r.Text, link: r.FirstURL });
+      } else if (r && Array.isArray(r.Topics)) {
+        for (const t of r.Topics) {
+          if (items.length >= 6) break;
+          if (t && typeof t.Text === 'string' && typeof t.FirstURL === 'string') {
+            items.push({ title: t.Text, link: t.FirstURL });
+          }
+        }
+      }
+    }
+
+    const contextText = items
+      .filter(i => i.title && i.link)
+      .slice(0, 6)
+      .map((i, idx) => `${idx + 1}. ${String(i.title).replace(/\s+/g, ' ').trim()} - ${String(i.link).trim()}`)
+      .join('\n');
+
+    return { items, contextText };
+  } catch {
+    return { items: [], contextText: '' };
+  }
+};
+
 const buildSourcesHtml = (items) => {
   if (!Array.isArray(items) || items.length === 0) return '';
   const safeItems = items
@@ -78,7 +122,10 @@ export default async function handler(req, res) {
     let systemInstruction = '';
     let userPrompt = prompt;
     let newsContext = '';
+    let webContext = '';
     let sources = [];
+
+    const nowIso = new Date().toISOString();
 
     if (type === 'blog') {
       systemInstruction = `You are a top-tier Nigerian business consultant and financial journalist.
@@ -106,18 +153,25 @@ export default async function handler(req, res) {
       }
     } else {
       systemInstruction = `You are the Grantify Concierge. You help people find grants and loans in Nigeria.
-      Rules: No em dashes (—). Be concise, professional, and friendly. Speak specifically about Nigerian opportunities.`;
+      Rules: No em dashes (—). Be concise, professional, and friendly. Speak specifically about Nigerian opportunities.
+
+      CURRENT DATE/TIME (server): ${nowIso}
+
+      If you are provided with FRESH CONTEXT (headlines/links or web results), treat it as current information. Do not claim you cannot access current data or that your training is "cut off". If the user asks for the latest, use the provided context and cite links.`;
 
       if (useSearch) {
         try {
           const { items, contextText } = await fetchNewsContext(`${prompt} grants loans funding`, { regionHint: 'Nigeria' });
           sources = items;
           newsContext = contextText;
+          const ddg = await fetchDuckDuckGoContext(prompt);
+          webContext = ddg.contextText;
           if (newsContext) {
             systemInstruction += `\n\nYou may use the provided headlines/links as fresh context. If you reference a headline, include its link. Prefer descriptive named anchors when writing HTML.`;
           }
         } catch {
           newsContext = '';
+          webContext = '';
           sources = [];
         }
       }
@@ -144,6 +198,9 @@ export default async function handler(req, res) {
           { role: 'system', content: systemInstruction },
           ...(newsContext
             ? [{ role: 'user', content: `Fresh context (headlines + links). Use only if relevant and do not invent facts beyond them:\n${newsContext}` }]
+            : []),
+          ...(webContext
+            ? [{ role: 'user', content: `Optional web context (quick lookup results). Use only if relevant and do not invent facts beyond them:\n${webContext}` }]
             : []),
           ...normalizedHistory,
           { role: 'user', content: userPrompt }

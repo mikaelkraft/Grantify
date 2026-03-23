@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { ApiService } from '../services/storage';
-import { AdminUser, LoanApplication, Testimonial, AdConfig, UserRole, RepaymentContent, LoanProvider, BlogPost, ProviderReview, ContactMessage } from '../types';
+import { AdminUser, LoanApplication, Testimonial, AdConfig, UserRole, RepaymentContent, LoanProvider, LoanProviderSubmission, BlogPost, ProviderReview, ContactMessage } from '../types';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { formatNaira } from '../utils/currency';
@@ -49,6 +49,7 @@ export const Admin: React.FC = () => {
   const [repayment, setRepayment] = useState<RepaymentContent | null>(null);
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loanProviders, setLoanProviders] = useState<LoanProvider[]>([]);
+  const [loanProviderSubmissions, setLoanProviderSubmissions] = useState<LoanProviderSubmission[]>([]);
   const [allReviews, setAllReviews] = useState<ProviderReview[]>([]);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
@@ -305,13 +306,14 @@ export const Admin: React.FC = () => {
   const refreshData = async () => {
     setIsLoading(true);
     try {
-      const [apps, tests, adConfig, repay, adminList, providers, reviews, posts, contact] = await Promise.all([
+      const [apps, tests, adConfig, repay, adminList, providers, submissions, reviews, posts, contact] = await Promise.all([
         ApiService.getApplications(),
         ApiService.getTestimonials(),
         ApiService.getAds(),
         ApiService.getRepaymentContent(),
         ApiService.getAdmins(),
         ApiService.getLoanProviders(),
+        ApiService.getLoanProviderSubmissions('pending'),
         ApiService.getProviderReviews(),
         ApiService.getBlogPosts(),
         ApiService.getContactMessages(120)
@@ -322,6 +324,7 @@ export const Admin: React.FC = () => {
       setRepayment(repay);
       setAdmins(adminList);
       setLoanProviders(providers);
+      setLoanProviderSubmissions(submissions);
       setAllReviews(reviews);
       setBlogPosts(posts);
       setContactMessages(contact);
@@ -447,6 +450,44 @@ export const Admin: React.FC = () => {
       alert('Failed to save changes. Please try again.');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleApproveProviderSubmission = async (s: LoanProviderSubmission) => {
+    const nextProvider: LoanProvider = {
+      id: Date.now(),
+      name: s.name,
+      description: s.description,
+      loanRange: s.loanRange || '',
+      interestRange: s.interestRange || '',
+      tenure: s.tenure || '',
+      website: s.website || '',
+      logo: s.logo || '',
+      playStoreUrl: s.playStoreUrl || '',
+      tag: s.tag || '',
+      rating: typeof s.rating === 'number' ? s.rating : 0,
+      requirements: s.requirements || '',
+      isRecommended: false
+    };
+
+    setLoanProviders(prev => [...prev, nextProvider]);
+    setHasUnsavedProviders(true);
+
+    try {
+      await ApiService.updateLoanProviderSubmissionStatus(s.id, 'approved');
+      setLoanProviderSubmissions(prev => prev.filter(x => x.id !== s.id));
+    } catch (e) {
+      alert('Approved locally, but failed to update submission status. Try again.');
+    }
+  };
+
+  const handleRejectProviderSubmission = async (id: string) => {
+    if (!window.confirm('Reject this submission?')) return;
+    try {
+      await ApiService.updateLoanProviderSubmissionStatus(id, 'rejected');
+      setLoanProviderSubmissions(prev => prev.filter(x => x.id !== id));
+    } catch {
+      alert('Failed to reject submission');
     }
   };
 
@@ -1315,6 +1356,74 @@ export const Admin: React.FC = () => {
                       You have unsaved changes. Click "Save Changes" to sync with the database.
                     </div>
                   )}
+
+                  {loanProviderSubmissions.length > 0 && (
+                    <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <h4 className="font-bold text-yellow-800 mb-3 flex items-center gap-2">
+                        <span className="bg-yellow-500 text-white text-xs px-2 py-1 rounded-full">
+                          {loanProviderSubmissions.length}
+                        </span>
+                        Pending User Submissions
+                      </h4>
+
+                      <div className="space-y-3">
+                        {loanProviderSubmissions.map((s) => (
+                          <div key={s.id} className="bg-white dark:bg-gray-950 p-3 rounded border border-yellow-300 dark:border-yellow-900 flex flex-col gap-3">
+                            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                              <div className="flex-grow">
+                                <div className="font-black text-sm text-gray-900 dark:text-gray-100">{s.name}</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-300 break-all">{s.website}</div>
+                                <div className="text-[10px] text-gray-400 dark:text-gray-400 mt-1">
+                                  {new Date(s.createdAt).toLocaleString()}
+                                </div>
+                              </div>
+                              <div className="flex gap-2 flex-shrink-0">
+                                <button
+                                  onClick={() => handleApproveProviderSubmission(s)}
+                                  className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700"
+                                  title="Add to providers list (then Save Changes)"
+                                >
+                                  Approve & Add
+                                </button>
+                                <button
+                                  onClick={() => handleRejectProviderSubmission(s.id)}
+                                  className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700"
+                                >
+                                  Reject
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="grid md:grid-cols-3 gap-3 text-xs">
+                              <div>
+                                <div className="text-[10px] uppercase text-gray-400">Loan Range</div>
+                                <div className="font-bold text-gray-700 dark:text-gray-200">{s.loanRange || '—'}</div>
+                              </div>
+                              <div>
+                                <div className="text-[10px] uppercase text-gray-400">Interest</div>
+                                <div className="font-bold text-gray-700 dark:text-gray-200">{s.interestRange || '—'}</div>
+                              </div>
+                              <div>
+                                <div className="text-[10px] uppercase text-gray-400">Tenure</div>
+                                <div className="font-bold text-gray-700 dark:text-gray-200">{s.tenure || '—'}</div>
+                              </div>
+                            </div>
+
+                            <div className="text-xs text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{s.description}</div>
+                            {(s.requirements || s.playStoreUrl || s.tag || s.logo) && (
+                              <div className="text-[11px] text-gray-600 dark:text-gray-300 space-y-1">
+                                {s.requirements && <div><span className="font-bold">Requirements:</span> {s.requirements}</div>}
+                                {s.playStoreUrl && <div className="break-all"><span className="font-bold">Play Store:</span> {s.playStoreUrl}</div>}
+                                {s.tag && <div><span className="font-bold">Tag:</span> {s.tag}</div>}
+                                {s.logo && <div className="break-all"><span className="font-bold">Logo:</span> {s.logo}</div>}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="space-y-6">
                     {loanProviders.map((p) => (
                       <div key={p.id || 'new'} className="border p-4 rounded bg-gray-50 space-y-3">
