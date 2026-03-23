@@ -13,6 +13,7 @@ import {
   BlogComment,
   ProviderReview,
   ReactionType,
+  ContentFlag,
   ContactMessage
 } from '../types';
 
@@ -40,6 +41,8 @@ const getOrCreateAnonUserId = (): string => {
     return `anon_${Math.random().toString(36).slice(2)}_${Date.now().toString(36)}`;
   }
 };
+
+export const getAnonUserId = (): string => getOrCreateAnonUserId();
 
 // Initial Seed Data (Used for Mock Mode if API fails or is empty)
 const initialTestimonials: Testimonial[] = [
@@ -392,20 +395,30 @@ export const ApiService = {
     return await res.json();
   },
 
-  getBlogPost: async (id: string): Promise<BlogPost & { comments: BlogComment[] }> => {
-    const res = await fetch(`${API_URL}/api/blog?id=${id}`);
+  getBlogPost: async (id: string, opts?: { commentsSort?: 'oldest' | 'newest' | 'helpful'; includeHidden?: boolean }): Promise<BlogPost & { comments: BlogComment[] }> => {
+    const qs = new URLSearchParams({ id });
+    if (opts?.commentsSort) qs.set('commentsSort', opts.commentsSort);
+    if (opts?.includeHidden) qs.set('includeHidden', '1');
+    const res = await fetch(`${API_URL}/api/blog?${qs.toString()}`);
     if (!res.ok) throw new Error('Failed to fetch blog post');
     return await res.json();
   },
 
   submitBlogAction: async (data: any): Promise<any> => {
+    const payload = { ...(data || {}) };
+    if (payload?.action === 'comment' || payload?.action === 'likeComment') {
+      if (!payload.userId) payload.userId = getOrCreateAnonUserId();
+    }
     const method = data.action === 'update' ? 'PUT' : 'POST';
     const res = await fetch(`${API_URL}/api/blog`, {
       method: method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
+      body: JSON.stringify(payload)
     });
-    if (!res.ok) throw new Error('Failed to perform blog action');
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.error || 'Failed to perform blog action');
+    }
     return await res.json();
   },
 
@@ -426,22 +439,84 @@ export const ApiService = {
   },
 
   // -- Provider Reviews --
-  getProviderReviews: async (providerId?: number): Promise<ProviderReview[]> => {
-    const url = providerId 
-      ? `${API_URL}/api/provider_reviews?providerId=${providerId}` 
-      : `${API_URL}/api/provider_reviews`;
+  getProviderReviews: async (providerId?: number, opts?: { sort?: 'newest' | 'oldest' | 'helpful'; includeHidden?: boolean }): Promise<ProviderReview[]> => {
+    const qs = new URLSearchParams();
+    if (providerId !== undefined) qs.set('providerId', String(providerId));
+    if (opts?.sort) qs.set('sort', opts.sort);
+    if (opts?.includeHidden) qs.set('includeHidden', '1');
+    const url = `${API_URL}/api/provider_reviews${qs.toString() ? `?${qs.toString()}` : ''}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error('Failed to fetch reviews from API');
     return await res.json();
   },
 
   addProviderReview: async (review: Partial<ProviderReview>): Promise<void> => {
+    const payload = { ...(review || {}), userId: getOrCreateAnonUserId() };
     const res = await fetch(`${API_URL}/api/provider_reviews`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(review)
+      body: JSON.stringify(payload)
     });
-    if (!res.ok) throw new Error('Failed to post review via API');
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.error || 'Failed to post review via API');
+    }
+  },
+
+  toggleProviderReviewLike: async (reviewId: string): Promise<{ likes: number; liked: boolean }> => {
+    const res = await fetch(`${API_URL}/api/provider_reviews`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ action: 'like', reviewId, userId: getOrCreateAnonUserId() })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.error || 'Failed to update helpful vote');
+    }
+    return await res.json();
+  },
+
+  // -- Moderation Flags --
+  flagContent: async (data: { entityType: 'blog_comment' | 'provider_review'; entityId: string; reason?: string; details?: string }): Promise<void> => {
+    const res = await fetch(`${API_URL}/api/flags`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...data, userId: getOrCreateAnonUserId() })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.error || 'Failed to submit flag');
+    }
+  },
+
+  getFlags: async (status: 'open' | 'resolved' = 'open'): Promise<{ flags: ContentFlag[]; entities: Record<string, any> }> => {
+    const res = await fetch(`${API_URL}/api/flags?status=${encodeURIComponent(status)}`);
+    if (!res.ok) throw new Error('Failed to fetch flags');
+    return await res.json();
+  },
+
+  resolveFlag: async (id: string): Promise<void> => {
+    const res = await fetch(`${API_URL}/api/flags`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'resolve', id })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.error || 'Failed to resolve flag');
+    }
+  },
+
+  setHidden: async (data: { entityType: 'blog_comment' | 'provider_review'; entityId: string; hidden: boolean }): Promise<void> => {
+    const res = await fetch(`${API_URL}/api/flags`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'setHidden', ...data })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.error || 'Failed to update hidden status');
+    }
   },
 
   deleteProviderReview: async (id: string): Promise<void> => {

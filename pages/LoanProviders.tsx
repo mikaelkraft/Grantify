@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ExternalLink, AlertTriangle, ShieldCheck, Info, Loader2, Star, CheckCircle, Zap, Award, Smartphone, MessageCircle, X, Send, CornerDownRight } from 'lucide-react';
+import { ExternalLink, AlertTriangle, ShieldCheck, Info, Loader2, Star, CheckCircle, Zap, Award, Smartphone, MessageCircle, X, Send, CornerDownRight, ThumbsUp, Flag } from 'lucide-react';
 import { ApiService } from '../services/storage';
 import { AdSlot } from '../components/AdSlot';
 import { AdConfig, LoanProvider, ProviderReview } from '../types';
@@ -30,9 +30,41 @@ export const LoanProviders: React.FC = () => {
   const [selectedProvider, setSelectedProvider] = useState<LoanProvider | null>(null);
   const [reviews, setReviews] = useState<ProviderReview[]>([]);
   const [isReviewsLoading, setIsReviewsLoading] = useState(false);
+  const [reviewsSort, setReviewsSort] = useState<'newest' | 'oldest' | 'helpful'>('newest');
   const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
   const [newReview, setNewReview] = useState({ name: '', rating: 5, content: '' });
+  const [myLikedReviews, setMyLikedReviews] = useState<Record<string, boolean>>({});
   const replyTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const myUserIdRef = useRef<string>('');
+  if (!myUserIdRef.current) {
+    try {
+      const key = 'grantify_uid';
+      let id = localStorage.getItem(key);
+      if (!id) {
+        id = (globalThis.crypto && 'randomUUID' in globalThis.crypto)
+          ? (globalThis.crypto as Crypto).randomUUID()
+          : `anon_${Math.random().toString(36).slice(2)}_${Date.now().toString(36)}`;
+        localStorage.setItem(key, id);
+      }
+      myUserIdRef.current = id;
+    } catch {
+      myUserIdRef.current = '';
+    }
+  }
+  const myUserId = myUserIdRef.current;
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('grantify_provider_review_name') || '';
+      if (saved && !newReview.name) {
+        setNewReview(prev => ({ ...prev, name: saved }));
+      }
+    } catch {
+      // no-op
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
@@ -55,7 +87,7 @@ export const LoanProviders: React.FC = () => {
   const loadReviews = async (providerId: number) => {
     setIsReviewsLoading(true);
     try {
-      const data = await ApiService.getProviderReviews(providerId);
+      const data = await ApiService.getProviderReviews(providerId, { sort: reviewsSort });
       setReviews(data);
     } catch (e) {
       console.error("Failed to load reviews", e);
@@ -63,6 +95,12 @@ export const LoanProviders: React.FC = () => {
       setIsReviewsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!selectedProvider?.id) return;
+    loadReviews(selectedProvider.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reviewsSort]);
 
   const handleOpenReviews = (provider: LoanProvider) => {
     setSelectedProvider(provider);
@@ -73,6 +111,11 @@ export const LoanProviders: React.FC = () => {
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProvider || !newReview.name || !newReview.content) return;
+
+    if (/(https?:\/\/|\bwww\.)/i.test(newReview.content)) {
+      alert('Links are not allowed in reviews. Please remove any URLs and try again.');
+      return;
+    }
 
     try {
       await ApiService.addProviderReview({
@@ -85,8 +128,27 @@ export const LoanProviders: React.FC = () => {
       setNewReview({ name: '', rating: 5, content: '' });
       setReplyTo(null);
       loadReviews(selectedProvider.id!);
-    } catch (e) {
-      alert("Failed to post review");
+    } catch (e: any) {
+      alert(e?.message || 'Failed to post review');
+    }
+  };
+
+  const handleHelpfulReview = async (reviewId: string) => {
+    try {
+      const res = await ApiService.toggleProviderReviewLike(reviewId);
+      setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, likes: Number(res.likes ?? r.likes) } : r));
+      setMyLikedReviews(prev => ({ ...prev, [reviewId]: Boolean(res.liked) }));
+    } catch (e: any) {
+      alert(e?.message || 'Failed to update helpful vote');
+    }
+  };
+
+  const handleFlagReview = async (reviewId: string) => {
+    try {
+      await ApiService.flagContent({ entityType: 'provider_review', entityId: reviewId, reason: 'spam' });
+      alert('Thanks — reported for review.');
+    } catch (e: any) {
+      alert(e?.message || 'Failed to report');
     }
   };
 
@@ -105,6 +167,15 @@ export const LoanProviders: React.FC = () => {
     );
   };
 
+  const reviewCountsByUserId = (() => {
+    const m = new Map<string, number>();
+    for (const r of reviews) {
+      if (!r.userId) continue;
+      m.set(r.userId, (m.get(r.userId) || 0) + 1);
+    }
+    return m;
+  })();
+
   // Helper to build recursive comment tree
   const ReviewItem: React.FC<{ review: ProviderReview, allReviews: ProviderReview[], depth?: number }> = ({ review, allReviews, depth = 0 }) => {
     const replies = allReviews.filter(r => r.parentId === review.id);
@@ -114,20 +185,52 @@ export const LoanProviders: React.FC = () => {
       <div className={`space-y-4 ${depth > 0 ? 'ml-6 mt-4 border-l-2 border-gray-100 dark:border-gray-800 pl-4' : 'border-b border-gray-100 dark:border-gray-800 pb-6'}`}>
         <div className="flex flex-col gap-1">
           <div className="flex items-center justify-between">
-            <span className="font-bold text-sm text-gray-800 dark:text-gray-100">{review.name}</span>
+            <span className="font-bold text-sm text-gray-800 dark:text-gray-100 flex items-center gap-2">
+              <span>{review.name}</span>
+              {review.userId && review.userId === myUserId && (
+                <span className="text-[10px] bg-grantify-green/15 text-grantify-green px-2 py-0.5 rounded font-black uppercase">You</span>
+              )}
+              {review.userId && review.userId !== myUserId && (reviewCountsByUserId.get(review.userId) || 0) > 1 && (
+                <span className="text-[10px] bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-200 px-2 py-0.5 rounded font-black uppercase">Returning</span>
+              )}
+            </span>
             <span className="text-[10px] text-gray-400 dark:text-gray-500 uppercase font-black">{date}</span>
           </div>
           {review.rating > 0 && renderStars(review.rating, 10)}
           <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 leading-relaxed">{review.content}</p>
-          <button 
-            onClick={() => {
-              setReplyTo({ id: review.id, name: review.name });
-              window.setTimeout(() => replyTextareaRef.current?.focus(), 0);
-            }}
-            className="text-[10px] font-black text-grantify-green uppercase mt-1 hover:underline flex items-center gap-1"
-          >
-            <CornerDownRight size={10} /> Reply
-          </button>
+          <div className="flex flex-wrap items-center gap-4 mt-2">
+            <button
+              type="button"
+              onClick={() => handleHelpfulReview(review.id)}
+              className={`flex items-center gap-1 text-[10px] font-black uppercase transition-colors ${myLikedReviews[review.id] ? 'text-grantify-green' : 'text-gray-500 dark:text-gray-400 hover:text-grantify-green'}`}
+              title={myLikedReviews[review.id] ? 'Helpful (click to undo)' : 'Helpful'}
+              aria-label={myLikedReviews[review.id] ? 'Helpful (undo)' : 'Helpful'}
+            >
+              <ThumbsUp size={12} className={myLikedReviews[review.id] ? 'fill-green-200' : ''} />
+              <span>{review.likes || 0}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setReplyTo({ id: review.id, name: review.name });
+                window.setTimeout(() => replyTextareaRef.current?.focus(), 0);
+              }}
+              className="text-[10px] font-black text-grantify-green uppercase hover:underline flex items-center gap-1"
+            >
+              <CornerDownRight size={10} /> Reply
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleFlagReview(review.id)}
+              className="text-[10px] font-black uppercase text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 flex items-center gap-1"
+              title="Report for review"
+              aria-label="Report for review"
+            >
+              <Flag size={12} /> Report
+            </button>
+          </div>
         </div>
         
         {replies.map(reply => (
@@ -606,6 +709,25 @@ export const LoanProviders: React.FC = () => {
           </div>
 
           <div className="flex-grow overflow-y-auto p-6">
+            {!isReviewsLoading && selectedProvider && (
+              <div className="flex items-center justify-end gap-2 mb-4">
+                {([
+                  { id: 'newest', label: 'Newest' },
+                  { id: 'helpful', label: 'Most helpful' },
+                  { id: 'oldest', label: 'Oldest' }
+                ] as const).map(opt => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setReviewsSort(opt.id)}
+                    className={`text-[10px] font-black px-3 py-2 rounded-xl border transition uppercase tracking-widest ${reviewsSort === opt.id ? 'bg-gray-900 dark:bg-gray-950 text-white border-gray-900 dark:border-gray-950' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700'}`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {isReviewsLoading ? (
               <div className="flex flex-col items-center justify-center h-full gap-4 text-gray-400">
                 <Loader2 className="animate-spin" size={32} />
@@ -654,7 +776,11 @@ export const LoanProviders: React.FC = () => {
                     placeholder="Your Name"
                     className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-3 rounded-xl text-sm outline-none focus:ring-2 focus:ring-grantify-green text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                     value={newReview.name}
-                    onChange={(e) => setNewReview({...newReview, name: e.target.value})}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setNewReview({ ...newReview, name: v });
+                      try { localStorage.setItem('grantify_provider_review_name', v); } catch { /* no-op */ }
+                    }}
                   />
                 </div>
                 {!replyTo && (

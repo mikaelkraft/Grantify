@@ -2,6 +2,52 @@
 
 import pool from '../db.js';
 
+const toStr = (v) => (v === null || v === undefined) ? '' : String(v);
+
+const getClientIp = (req) => {
+  const raw = req?.headers?.['x-forwarded-for'] || req?.headers?.['x-real-ip'] || '';
+  const first = Array.isArray(raw) ? raw[0] : String(raw);
+  return first.split(',')[0].trim();
+};
+
+async function ensureBlogCommentSchema(client) {
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS blog_comments (
+      id TEXT PRIMARY KEY,
+      post_id TEXT REFERENCES blog_posts(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      content TEXT NOT NULL,
+      likes INTEGER NOT NULL DEFAULT 0,
+      parent_id TEXT,
+      user_id TEXT,
+      ip TEXT,
+      is_hidden BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await client.query(`
+    ALTER TABLE blog_comments
+      ADD COLUMN IF NOT EXISTS likes INTEGER NOT NULL DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS parent_id TEXT,
+      ADD COLUMN IF NOT EXISTS user_id TEXT,
+      ADD COLUMN IF NOT EXISTS ip TEXT,
+      ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN NOT NULL DEFAULT FALSE,
+      ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  `);
+
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS blog_comment_likes (
+      comment_id TEXT NOT NULL,
+      user_key TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (comment_id, user_key)
+    )
+  `);
+
+  await client.query('CREATE INDEX IF NOT EXISTS blog_comment_likes_comment_id_idx ON blog_comment_likes (comment_id)');
+}
+
 const sanitizePlainText = (value) => {
   const s = String(value ?? '')
     .replace(/<[^>]*>/g, ' ')
@@ -25,6 +71,8 @@ export default async function handler(req, res) {
 
   const client = await pool.connect();
   try {
+    await ensureBlogCommentSchema(client);
+
     if (req.method === 'GET') {
       const { id, category } = req.query;
 
@@ -36,7 +84,26 @@ export default async function handler(req, res) {
         if (postRes.rows.length === 0) return res.status(404).json({ error: 'Not found' });
 
         const post = postRes.rows[0];
-        const comments = await client.query('SELECT * FROM blog_comments WHERE post_id = $1 ORDER BY created_at ASC', [id]);
+        const commentsSort = toStr(req.query?.commentsSort).trim().toLowerCase();
+        const includeHidden = toStr(req.query?.includeHidden).trim() === '1';
+
+        const sortSql = (() => {
+          if (commentsSort === 'helpful') return 'ORDER BY likes DESC, created_at DESC';
+          if (commentsSort === 'newest') return 'ORDER BY created_at DESC';
+          return 'ORDER BY created_at ASC';
+        })();
+
+        const whereSql = includeHidden
+          ? 'WHERE post_id = $1'
+          : 'WHERE post_id = $1 AND (is_hidden IS NOT TRUE)';
+
+        const comments = await client.query(
+          `SELECT id, post_id, name, content, likes, parent_id, user_id, created_at
+           FROM blog_comments
+           ${whereSql}
+           ${sortSql}`,
+          [id]
+        );
 
         return res.status(200).json({
           ...post,
@@ -59,8 +126,9 @@ export default async function handler(req, res) {
             postId: c.post_id,
             name: c.name,
             content: c.content,
-            likes: c.likes,
+            likes: c.likes ?? 0,
             parentId: c.parent_id,
+            userId: c.user_id || undefined,
             createdAt: c.created_at
           }))
         });
@@ -102,6 +170,31 @@ export default async function handler(req, res) {
       if (action === 'comment') {
         if (!postId) return res.status(400).json({ error: 'Missing postId' });
 
+        const safeUserId = sanitizePlainText(req.body?.userId).slice(0, 96);
+        const ip = getClientIp(req);
+
+        // Lightweight server-side cooldown (registration-free).
+        const keyField = safeUserId ? 'user_id' : 'ip';
+        const keyValue = safeUserId || ip;
+        if (keyValue) {
+          const last = await client.query(
+            `SELECT created_at FROM blog_comments WHERE ${keyField} = $1 ORDER BY created_at DESC LIMIT 1`,
+            [keyValue]
+          );
+          const lastAt = last.rows[0]?.created_at ? new Date(last.rows[0].created_at).getTime() : 0;
+          if (lastAt && (Date.now() - lastAt) < 15000) {
+            return res.status(429).json({ error: 'Please wait a moment before commenting again.' });
+          }
+
+          const burst = await client.query(
+            `SELECT COUNT(*)::int AS c FROM blog_comments WHERE ${keyField} = $1 AND created_at > (CURRENT_TIMESTAMP - INTERVAL '10 minutes')`,
+            [keyValue]
+          );
+          if ((burst.rows[0]?.c ?? 0) >= 12) {
+            return res.status(429).json({ error: 'Too many comments in a short time. Please try again later.' });
+          }
+        }
+
         const safeName = sanitizePlainText(name).slice(0, 48);
         const safeContent = sanitizePlainText(content).slice(0, 1200);
 
@@ -121,8 +214,8 @@ export default async function handler(req, res) {
 
         const id = Date.now().toString();
         await client.query(
-          'INSERT INTO blog_comments (id, post_id, name, content, parent_id) VALUES ($1, $2, $3, $4, $5)',
-          [id, postId, safeName, safeContent, validatedParentId]
+          'INSERT INTO blog_comments (id, post_id, name, content, parent_id, user_id, ip, likes, is_hidden) VALUES ($1, $2, $3, $4, $5, $6, $7, 0, FALSE)',
+          [id, postId, safeName, safeContent, validatedParentId, safeUserId || null, ip || null]
         );
         return res.status(200).json({ success: true, id });
       }
@@ -207,9 +300,47 @@ export default async function handler(req, res) {
       }
 
       if (action === 'likeComment') {
-        const { commentId } = req.body;
-        await client.query('UPDATE blog_comments SET likes = likes + 1 WHERE id = $1', [commentId]);
-        return res.status(200).json({ success: true });
+        const commentId = toStr(req.body?.commentId).trim();
+        const safeUserId = sanitizePlainText(req.body?.userId).slice(0, 96);
+        const ip = getClientIp(req);
+        const userKey = safeUserId || ip;
+        if (!commentId) return res.status(400).json({ error: 'Missing commentId' });
+        if (!userKey) return res.status(400).json({ error: 'Missing user identity' });
+
+        await client.query('BEGIN');
+        try {
+          const existing = await client.query(
+            'SELECT 1 FROM blog_comment_likes WHERE comment_id = $1 AND user_key = $2',
+            [commentId, userKey]
+          );
+
+          let liked = false;
+          if (existing.rows.length > 0) {
+            await client.query('DELETE FROM blog_comment_likes WHERE comment_id = $1 AND user_key = $2', [commentId, userKey]);
+            await client.query(
+              'UPDATE blog_comments SET likes = GREATEST(COALESCE(likes, 0) - 1, 0) WHERE id = $1',
+              [commentId]
+            );
+            liked = false;
+          } else {
+            await client.query(
+              'INSERT INTO blog_comment_likes (comment_id, user_key) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+              [commentId, userKey]
+            );
+            await client.query(
+              'UPDATE blog_comments SET likes = COALESCE(likes, 0) + 1 WHERE id = $1',
+              [commentId]
+            );
+            liked = true;
+          }
+
+          const updated = await client.query('SELECT likes FROM blog_comments WHERE id = $1', [commentId]);
+          await client.query('COMMIT');
+          return res.status(200).json({ success: true, likes: updated.rows[0]?.likes ?? 0, liked });
+        } catch (e) {
+          await client.query('ROLLBACK');
+          throw e;
+        }
       }
 
       const id = Date.now().toString();

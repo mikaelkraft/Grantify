@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ApiService } from '../services/storage';
 import { BlogPost, BlogComment, AdConfig } from '../types';
-import { Loader2, ThumbsUp, Heart, Hand, MessageSquare, ArrowLeft, Send, Calendar, User, Shield, Share2, Eye, ArrowUp, Copy } from 'lucide-react';
+import { Loader2, ThumbsUp, Heart, Hand, MessageSquare, ArrowLeft, Send, Calendar, User, Shield, Share2, Eye, ArrowUp, Copy, Flag } from 'lucide-react';
 import { AdSlot } from '../components/AdSlot';
 import { FacebookShareButton, TwitterShareButton, WhatsappShareButton, LinkedinShareButton, FacebookIcon, WhatsappIcon, LinkedinIcon } from 'react-share';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
@@ -80,6 +80,24 @@ export const BlogPostView: React.FC = () => {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [myReaction, setMyReaction] = useState<'likes' | 'loves' | 'claps' | null>(null);
   const [didCopyLink, setDidCopyLink] = useState(false);
+  const [commentsSort, setCommentsSort] = useState<'oldest' | 'newest' | 'helpful'>('oldest');
+  const [myLikedComments, setMyLikedComments] = useState<Record<string, boolean>>({});
+
+  const myUserId = useMemo(() => {
+    try {
+      const key = 'grantify_uid';
+      let id = localStorage.getItem(key);
+      if (!id) {
+        id = (globalThis.crypto && 'randomUUID' in globalThis.crypto)
+          ? (globalThis.crypto as Crypto).randomUUID()
+          : `anon_${Math.random().toString(36).slice(2)}_${Date.now().toString(36)}`;
+        localStorage.setItem(key, id);
+      }
+      return id;
+    } catch {
+      return '';
+    }
+  }, []);
 
   const effectiveId = useMemo(() => {
     return slugOrId ? parseBlogParam(slugOrId).id : '';
@@ -122,9 +140,9 @@ export const BlogPostView: React.FC = () => {
 
   useEffect(() => {
     if (!effectiveId) return;
-    if (post?.id && String(post.id) === String(effectiveId)) return;
     fetchPost(effectiveId);
-  }, [effectiveId, post?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveId, commentsSort]);
 
   useEffect(() => {
     if (!post || !slugOrId) return;
@@ -141,10 +159,22 @@ export const BlogPostView: React.FC = () => {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('grantify_blog_comment_name') || '';
+      if (saved && !commentForm.name) {
+        setCommentForm(prev => ({ ...prev, name: saved }));
+      }
+    } catch {
+      // no-op
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const fetchPost = async (effectiveId: string) => {
     try {
       setIsLoading(true);
-      const data = await ApiService.getBlogPost(effectiveId);
+      const data = await ApiService.getBlogPost(effectiveId, { commentsSort });
       setPost(data);
 
       // Restore client-side reaction highlight (server enforces de-dupe)
@@ -191,13 +221,23 @@ export const BlogPostView: React.FC = () => {
   const handleLikeComment = async (commentId: string) => {
     if (!post) return;
     try {
-      await ApiService.submitBlogAction({ action: 'likeComment', commentId });
+      const res = await ApiService.submitBlogAction({ action: 'likeComment', commentId });
       setPost({
         ...post,
-        comments: post.comments.map(c => c.id === commentId ? { ...c, likes: c.likes + 1 } : c)
+        comments: post.comments.map(c => c.id === commentId ? { ...c, likes: Number(res?.likes ?? c.likes) } : c)
       });
-    } catch (e) {
-      alert('Failed to like comment');
+      setMyLikedComments(prev => ({ ...prev, [commentId]: Boolean(res?.liked) }));
+    } catch (e: any) {
+      alert(e?.message || 'Failed to update helpful vote');
+    }
+  };
+
+  const handleFlagComment = async (commentId: string) => {
+    try {
+      await ApiService.flagContent({ entityType: 'blog_comment', entityId: commentId, reason: 'spam' });
+      alert('Thanks — reported for review.');
+    } catch (e: any) {
+      alert(e?.message || 'Failed to report');
     }
   };
 
@@ -223,8 +263,8 @@ export const BlogPostView: React.FC = () => {
         parentId: payload.parentId || undefined
       });
       await fetchPost(String(post.id));
-    } catch (e) {
-      alert('Failed to post comment');
+    } catch (e: any) {
+      alert(e?.message || 'Failed to post comment');
     } finally {
       setIsSubmitting(false);
     }
@@ -283,7 +323,22 @@ export const BlogPostView: React.FC = () => {
     return acc;
   }, {});
 
+  for (const k of Object.keys(repliesByParent)) {
+    repliesByParent[k] = repliesByParent[k]
+      .slice()
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  }
+
   const topLevelComments = post.comments.filter(c => !c.parentId);
+
+  const commentCountsByUserId = (() => {
+    const m = new Map<string, number>();
+    for (const c of post.comments) {
+      if (!c.userId) continue;
+      m.set(c.userId, (m.get(c.userId) || 0) + 1);
+    }
+    return m;
+  })();
 
   const handleCopyShareLink = async () => {
     if (!shareUrl) return;
@@ -471,7 +526,26 @@ export const BlogPostView: React.FC = () => {
 
       {/* Engagement Section */}
       <section className="space-y-8">
-        <h3 className="text-2xl font-black font-heading text-gray-900 dark:text-gray-100">Community Discussion</h3>
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+          <h3 className="text-2xl font-black font-heading text-gray-900 dark:text-gray-100">Community Discussion</h3>
+
+          <div className="flex items-center gap-2">
+            {([
+              { id: 'oldest', label: 'Oldest' },
+              { id: 'newest', label: 'Newest' },
+              { id: 'helpful', label: 'Most helpful' }
+            ] as const).map(opt => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setCommentsSort(opt.id)}
+                className={`text-xs font-black px-3 py-2 rounded-xl border transition ${commentsSort === opt.id ? 'bg-gray-900 dark:bg-gray-950 text-white border-gray-900 dark:border-gray-950' : 'bg-white dark:bg-gray-950 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700'}`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
         
         {/* Comment Form */}
         <div className="bg-gray-50 dark:bg-gray-900 p-6 md:p-8 rounded-3xl border border-gray-100 dark:border-gray-800">
@@ -481,7 +555,11 @@ export const BlogPostView: React.FC = () => {
               placeholder="Your Name"
               className="w-full p-4 rounded-xl border-none ring-1 ring-gray-200 dark:ring-gray-700 focus:ring-2 focus:ring-grantify-green bg-white dark:bg-gray-950 shadow-inner outline-none text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
               value={commentForm.name}
-              onChange={e => setCommentForm({...commentForm, name: e.target.value})}
+              onChange={e => {
+                const v = e.target.value;
+                setCommentForm({ ...commentForm, name: v });
+                try { localStorage.setItem('grantify_blog_comment_name', v); } catch { /* no-op */ }
+              }}
               required
             />
             <textarea 
@@ -519,7 +597,15 @@ export const BlogPostView: React.FC = () => {
                     <div className="w-8 h-8 rounded-full bg-grantify-green text-white flex items-center justify-center text-xs">
                       {comment.name[0]}
                     </div>
-                    {comment.name}
+                    <span className="flex items-center gap-2">
+                      <span>{comment.name}</span>
+                      {comment.userId && comment.userId === myUserId && (
+                        <span className="text-[10px] bg-grantify-green/15 text-grantify-green px-2 py-0.5 rounded font-black uppercase">You</span>
+                      )}
+                      {comment.userId && comment.userId !== myUserId && (commentCountsByUserId.get(comment.userId) || 0) > 1 && (
+                        <span className="text-[10px] bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-200 px-2 py-0.5 rounded font-black uppercase">Returning</span>
+                      )}
+                    </span>
                   </span>
                   <span className="text-[10px] text-gray-400 dark:text-gray-500 uppercase font-bold">
                     {new Date(comment.createdAt!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(comment.createdAt!).toLocaleDateString()}
@@ -531,11 +617,11 @@ export const BlogPostView: React.FC = () => {
                 <div className="flex items-center gap-4 pt-2">
                   <button 
                     onClick={() => handleLikeComment(comment.id)}
-                    className="flex items-center gap-1 text-gray-400 dark:text-gray-500 hover:text-grantify-green transition-colors"
-                    title="Like"
-                    aria-label="Like"
+                    className={`flex items-center gap-1 transition-colors ${myLikedComments[comment.id] ? 'text-grantify-green' : 'text-gray-400 dark:text-gray-500 hover:text-grantify-green'}`}
+                    title={myLikedComments[comment.id] ? 'Helpful (click to undo)' : 'Helpful'}
+                    aria-label={myLikedComments[comment.id] ? 'Helpful (undo)' : 'Helpful'}
                   >
-                    <ThumbsUp size={14} />
+                    <ThumbsUp size={14} className={myLikedComments[comment.id] ? 'fill-green-200' : ''} />
                     <span className="text-xs font-bold">{comment.likes}</span>
                   </button>
 
@@ -548,6 +634,16 @@ export const BlogPostView: React.FC = () => {
                     className="text-xs font-black uppercase tracking-widest text-gray-400 dark:text-gray-500 hover:text-grantify-green transition-colors"
                   >
                     Reply
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleFlagComment(comment.id)}
+                    className="inline-flex items-center gap-1 text-xs font-black uppercase tracking-widest text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                    title="Report for review"
+                    aria-label="Report for review"
+                  >
+                    <Flag size={14} /> Report
                   </button>
                 </div>
 
@@ -592,7 +688,15 @@ export const BlogPostView: React.FC = () => {
                             <div className="w-7 h-7 rounded-full bg-grantify-green/90 text-white flex items-center justify-center text-[10px] font-black">
                               {r.name[0]}
                             </div>
-                            <span className="font-black text-gray-800 dark:text-gray-100 text-sm">{r.name}</span>
+                            <span className="font-black text-gray-800 dark:text-gray-100 text-sm flex items-center gap-2">
+                              <span>{r.name}</span>
+                              {r.userId && r.userId === myUserId && (
+                                <span className="text-[10px] bg-grantify-green/15 text-grantify-green px-2 py-0.5 rounded font-black uppercase">You</span>
+                              )}
+                              {r.userId && r.userId !== myUserId && (commentCountsByUserId.get(r.userId) || 0) > 1 && (
+                                <span className="text-[10px] bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-200 px-2 py-0.5 rounded font-black uppercase">Returning</span>
+                              )}
+                            </span>
                             <span className="text-[10px] bg-blue-100 dark:bg-blue-950/40 text-blue-600 dark:text-blue-200 px-1.5 py-0.5 rounded font-black uppercase">Reply</span>
                           </div>
                           <span className="text-[10px] text-gray-400 dark:text-gray-500 uppercase font-bold">
@@ -600,6 +704,28 @@ export const BlogPostView: React.FC = () => {
                           </span>
                         </div>
                         <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">{r.content}</p>
+                        <div className="flex items-center gap-4 pt-3">
+                          <button
+                            type="button"
+                            onClick={() => handleLikeComment(r.id)}
+                            className={`flex items-center gap-1 transition-colors ${myLikedComments[r.id] ? 'text-grantify-green' : 'text-gray-400 dark:text-gray-500 hover:text-grantify-green'}`}
+                            title={myLikedComments[r.id] ? 'Helpful (click to undo)' : 'Helpful'}
+                            aria-label={myLikedComments[r.id] ? 'Helpful (undo)' : 'Helpful'}
+                          >
+                            <ThumbsUp size={14} className={myLikedComments[r.id] ? 'fill-green-200' : ''} />
+                            <span className="text-xs font-bold">{r.likes}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleFlagComment(r.id)}
+                            className="inline-flex items-center gap-1 text-xs font-black uppercase tracking-widest text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                            title="Report for review"
+                            aria-label="Report for review"
+                          >
+                            <Flag size={14} /> Report
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>

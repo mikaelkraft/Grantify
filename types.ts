@@ -115,6 +115,9 @@ export interface ProviderReview {
   name: string;
   rating: number;
   content: string;
+  likes: number;
+  userId?: string;
+  isHidden?: boolean;
   parentId?: string;
   createdAt: string;
 }
@@ -157,8 +160,20 @@ export interface BlogComment {
   name: string;
   content: string;
   likes: number;
+  userId?: string;
   parentId?: string;
   createdAt: string;
+}
+
+export interface ContentFlag {
+  id: string;
+  entityType: 'blog_comment' | 'provider_review';
+  entityId: string;
+  reason: string;
+  details?: string | null;
+  status: 'open' | 'resolved';
+  createdAt: string;
+  resolvedAt?: string | null;
 }
 
 export interface GrantNetwork {

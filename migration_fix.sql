@@ -68,3 +68,68 @@ ALTER TABLE provider_reviews
 
 CREATE INDEX IF NOT EXISTS provider_reviews_provider_id_idx ON provider_reviews (provider_id);
 CREATE INDEX IF NOT EXISTS provider_reviews_parent_id_idx ON provider_reviews (parent_id);
+
+-- 7. Moderation & votes (registration-free)
+-- Provider reviews: add lightweight moderation + helpful votes
+ALTER TABLE provider_reviews
+    ADD COLUMN IF NOT EXISTS user_id TEXT,
+    ADD COLUMN IF NOT EXISTS ip TEXT,
+    ADD COLUMN IF NOT EXISTS likes INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE TABLE IF NOT EXISTS provider_review_likes (
+    review_id TEXT NOT NULL,
+    user_key TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (review_id, user_key)
+);
+
+CREATE INDEX IF NOT EXISTS provider_review_likes_review_id_idx ON provider_review_likes (review_id);
+
+-- Blog comments: add lightweight moderation + helpful votes
+-- (blog_comments table is created in seed in many environments, but we guard for fresh DBs too)
+CREATE TABLE IF NOT EXISTS blog_comments (
+    id TEXT PRIMARY KEY,
+    post_id TEXT REFERENCES blog_posts(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    content TEXT NOT NULL,
+    likes INTEGER NOT NULL DEFAULT 0,
+    parent_id TEXT,
+    user_id TEXT,
+    ip TEXT,
+    is_hidden BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE blog_comments
+    ADD COLUMN IF NOT EXISTS user_id TEXT,
+    ADD COLUMN IF NOT EXISTS ip TEXT,
+    ADD COLUMN IF NOT EXISTS likes INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE TABLE IF NOT EXISTS blog_comment_likes (
+    comment_id TEXT NOT NULL,
+    user_key TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (comment_id, user_key)
+);
+
+CREATE INDEX IF NOT EXISTS blog_comment_likes_comment_id_idx ON blog_comment_likes (comment_id);
+
+-- Unified content flagging inbox
+CREATE TABLE IF NOT EXISTS content_flags (
+    id TEXT PRIMARY KEY,
+    entity_type TEXT NOT NULL,
+    entity_id TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    details TEXT,
+    reporter_key TEXT NOT NULL,
+    reporter_ip TEXT,
+    status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'resolved')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    resolved_at TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS content_flags_status_created_at_idx ON content_flags (status, created_at DESC);
+CREATE INDEX IF NOT EXISTS content_flags_entity_idx ON content_flags (entity_type, entity_id);
+CREATE UNIQUE INDEX IF NOT EXISTS content_flags_unique_reporter_idx ON content_flags (entity_type, entity_id, reporter_key);

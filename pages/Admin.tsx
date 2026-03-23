@@ -14,10 +14,11 @@ import {
   BookOpen,
   Type,
   Smile,
+  Flag,
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { ApiService } from '../services/storage';
-import { AdminUser, LoanApplication, Testimonial, AdConfig, UserRole, RepaymentContent, LoanProvider, LoanProviderSubmission, BlogPost, ProviderReview, ContactMessage } from '../types';
+import { AdminUser, LoanApplication, Testimonial, AdConfig, UserRole, RepaymentContent, LoanProvider, LoanProviderSubmission, BlogPost, ProviderReview, ContactMessage, ContentFlag } from '../types';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { formatNaira } from '../utils/currency';
@@ -51,8 +52,11 @@ export const Admin: React.FC = () => {
   const [loanProviders, setLoanProviders] = useState<LoanProvider[]>([]);
   const [loanProviderSubmissions, setLoanProviderSubmissions] = useState<LoanProviderSubmission[]>([]);
   const [allReviews, setAllReviews] = useState<ProviderReview[]>([]);
+  const [includeHiddenReviews, setIncludeHiddenReviews] = useState(false);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
+  const [flagsInbox, setFlagsInbox] = useState<ContentFlag[]>([]);
+  const [flagEntities, setFlagEntities] = useState<Record<string, any>>({});
 
   // New Blog Post Form
   const [newPost, setNewPost] = useState<{
@@ -301,12 +305,12 @@ export const Admin: React.FC = () => {
 
   useEffect(() => {
     if (user) refreshData();
-  }, [user]);
+  }, [user, includeHiddenReviews]);
 
   const refreshData = async () => {
     setIsLoading(true);
     try {
-      const [apps, tests, adConfig, repay, adminList, providers, submissions, reviews, posts, contact] = await Promise.all([
+      const [apps, tests, adConfig, repay, adminList, providers, submissions, reviews, posts, contact, flagsData] = await Promise.all([
         ApiService.getApplications(),
         ApiService.getTestimonials(),
         ApiService.getAds(),
@@ -314,9 +318,10 @@ export const Admin: React.FC = () => {
         ApiService.getAdmins(),
         ApiService.getLoanProviders(),
         ApiService.getLoanProviderSubmissions('pending'),
-        ApiService.getProviderReviews(),
+        ApiService.getProviderReviews(undefined, { includeHidden: includeHiddenReviews }),
         ApiService.getBlogPosts(),
-        ApiService.getContactMessages(120)
+        ApiService.getContactMessages(120),
+        ApiService.getFlags('open')
       ]);
       setApplications(apps);
       setTestimonials(tests);
@@ -328,6 +333,8 @@ export const Admin: React.FC = () => {
       setAllReviews(reviews);
       setBlogPosts(posts);
       setContactMessages(contact);
+      setFlagsInbox(flagsData?.flags || []);
+      setFlagEntities(flagsData?.entities || {});
     } catch (e) {
       console.error("Failed to load admin data", e);
       const message =
@@ -345,6 +352,19 @@ export const Admin: React.FC = () => {
           'Admin data could not be loaded. Some information may be incomplete until the connection is restored.'
         );
       }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const refreshFlagsInbox = async () => {
+    setIsLoading(true);
+    try {
+      const flagsData = await ApiService.getFlags('open');
+      setFlagsInbox(flagsData?.flags || []);
+      setFlagEntities(flagsData?.entities || {});
+    } catch {
+      alert('Failed to refresh moderation inbox');
     } finally {
       setIsLoading(false);
     }
@@ -885,6 +905,13 @@ export const Admin: React.FC = () => {
              className={`w-full flex items-center gap-2 p-3 rounded transition ${activeTab === 'blog' ? 'bg-grantify-green text-white shadow-md' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
            >
              <BookOpen size={18} /> Community Blog
+           </button>
+
+           <button 
+             onClick={() => setActiveTab('moderation')}
+             className={`w-full flex items-center gap-2 p-3 rounded transition ${activeTab === 'moderation' ? 'bg-grantify-green text-white shadow-md' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
+           >
+             <Flag size={18} /> Moderation
            </button>
 
            {/* Super Admin Only Tab */}
@@ -1581,7 +1608,18 @@ export const Admin: React.FC = () => {
               {/* Provider Reviews Tab */}
               {activeTab === 'reviews' && (
                 <div>
-                   <h3 className="text-xl font-bold mb-4">Provider Reviews & Comments ({allReviews.length})</h3>
+                   <div className="flex items-end justify-between gap-4 mb-4">
+                     <h3 className="text-xl font-bold">Provider Reviews & Comments ({allReviews.length})</h3>
+                     <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-200 select-none">
+                       <input
+                         type="checkbox"
+                         className="w-4 h-4"
+                         checked={includeHiddenReviews}
+                         onChange={(e) => setIncludeHiddenReviews(e.target.checked)}
+                       />
+                       Show hidden
+                     </label>
+                   </div>
                    <div className="overflow-x-auto">
                     <table className="min-w-full text-sm">
                       <thead className="bg-gray-50 dark:bg-gray-950">
@@ -1603,6 +1641,7 @@ export const Admin: React.FC = () => {
                               <td className="p-2">
                                 {review.name}
                                 {review.parentId && <span className="ml-2 bg-blue-100 dark:bg-blue-950/40 text-blue-600 dark:text-blue-200 text-[10px] px-1 rounded border border-blue-200 dark:border-blue-900">Reply</span>}
+                                {review.isHidden && <span className="ml-2 bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-200 text-[10px] px-1 rounded border border-red-200 dark:border-red-900">Hidden</span>}
                               </td>
                               <td className="p-2">{review.rating > 0 ? `${review.rating} ⭐` : '-'}</td>
                               <td className="p-2 max-w-xs truncate" title={review.content}>{review.content}</td>
@@ -1623,6 +1662,120 @@ export const Admin: React.FC = () => {
                       </tbody>
                     </table>
                   </div>
+                </div>
+              )}
+
+              {/* Moderation Inbox Tab */}
+              {activeTab === 'moderation' && (
+                <div>
+                  <div className="flex items-end justify-between gap-4 mb-4">
+                    <div>
+                      <h3 className="text-xl font-bold">Moderation Inbox ({flagsInbox.length})</h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-300">User reports from comments and reviews (registration-free).</p>
+                    </div>
+                    <button
+                      onClick={refreshFlagsInbox}
+                      className="bg-gray-900 dark:bg-gray-950 text-white px-3 py-2 rounded text-xs font-bold hover:bg-gray-800"
+                      title="Refresh"
+                    >
+                      Refresh
+                    </button>
+                  </div>
+
+                  {flagsInbox.length === 0 ? (
+                    <div className="text-sm text-gray-500 dark:text-gray-300">No open reports.</div>
+                  ) : (
+                    <div className="bg-white dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-800 overflow-x-auto">
+                      <table className="w-full text-sm min-w-[900px]">
+                        <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+                          <tr>
+                            <th className="p-2 text-left text-gray-700 dark:text-gray-200">Type</th>
+                            <th className="p-2 text-left text-gray-700 dark:text-gray-200">Context</th>
+                            <th className="p-2 text-left text-gray-700 dark:text-gray-200">Reason</th>
+                            <th className="p-2 text-left text-gray-700 dark:text-gray-200">Snippet</th>
+                            <th className="p-2 text-left text-gray-700 dark:text-gray-200">Date</th>
+                            <th className="p-2 text-left text-gray-700 dark:text-gray-200">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                          {flagsInbox.map(f => {
+                            const entityKey = `${f.entityType}:${f.entityId}`;
+                            const entity = flagEntities?.[entityKey];
+                            const context = f.entityType === 'blog_comment'
+                              ? (entity?.postTitle ? `Blog: ${entity.postTitle}` : (entity?.postId ? `Blog post: ${entity.postId}` : 'Blog comment'))
+                              : (entity?.providerName ? `Provider: ${entity.providerName}` : (entity?.providerId ? `Provider: ${entity.providerId}` : 'Provider review'));
+                            const snippet = String(entity?.content || '').slice(0, 140);
+
+                            return (
+                              <tr key={f.id}>
+                                <td className="p-2 font-bold">
+                                  {f.entityType === 'blog_comment' ? 'Blog comment' : 'Provider review'}
+                                </td>
+                                <td className="p-2 text-gray-700 dark:text-gray-200">{context}</td>
+                                <td className="p-2 text-gray-700 dark:text-gray-200">{f.reason}</td>
+                                <td className="p-2 max-w-[420px] truncate" title={String(entity?.content || '') || ''}>
+                                  {snippet || '—'}
+                                </td>
+                                <td className="p-2 text-gray-500 dark:text-gray-400">{new Date(f.createdAt).toLocaleString()}</td>
+                                <td className="p-2">
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        try {
+                                          await ApiService.setHidden({ entityType: f.entityType, entityId: f.entityId, hidden: true });
+                                          await ApiService.resolveFlag(f.id);
+                                          await refreshFlagsInbox();
+                                        } catch {
+                                          alert('Failed to hide and resolve');
+                                        }
+                                      }}
+                                      className="px-2 py-1 rounded text-xs font-bold bg-red-600 text-white hover:bg-red-700"
+                                      title="Hide content and resolve flag"
+                                    >
+                                      Hide
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        try {
+                                          await ApiService.setHidden({ entityType: f.entityType, entityId: f.entityId, hidden: false });
+                                          await refreshFlagsInbox();
+                                        } catch {
+                                          alert('Failed to unhide');
+                                        }
+                                      }}
+                                      className="px-2 py-1 rounded text-xs font-bold bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-gray-700"
+                                      title="Unhide content"
+                                    >
+                                      Unhide
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        try {
+                                          await ApiService.resolveFlag(f.id);
+                                          await refreshFlagsInbox();
+                                        } catch {
+                                          alert('Failed to resolve');
+                                        }
+                                      }}
+                                      className="px-2 py-1 rounded text-xs font-bold bg-grantify-green text-white hover:bg-green-800"
+                                      title="Resolve flag without hiding"
+                                    >
+                                      Resolve
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               )}
               {/* Blog Management Tab */}
