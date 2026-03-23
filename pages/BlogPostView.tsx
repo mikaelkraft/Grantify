@@ -7,6 +7,7 @@ import { AdSlot } from '../components/AdSlot';
 import { FacebookShareButton, TwitterShareButton, WhatsappShareButton, LinkedinShareButton, FacebookIcon, TwitterIcon, WhatsappIcon, LinkedinIcon } from 'react-share';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
 import { makeBlogSlug, parseBlogParam } from '../utils/blogRouting';
+import { hyphenateHtml } from '../utils/hyphenateHtml';
 
 const looksLikeHtml = (value: string) => {
   const s = String(value || '').trim();
@@ -244,11 +245,12 @@ export const BlogPostView: React.FC = () => {
 
   const topLevelComments = post.comments.filter(c => !c.parentId);
 
-  const postHtml = (() => {
+  const postHtml = useMemo(() => {
     const raw = String(post.content || '');
     if (!raw.trim()) return '';
-    return looksLikeHtml(raw) ? raw : plainTextToHtml(raw);
-  })();
+    const normalized = looksLikeHtml(raw) ? raw : plainTextToHtml(raw);
+    return hyphenateHtml(normalized);
+  }, [post.content]);
 
   return (
     <div className="max-w-5xl mx-auto py-12 px-3 sm:px-4 md:px-6">

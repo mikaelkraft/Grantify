@@ -71,16 +71,16 @@
         100% { transform: translateX(-50%); }
       }
       .ticker-marquee {
-        animation: ticker-marquee 40s linear infinite;
+        animation: ticker-marquee 30s linear infinite;
         will-change: transform;
       }
 
       /* Blog post / AI article HTML styling (ReactQuill output) */
       .quill-content {
-        overflow-wrap: anywhere;
+        overflow-wrap: break-word;
         word-break: normal;
-        -webkit-hyphens: auto;
-        hyphens: auto;
+        -webkit-hyphens: manual;
+        hyphens: manual;
         hyphenate-character: '-';
         line-height: 1.8;
       }
@@ -126,6 +126,12 @@
       .quill-content h1 { font-size: 2em; }
       .quill-content h2 { font-size: 1.6em; }
       .quill-content h3 { font-size: 1.25em; }
+      .quill-content h3 {
+        overflow-wrap: break-word;
+        word-break: normal;
+        -webkit-hyphens: auto;
+        hyphens: auto;
+      }
       .quill-content ul,
       .quill-content ol {
         padding-left: 1.4em;
@@ -192,10 +198,32 @@
         position: sticky;
         top: 0;
         z-index: 40;
+        background: #ffffff;
       }
       .admin-quill .ql-toolbar.ql-snow,
       .admin-quill .ql-container.ql-snow {
         border-color: rgba(0,0,0,0.08);
+      }
+
+      /* Prevent mobile layout expansion when editing long / media-heavy posts */
+      .admin-quill .ql-container.ql-snow,
+      .admin-quill .ql-editor {
+        max-width: 100%;
+      }
+      .admin-quill .ql-editor {
+        overflow-wrap: anywhere;
+        word-break: normal;
+      }
+      .admin-quill .ql-editor img,
+      .admin-quill .ql-editor iframe,
+      .admin-quill .ql-editor video {
+        max-width: 100%;
+        height: auto;
+      }
+      .admin-quill .ql-editor pre {
+        max-width: 100%;
+        overflow-x: auto;
+        white-space: pre-wrap;
       }
       .dark .admin-quill .ql-toolbar.ql-snow {
         background: #0b1220;

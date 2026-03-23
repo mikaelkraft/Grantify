@@ -1,8 +1,23 @@
-import { Shield, LogOut, Plus, Trash, Edit, Save, AlertCircle, Upload, CheckCircle, XCircle, Clock, X, FileText, Image, Eye, EyeOff, MessageSquare, ThumbsUp, Link as LinkIcon, Heart, Hand, Mail, Smile } from 'lucide-react';
+import {
+  Shield,
+  LogOut,
+  Plus,
+  Save,
+  MessageSquare,
+  Link as LinkIcon,
+  Mail,
+  Download,
+  Trash2,
+  UserPlus,
+  Loader2,
+  Zap,
+  BookOpen,
+  Type,
+  Smile,
+} from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { ApiService } from '../services/storage';
 import { AdminUser, LoanApplication, Testimonial, AdConfig, UserRole, RepaymentContent, LoanProvider, BlogPost, ProviderReview, ContactMessage } from '../types';
-import { LogOut, Download, Trash2, Plus, UserPlus, Shield, Loader2, Save, Zap, BookOpen, MessageSquare, Image as ImageIcon, Link as LinkIcon, Type, Hash, Mail } from 'lucide-react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { formatNaira } from '../utils/currency';
@@ -339,7 +354,6 @@ export const Admin: React.FC = () => {
       const admin = await ApiService.login(loginForm.username, loginForm.password);
       if (admin) {
         setUser(admin);
-        setUser(admin);
         localStorage.setItem('admin_session', JSON.stringify(admin));
       } else {
         alert('Invalid credentials');
@@ -350,7 +364,6 @@ export const Admin: React.FC = () => {
   };
 
   const handleLogout = () => {
-    setUser(null);
     setUser(null);
     localStorage.removeItem('admin_session');
   };
@@ -784,7 +797,7 @@ export const Admin: React.FC = () => {
       <div className="bg-gray-800 text-white p-4 flex justify-between items-center">
         <div>
           <h2 className="text-xl font-bold">Admin Dashboard</h2>
-          <span className="text-xs text-gray-400">Logged in as: {user.name} ({user.role})</span>
+          <span className="text-xs text-gray-400">Logged in as: {user.username || user.name} ({user.role})</span>
         </div>
         <button onClick={handleLogout} className="flex items-center gap-2 hover:text-red-400">
           <LogOut size={18} /> Logout
@@ -845,7 +858,7 @@ export const Admin: React.FC = () => {
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 p-6 overflow-y-auto bg-white dark:bg-gray-900 min-h-[500px] text-gray-900 dark:text-gray-100">
+        <div className="flex-1 p-6 overflow-y-auto overflow-x-hidden bg-white dark:bg-gray-900 min-h-[500px] text-gray-900 dark:text-gray-100">
           {isLoading && (
              <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-300">
                 <Loader2 className="animate-spin mr-2" /> Loading data...
@@ -1453,63 +1466,6 @@ export const Admin: React.FC = () => {
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
-
-              {/* Contact Messages Tab */}
-              {activeTab === 'contact' && (
-                <div>
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
-                    <div>
-                      <h3 className="text-xl font-bold flex items-center gap-2">
-                        <Mail size={18} /> Contact Messages ({contactMessages.length})
-                      </h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Messages submitted from the public Contact page are stored here.
-                      </p>
-                    </div>
-                    <button
-                      onClick={refreshData}
-                      className="bg-grantify-green text-white px-4 py-2 rounded text-sm font-bold"
-                      title="Refresh"
-                    >
-                      Refresh
-                    </button>
-                  </div>
-
-                  {contactMessages.length === 0 ? (
-                    <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 text-sm text-gray-600 dark:text-gray-300">
-                      No messages yet.
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto bg-white dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-800">
-                      <table className="min-w-full text-sm">
-                        <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-                          <tr>
-                            <th className="p-3 text-left text-xs uppercase text-gray-400 dark:text-gray-500">From</th>
-                            <th className="p-3 text-left text-xs uppercase text-gray-400 dark:text-gray-500">Subject</th>
-                            <th className="p-3 text-left text-xs uppercase text-gray-400 dark:text-gray-500">Message</th>
-                            <th className="p-3 text-left text-xs uppercase text-gray-400 dark:text-gray-500">Date</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                          {contactMessages.map((m) => (
-                            <tr key={m.id}>
-                              <td className="p-3">
-                                <div className="font-bold text-gray-900 dark:text-gray-100">{m.name}</div>
-                                <div className="text-[10px] text-gray-500 dark:text-gray-400 font-mono break-all">{m.email}{m.phone ? ` • ${m.phone}` : ''}</div>
-                              </td>
-                              <td className="p-3 font-bold text-gray-800 dark:text-gray-100">{m.subject}</td>
-                              <td className="p-3 max-w-[520px]">
-                                <div className="text-gray-700 dark:text-gray-200 line-clamp-3 whitespace-pre-wrap">{m.message}</div>
-                              </td>
-                              <td className="p-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{new Date(m.createdAt).toLocaleString()}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
                 </div>
               )}
 
