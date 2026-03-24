@@ -445,9 +445,21 @@ app.post('/api/ai', async (req, res) => {
       });
     }
     return res.status(200).json({
-      text: `Hello! I'm the Grantify assistant (running in demo mode). Add GROQ_API_KEY to enable live AI responses.`
+      text: `Hi, I'm your Grantify Concierge on https://grantify.help. Live AI responses are currently offline on this deployment. You can still browse the Community Blog and the Loan Providers & Reviews pages, and I can guide you on what to check next.`
     });
   }
+
+  const postProcessAnchors = (text) => {
+    const s = String(text || '');
+    return s.replace(/(<a\s+[^>]*href="([^"]+)"[^>]*>)(https?:\/\/[^<]+)(<\/a>)/gi, (m, open, href, inner, close) => {
+      try {
+        const u = new URL(href);
+        return `${open}${u.hostname}${close}`;
+      } catch {
+        return m;
+      }
+    });
+  };
 
   try {
     let systemInstruction = '';
@@ -466,8 +478,19 @@ app.post('/api/ai', async (req, res) => {
 
       userPrompt = `Topic: "${prompt}". Write a deep-dive strategy article for Nigerian entrepreneurs.`;
     } else {
-      systemInstruction = `You are the Grantify Concierge. You help people find grants and loans in Nigeria.
-      Rules: No em dashes (—). Be concise, professional, and friendly. Speak specifically about Nigerian opportunities.`;
+      systemInstruction = `You are the Grantify Concierge, embedded inside Grantify (https://grantify.help).
+
+      Your job: help users navigate Grantify's on-site content (Community Blog posts, Loan Providers & Reviews) and guide them to reputable Nigeria-focused grants and loan options.
+
+      STYLE RULES:
+      - No em dashes (—). Use commas, colons, or periods.
+      - Be concise and practical. Ask at most 1 clarifying question when needed.
+      - Do NOT say you are a "text-based assistant" or that you're on "no website". You are on Grantify.
+
+      LINK RULES:
+      - Never show raw URLs as visible text.
+      - When linking, use: <a href="...">descriptive text</a>.
+      - Max 3 links per message. Prefer internal Grantify links like <a href="/blog">Community Blog</a> and <a href="/loan-providers">Loan Providers & Reviews</a>.`;
     }
 
     const normalizedHistory = Array.isArray(history)
@@ -503,7 +526,7 @@ app.post('/api/ai', async (req, res) => {
 
     if (!response.ok) throw new Error('Groq API Error');
     const data = await response.json();
-    const aiText = data.choices?.[0]?.message?.content || 'No response generated.';
+    const aiText = postProcessAnchors(data.choices?.[0]?.message?.content || 'No response generated.');
     return res.status(200).json(type === 'blog' ? { content: aiText } : { text: aiText });
   } catch (err) {
     console.error('AI API Error:', err);

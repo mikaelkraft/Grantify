@@ -92,7 +92,7 @@ export default async function handler(req, res) {
   const safeImage = escapeHtml(image);
 
   const slug = makeBlogSlug(title, effectiveId);
-  const redirectTo = `/#/blog/${encodeURIComponent(String(slug))}`;
+  const redirectTo = `/blog/${encodeURIComponent(String(slug))}`;
   const canonical = `${baseUrl}/share/blog/${encodeURIComponent(String(slug))}`;
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');

@@ -71,16 +71,16 @@ export const GRANT_NETWORKS: GrantNetwork[] = [
     description: 'Dedicated to supporting young African traders and exporters.',
     logo: 'https://placehold.co/400x200/png?text=AYTF', 
     keywords: ['youth', 'trade', 'export', 'young', 'africa', 'commerce'],
-    link: '#matcher'
+    link: ''
   }
 ];
 
-export const matchGrantNetwork = (description: string): GrantNetwork => {
+export const matchGrantNetwork = (description: string): GrantNetwork | null => {
   const lowered = description.toLowerCase();
   
   // Scoring system
-  let bestMatch = GRANT_NETWORKS[0]; // Default to BOI
-  let highestScore = -1;
+  let bestMatch: GrantNetwork | null = null;
+  let highestScore = 0;
 
   for (const network of GRANT_NETWORKS) {
     let score = 0;

@@ -83,6 +83,43 @@ export const AiChatbot: React.FC = () => {
   const partsToNodes = useMemo(() => {
     const urlRegex = /((?:https?:\/\/|www\.)[^\s<]+)|((?:\/blog\/|\/loan-providers|\/blog)\/?[^\s<]*)/gi;
 
+    const normalizeInternalHref = (href: string) => {
+      const raw = String(href || '').trim();
+      if (!raw) return '';
+
+      // Allow plain internal paths.
+      if (raw.startsWith('/')) return raw;
+
+      // Convert absolute Grantify links into internal SPA routes.
+      // Supports both BrowserRouter-style and legacy HashRouter-style URLs.
+      try {
+        const u = new URL(raw);
+        if (u.hostname === 'grantify.help' || u.hostname.endsWith('.grantify.help')) {
+          if (u.hash && u.hash.startsWith('#/')) return u.hash.slice(1);
+          return u.pathname || '/';
+        }
+      } catch {
+        // ignore
+      }
+
+      return '';
+    };
+
+    const prettifyLinkText = (href: string, text: string) => {
+      const t = String(text || '').trim();
+      const h = String(href || '').trim();
+      if (!t) return h;
+      if (t === h) {
+        try {
+          const u = new URL(h);
+          return u.hostname;
+        } catch {
+          return t;
+        }
+      }
+      return t;
+    };
+
     const renderTextWithLinks = (text: string) => {
       const nodes: React.ReactNode[] = [];
       const safe = String(text || '');
@@ -129,7 +166,105 @@ export const AiChatbot: React.FC = () => {
       return nodes;
     };
 
-    return { renderTextWithLinks };
+    const renderAssistantContent = (content: string) => {
+      const raw = String(content || '');
+      // Fast path for plain text.
+      if (!/[<>]/.test(raw) || typeof DOMParser === 'undefined') {
+        return renderTextWithLinks(raw);
+      }
+
+      try {
+        const doc = new DOMParser().parseFromString(raw, 'text/html');
+        const nodes: React.ReactNode[] = [];
+        let key = 0;
+
+        const pushText = (t: string) => {
+          if (!t) return;
+          nodes.push(...renderTextWithLinks(t));
+        };
+
+        const pushBreak = () => {
+          // Avoid stacking too many blank lines.
+          const last = nodes[nodes.length - 1];
+          if (last && (last as any)?.type === 'br') return;
+          nodes.push(<br key={`br_${key++}`} />);
+        };
+
+        const walk = (node: Node) => {
+          if (node.nodeType === Node.TEXT_NODE) {
+            pushText((node.nodeValue || '').replace(/\s+/g, ' '));
+            return;
+          }
+          if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+          const el = node as Element;
+          const tag = el.tagName.toLowerCase();
+
+          if (tag === 'br') {
+            pushBreak();
+            return;
+          }
+
+          if (tag === 'a') {
+            const href = String(el.getAttribute('href') || '').trim();
+            const text = prettifyLinkText(href, el.textContent || '');
+            const internal = normalizeInternalHref(href);
+
+            if (internal) {
+              nodes.push(
+                <Link
+                  key={`il_${key++}`}
+                  to={internal}
+                  className="underline break-words"
+                  onClick={() => setIsOpen(false)}
+                >
+                  {text}
+                </Link>
+              );
+              return;
+            }
+
+            if (/^https?:\/\//i.test(href)) {
+              nodes.push(
+                <a
+                  key={`ea_${key++}`}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline break-words"
+                >
+                  {text || href}
+                </a>
+              );
+              return;
+            }
+
+            // Unknown/unsafe href, render as plain text.
+            pushText(text);
+            return;
+          }
+
+          // Treat common block tags as paragraph boundaries.
+          if (tag === 'p' || tag === 'div' || tag === 'li' || tag === 'h1' || tag === 'h2' || tag === 'h3' || tag === 'ul' || tag === 'ol') {
+            if (nodes.length) pushBreak();
+            if (tag === 'li') pushText('• ');
+            Array.from(el.childNodes).forEach(walk);
+            pushBreak();
+            return;
+          }
+
+          // Inline / unknown tags: walk children.
+          Array.from(el.childNodes).forEach(walk);
+        };
+
+        Array.from(doc.body.childNodes).forEach(walk);
+        return nodes.length ? nodes : renderTextWithLinks(raw.replace(/<[^>]+>/g, ''));
+      } catch {
+        return renderTextWithLinks(raw.replace(/<[^>]+>/g, ''));
+      }
+    };
+
+    return { renderTextWithLinks, renderAssistantContent };
   }, []);
 
   const handleSend = async (e?: React.FormEvent) => {
@@ -254,7 +389,9 @@ export const AiChatbot: React.FC = () => {
                     : 'bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 shadow-sm border border-gray-100 dark:border-gray-800 rounded-tl-none'
                 }`}>
                   <div className="whitespace-pre-wrap break-words">
-                    {partsToNodes.renderTextWithLinks(msg.content)}
+                    {msg.role === 'assistant'
+                      ? partsToNodes.renderAssistantContent(msg.content)
+                      : partsToNodes.renderTextWithLinks(msg.content)}
                   </div>
                 </div>
               </div>

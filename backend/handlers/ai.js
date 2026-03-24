@@ -1,5 +1,7 @@
 // Handler: /api/ai
 
+import pool from '../db.js';
+
 const fetchNewsContext = async (query, { regionHint } = {}) => {
   const q = `${String(query || '').trim()} ${regionHint || 'Nigeria'}`.trim();
   const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-NG&gl=NG&ceid=NG:en`;
@@ -94,6 +96,87 @@ const buildSourcesHtml = (items) => {
   return `<h3>Sources</h3><ul>${listItems}</ul>`;
 };
 
+const slugifyTitle = (title) => {
+  const input = String(title || '').trim();
+  if (!input) return 'post';
+  const ascii = input
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+  const cleaned = ascii
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, '-');
+  return cleaned || 'post';
+};
+
+const makeBlogSlug = (title, id) => `${slugifyTitle(title)}~${encodeURIComponent(String(id))}`;
+
+const buildGrantifyLocalContext = async () => {
+  // Best-effort. If tables don't exist yet, just return empty context.
+  const client = await pool.connect();
+  try {
+    const ctx = [];
+
+    try {
+      const posts = await client.query(
+        'SELECT id, title, category, created_at FROM blog_posts ORDER BY created_at DESC LIMIT 5'
+      );
+      if (posts.rows?.length) {
+        const lines = posts.rows.map((r, i) => {
+          const href = `/blog/${makeBlogSlug(r.title, r.id)}`;
+          const cat = String(r.category || '').trim();
+          const title = String(r.title || '').trim();
+          return `${i + 1}. <a href="${href}">${title || 'Untitled post'}</a>${cat ? ` (${cat})` : ''}`;
+        });
+        ctx.push(`Recent Grantify community posts:\n${lines.join('\n')}`);
+      }
+    } catch {
+      // ignore
+    }
+
+    try {
+      const providers = await client.query(
+        `SELECT id, name, website, play_store_url, rating, tag, is_recommended
+         FROM loan_providers
+         WHERE is_recommended IS TRUE
+         ORDER BY rating DESC NULLS LAST, id ASC
+         LIMIT 5`
+      );
+      if (providers.rows?.length) {
+        const lines = providers.rows.map((r, i) => {
+          const name = String(r.name || '').trim() || 'Loan provider';
+          const site = String(r.website || '').trim();
+          const rating = r.rating !== null && r.rating !== undefined ? Number(r.rating) : null;
+          const ratingText = Number.isFinite(rating) && rating ? ` ⭐ ${rating.toFixed(1)}` : '';
+          const link = site && /^https?:\/\//i.test(site) ? `<a href="${site}">${name}</a>` : name;
+          return `${i + 1}. ${link}${ratingText}`;
+        });
+        ctx.push(`Recommended loan providers on Grantify (/loan-providers):\n${lines.join('\n')}`);
+      }
+    } catch {
+      // ignore
+    }
+
+    return ctx.length ? ctx.join('\n\n') : '';
+  } finally {
+    client.release();
+  }
+};
+
+const postProcessAnchors = (text) => {
+  const s = String(text || '');
+  // If the model outputs <a href="...">https://...</a>, replace anchor text with hostname.
+  return s.replace(/(<a\s+[^>]*href="([^"]+)"[^>]*>)(https?:\/\/[^<]+)(<\/a>)/gi, (m, open, href, inner, close) => {
+    try {
+      const u = new URL(href);
+      return `${open}${u.hostname}${close}`;
+    } catch {
+      return m;
+    }
+  });
+};
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -114,7 +197,7 @@ export default async function handler(req, res) {
       });
     }
     return res.status(200).json({
-      text: `Hello! I'm the Grantify assistant (running in demo mode). Add GROQ_API_KEY to enable live AI responses.`
+      text: `Hi, I'm your Grantify Concierge on https://grantify.help. Live AI responses are currently offline on this deployment. You can still browse the Community Blog and the Loan Providers & Reviews pages, and I can guide you on what to check next.`
     });
   }
 
@@ -124,6 +207,7 @@ export default async function handler(req, res) {
     let newsContext = '';
     let webContext = '';
     let sources = [];
+    let localContext = '';
 
     const nowIso = new Date().toISOString();
 
@@ -152,12 +236,32 @@ export default async function handler(req, res) {
         }
       }
     } else {
-      systemInstruction = `You are the Grantify Concierge. You help people find grants and loans in Nigeria.
-      Rules: No em dashes (—). Be concise, professional, and friendly. Speak specifically about Nigerian opportunities.
+      try {
+        localContext = await buildGrantifyLocalContext();
+      } catch {
+        localContext = '';
+      }
+
+      systemInstruction = `You are the Grantify Concierge, embedded inside Grantify (https://grantify.help).
+
+      Your job: help users navigate Grantify's on-site content (Community Blog posts, Loan Providers & Reviews) and guide them to reputable Nigeria-focused grants and loan options.
+
+      STYLE RULES:
+      - No em dashes (—). Use commas, colons, or periods.
+      - Be concise and practical. Ask at most 1 clarifying question when needed.
+      - Do NOT say you are a "text-based assistant" or that you're on "no website". You are on Grantify.
+      - Do NOT hedge with "I'm not sure" if you were given fresh context. Only hedge when truly missing context.
+
+      LINK RULES:
+      - Never show raw URLs as visible text.
+      - When linking, use: <a href="...">descriptive text</a>.
+      - Max 3 links per message. Prefer internal Grantify links like <a href="/blog">Community Blog</a> and <a href="/loan-providers">Loan Providers & Reviews</a>.
 
       CURRENT DATE/TIME (server): ${nowIso}
 
-      If you are provided with FRESH CONTEXT (headlines/links or web results), treat it as current information. Do not claim you cannot access current data or that your training is "cut off". If the user asks for the latest, use the provided context and cite links.`;
+      ${localContext ? `ON-SITE INDEX (use this to reference what exists on Grantify):\n${localContext}` : ''}
+
+      If you are provided with FRESH CONTEXT (headlines/links or web results), treat it as current information. Do not claim you cannot access current data or that your training is "cut off".`;
 
       if (useSearch) {
         try {
@@ -221,7 +325,7 @@ export default async function handler(req, res) {
 
     if (!response.ok) throw new Error('Groq API Error');
     const data = await response.json();
-    const aiText = data.choices?.[0]?.message?.content || 'No response generated.';
+    const aiText = postProcessAnchors(data.choices?.[0]?.message?.content || 'No response generated.');
 
     if (type === 'blog') {
       const sourcesHtml = buildSourcesHtml(sources);

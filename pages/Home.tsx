@@ -90,6 +90,11 @@ export const Home: React.FC = () => {
     }
   };
 
+  const isExternalLink = (url: string | undefined | null) => {
+    const s = String(url || '').trim();
+    return /^https?:\/\//i.test(s);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -169,6 +174,17 @@ export const Home: React.FC = () => {
               </p>
             </div>
 
+            {matchedNetwork && isExternalLink(matchedNetwork.link) && (
+              <a
+                href={matchedNetwork.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full bg-gray-900 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl hover:bg-gray-800 transition-all flex items-center justify-center gap-2"
+              >
+                Open {matchedNetwork.name} Application
+              </a>
+            )}
+
             <button 
               onClick={() => setSubmitted(false)}
               className="w-full bg-grantify-green text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl hover:bg-green-700 transition-all flex items-center justify-center gap-2"
@@ -198,7 +214,7 @@ export const Home: React.FC = () => {
         
         <div className="relative z-10 text-center px-6 max-w-5xl">
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full text-xs font-black text-grantify-gold uppercase tracking-[0.2em] mb-8 border border-white/5">
-            <Award size={14} /> Nigeria's Blog Intel
+            <Award size={14} /> Grants and Loans Intel
           </div>
           <h1 className="text-4xl md:text-7xl font-black font-heading text-white mb-8 leading-[1.1]">
             Bridge the Gap Between <br/>
@@ -210,13 +226,13 @@ export const Home: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
             <button 
               onClick={() => document.getElementById('matcher')?.scrollIntoView({ behavior: 'smooth' })}
-              className="bg-white text-grantify-green font-bold py-3 px-8 rounded-xl shadow-xl hover:scale-105 transition-all text-sm md:text-base flex items-center gap-2"
+              className="bg-white text-grantify-green font-bold py-3 px-8 rounded-xl shadow-xl hover:scale-105 transition-all text-sm md:text-base flex items-center justify-center gap-2"
             >
               Find My Grant Match <Search size={18} />
             </button>
             <Link 
               to="/loan-providers"
-              className="bg-grantify-gold text-grantify-green font-bold py-3 px-8 rounded-xl shadow-xl hover:scale-105 transition-all text-sm md:text-base flex items-center gap-2"
+              className="bg-grantify-gold text-grantify-green font-bold py-3 px-8 rounded-xl shadow-xl hover:scale-105 transition-all text-sm md:text-base flex items-center justify-center gap-2"
             >
               <Zap size={18} /> Instant Loan Apps
             </Link>
@@ -352,15 +368,37 @@ export const Home: React.FC = () => {
               </h3>
               <div className="space-y-4">
                 {GRANT_NETWORKS.map(network => (
-                  <div key={network.id} className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 hover:border-grantify-green/30 transition-all cursor-pointer group">
-                    <div className="w-10 h-10 bg-white dark:bg-gray-900 rounded-lg flex items-center justify-center p-1.5 shadow-sm text-grantify-green border border-gray-100 dark:border-gray-800">
-                      <ShieldCheck size={20} />
+                  isExternalLink(network.link) ? (
+                    <a
+                      key={network.id}
+                      href={network.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 hover:border-grantify-green/30 transition-all cursor-pointer group"
+                      title={`Visit ${network.name}`}
+                    >
+                      <div className="w-10 h-10 bg-white dark:bg-gray-900 rounded-lg flex items-center justify-center p-1.5 shadow-sm text-grantify-green border border-gray-100 dark:border-gray-800">
+                        <ShieldCheck size={20} />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-gray-800 dark:text-gray-100 group-hover:text-grantify-green transition-colors">{network.name}</h4>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Verified Provider</p>
+                      </div>
+                    </a>
+                  ) : (
+                    <div
+                      key={network.id}
+                      className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 transition-all"
+                    >
+                      <div className="w-10 h-10 bg-white dark:bg-gray-900 rounded-lg flex items-center justify-center p-1.5 shadow-sm text-grantify-green border border-gray-100 dark:border-gray-800">
+                        <ShieldCheck size={20} />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-gray-800 dark:text-gray-100">{network.name}</h4>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Verified Provider</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-gray-800 dark:text-gray-100 group-hover:text-grantify-green transition-colors">{network.name}</h4>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Verified Provider</p>
-                    </div>
-                  </div>
+                  )
                 ))}
               </div>
            </div>

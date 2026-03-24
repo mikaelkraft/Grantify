@@ -7,7 +7,6 @@ import { AdSlot } from '../components/AdSlot';
 import { FacebookShareButton, TwitterShareButton, WhatsappShareButton, LinkedinShareButton, FacebookIcon, WhatsappIcon, LinkedinIcon } from 'react-share';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
 import { makeBlogSlug, parseBlogParam } from '../utils/blogRouting';
-import { hyphenateHtml } from '../utils/hyphenateHtml';
 
 const XShareIcon: React.FC<{ size?: number; round?: boolean; bgStyle?: React.CSSProperties; iconFillColor?: string }> = ({
   size = 32,
@@ -106,10 +105,10 @@ export const BlogPostView: React.FC = () => {
   const normalizeNbsp = (s: string) => String(s || '').replace(/&nbsp;|\u00A0/g, ' ');
 
   const postHtml = useMemo(() => {
-    const raw = String(post?.content || '');
+    const raw = String(post?.content || '').replace(/\u00ad/g, '');
     if (!raw.trim()) return '';
     const normalized = looksLikeHtml(raw) ? raw : plainTextToHtml(raw);
-    return hyphenateHtml(normalized);
+    return normalized;
   }, [post?.content]);
 
   useEffect(() => {
@@ -146,11 +145,16 @@ export const BlogPostView: React.FC = () => {
 
   useEffect(() => {
     if (!post || !slugOrId) return;
+    // Only canonicalize if the URL already refers to this post's id.
+    // Otherwise (e.g., user clicked a recommended post), we may still be showing
+    // the previous post while the new one is loading.
+    const routeId = parseBlogParam(slugOrId).id;
+    if (String(routeId) !== String(post.id)) return;
     const canonical = makeBlogSlug(post.title, post.id);
     if (slugOrId !== canonical) {
       navigate(`/blog/${canonical}`, { replace: true });
     }
-  }, [post?.id, slugOrId, navigate]);
+  }, [post?.id, post?.title, slugOrId, navigate]);
 
   useEffect(() => {
     const onScroll = () => setShowBackToTop(window.scrollY > 600);

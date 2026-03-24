@@ -302,6 +302,7 @@ export const Admin: React.FC = () => {
   const [hasUnsavedRepayment, setHasUnsavedRepayment] = useState(false);
   const [hasUnsavedProviders, setHasUnsavedProviders] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingPost, setIsSavingPost] = useState(false);
 
   useEffect(() => {
     if (user) refreshData();
@@ -731,7 +732,7 @@ export const Admin: React.FC = () => {
 
   const handleAddBlogPost = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaving(true);
+    setIsSavingPost(true);
     try {
       const derivedImage = (newPost.image || '').trim() || extractFirstImageSrcFromHtml(newPost.content) || '';
       const payload = {
@@ -742,8 +743,53 @@ export const Admin: React.FC = () => {
 
       if (isEditingPost && newPost.id) {
         await ApiService.submitBlogAction({ ...payload, action: 'update' });
+        setBlogPosts(prev => prev.map(p => {
+          if (String(p.id) !== String(newPost.id)) return p;
+          return {
+            ...p,
+            title: payload.title,
+            content: payload.content,
+            author: payload.author,
+            authorRole: payload.authorRole,
+            category: payload.category,
+            image: payload.image,
+            tags: payload.tags || [],
+            sourceName: payload.sourceName || '',
+            sourceUrl: payload.sourceUrl || '',
+            views: typeof payload.views === 'number' ? payload.views : p.views,
+            likes: typeof payload.likes === 'number' ? payload.likes : p.likes,
+            loves: typeof payload.loves === 'number' ? payload.loves : p.loves,
+            claps: typeof payload.claps === 'number' ? payload.claps : p.claps,
+            createdAt: payload.createdAt || p.createdAt
+          };
+        }));
       } else {
-        await ApiService.submitBlogAction({ ...payload, action: 'create' });
+        const created = await ApiService.submitBlogAction({ ...payload, action: 'create' });
+        if (created?.id) {
+          const nowIso = new Date().toISOString();
+          setBlogPosts(prev => ([
+            {
+              id: String(created.id),
+              title: payload.title,
+              content: payload.content,
+              author: payload.author,
+              authorRole: payload.authorRole,
+              category: payload.category,
+              image: payload.image,
+              tags: payload.tags || [],
+              sourceName: payload.sourceName || '',
+              sourceUrl: payload.sourceUrl || '',
+              likes: typeof payload.likes === 'number' ? payload.likes : 0,
+              loves: typeof payload.loves === 'number' ? payload.loves : 0,
+              claps: typeof payload.claps === 'number' ? payload.claps : 0,
+              views: typeof payload.views === 'number' ? payload.views : 0,
+              commentsCount: 0,
+              createdAt: payload.createdAt || nowIso,
+              updatedAt: payload.createdAt || nowIso
+            },
+            ...prev
+          ]));
+        }
       }
       
       setNewPost({ 
@@ -763,11 +809,13 @@ export const Admin: React.FC = () => {
         createdAt: undefined
       });
       setIsEditingPost(false);
-      await refreshData();
+      // Refresh in the background to keep server-truth fields (commentsCount, updatedAt, etc.) in sync.
+      void refreshData();
     } catch (e) {
-      alert('Failed to save post');
+      const message = e instanceof Error && e.message ? e.message : 'Failed to save post';
+      alert(message);
     } finally {
-      setIsSaving(false);
+      setIsSavingPost(false);
     }
   };
 
@@ -1780,7 +1828,7 @@ export const Admin: React.FC = () => {
               )}
               {/* Blog Management Tab */}
               {activeTab === 'blog' && (
-                <div>
+                <div className="max-w-6xl mx-auto">
                    <div className="flex justify-between items-center mb-6">
                       <h3 className="text-xl font-bold">Community Blog Posts</h3>
                       <button 
@@ -2032,8 +2080,8 @@ export const Admin: React.FC = () => {
                             />
                          </div>
  
-                         <button type="submit" disabled={isSaving} className={`${isEditingPost ? 'bg-blue-600 hover:bg-blue-800' : 'bg-grantify-green hover:bg-green-800'} text-white font-bold py-3 rounded md:col-span-2 transition shadow-lg mt-4`}>
-                           {isSaving ? "Saving..." : (isEditingPost ? "Update Publication" : "Publish Article to Community")}
+                         <button type="submit" disabled={isSavingPost} className={`${isEditingPost ? 'bg-blue-600 hover:bg-blue-800' : 'bg-grantify-green hover:bg-green-800'} text-white font-bold py-3 rounded md:col-span-2 transition shadow-lg mt-4 relative z-10`}>
+                           {isSavingPost ? "Saving..." : (isEditingPost ? "Update Publication" : "Publish Article to Community")}
                          </button>
                       </form>
                     </div>

@@ -9,6 +9,18 @@ if (!rootElement) {
 
 import { ErrorBoundary } from './components/ErrorBoundary';
 
+// Legacy routing migration: convert "#/path" URLs into real paths for BrowserRouter.
+// Example: https://grantify.help/#/privacy -> https://grantify.help/privacy
+try {
+  const hash = window.location.hash || '';
+  if (hash.startsWith('#/')) {
+    const next = hash.slice(1); // keep leading '/'
+    window.history.replaceState(null, '', next);
+  }
+} catch {
+  // ignore
+}
+
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>

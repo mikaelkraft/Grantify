@@ -79,8 +79,8 @@
       .quill-content {
         overflow-wrap: break-word;
         word-break: normal;
-        -webkit-hyphens: manual;
-        hyphens: manual;
+        -webkit-hyphens: auto;
+        hyphens: auto;
         hyphenate-character: '-';
         line-height: 1.8;
       }
@@ -120,17 +120,17 @@
         margin: 1.25em 0 0.55em;
         -webkit-hyphens: none;
         hyphens: none;
-        overflow-wrap: normal;
-        word-break: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
       }
       .quill-content h1 { font-size: 2em; }
       .quill-content h2 { font-size: 1.6em; }
       .quill-content h3 { font-size: 1.25em; }
       .quill-content h3 {
-        overflow-wrap: break-word;
-        word-break: normal;
-        -webkit-hyphens: auto;
-        hyphens: auto;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        -webkit-hyphens: none;
+        hyphens: none;
       }
       .quill-content ul,
       .quill-content ol {
