@@ -35,6 +35,8 @@ export const Home: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+
+  const [partnerRegionFilter, setPartnerRegionFilter] = useState<'all' | GrantNetwork['region']>('all');
   
   // Data State
   const [ads, setAds] = useState<AdConfig | null>(null);
@@ -83,12 +85,40 @@ export const Home: React.FC = () => {
   const handlePurposeChange = (val: string) => {
     setFormData({ ...formData, purpose: val });
     if (val.length > 10) {
-      const match = matchGrantNetwork(val);
+      const match = matchGrantNetwork(val, formData.businessType);
       setMatchedNetwork(match);
     } else {
       setMatchedNetwork(null);
     }
   };
+
+  const handleBusinessTypeChange = (val: string) => {
+    const next = { ...formData, businessType: val };
+    setFormData(next);
+
+    if ((next.purpose || '').length > 10) {
+      setMatchedNetwork(matchGrantNetwork(next.purpose, val));
+    } else {
+      setMatchedNetwork(null);
+    }
+  };
+
+  const filteredPartners = GRANT_NETWORKS.filter(n => partnerRegionFilter === 'all' || n.region === partnerRegionFilter);
+
+  const regionOrder: Record<GrantNetwork['region'], number> = {
+    nigeria: 0,
+    africa: 1,
+    international: 2
+  };
+
+  const sortedPartners = [...filteredPartners].sort((a, b) => {
+    if (partnerRegionFilter === 'all') {
+      const byRegion = regionOrder[a.region] - regionOrder[b.region];
+      if (byRegion !== 0) return byRegion;
+    }
+
+    return a.name.localeCompare(b.name);
+  });
 
   const isExternalLink = (url: string | undefined | null) => {
     const s = String(url || '').trim();
@@ -307,7 +337,7 @@ export const Home: React.FC = () => {
                 <select 
                   className="w-full p-5 bg-gray-50 dark:bg-gray-950 rounded-2xl border-none ring-1 ring-gray-100 dark:ring-gray-700 focus:ring-2 focus:ring-grantify-green outline-none transition-all shadow-inner cursor-pointer text-gray-900 dark:text-gray-100"
                   value={formData.businessType}
-                  onChange={e => setFormData({...formData, businessType: e.target.value})}
+                  onChange={e => handleBusinessTypeChange(e.target.value)}
                   required
                   aria-label="Business Industry"
                   title="Business Industry"
@@ -366,8 +396,34 @@ export const Home: React.FC = () => {
               <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
                 <Landmark className="text-grantify-green" /> Robust Partners
               </h3>
+
+              <div className="flex flex-wrap gap-2 mb-6">
+                {(
+                  [
+                    { key: 'all' as const, label: 'All' },
+                    { key: 'nigeria' as const, label: 'Nigerian' },
+                    { key: 'africa' as const, label: 'African' },
+                    { key: 'international' as const, label: 'International' }
+                  ]
+                ).map(opt => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => setPartnerRegionFilter(opt.key)}
+                    className={
+                      partnerRegionFilter === opt.key
+                        ? 'px-3 py-1.5 rounded-xl bg-grantify-green text-white text-[10px] font-black uppercase tracking-widest'
+                        : 'px-3 py-1.5 rounded-xl bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-200 text-[10px] font-black uppercase tracking-widest hover:border-grantify-green/30'
+                    }
+                    aria-pressed={partnerRegionFilter === opt.key}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
               <div className="space-y-4">
-                {GRANT_NETWORKS.map(network => (
+                {sortedPartners.map(network => (
                   isExternalLink(network.link) ? (
                     <a
                       key={network.id}

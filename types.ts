@@ -183,6 +183,21 @@ export interface GrantNetwork {
   logo: string;
   keywords: string[];
   link: string;
+  region: 'nigeria' | 'africa' | 'international';
+  categories: Array<
+    | 'sme'
+    | 'youth'
+    | 'women'
+    | 'agriculture'
+    | 'technology'
+    | 'education'
+    | 'health'
+    | 'creative'
+    | 'trade'
+    | 'manufacturing'
+    | 'climate'
+    | 'ngo'
+  >;
 }
 
 // Ad network type definitions for window object
