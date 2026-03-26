@@ -48,7 +48,7 @@ export const Terms: React.FC = () => {
             approvals) are set by the third-party provider.
           </p>
           <p className="mt-2">
-            You are responsible for reviewing the providers own terms before applying or accepting any offer.
+            You are responsible for reviewing the provider's own terms before applying or accepting any offer.
           </p>
         </section>
 
@@ -72,9 +72,9 @@ export const Terms: React.FC = () => {
         <section>
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">6. Limitation of Liability</h2>
           <p>
-            Grantify is provided on an as is and as available basis. To the maximum extent permitted by law, we are not
+            Grantify is provided on an "as is" and "as available" basis. To the maximum extent permitted by law, we are not
             liable for indirect, incidental, or consequential damages arising from your use of the service, or from third-party
-            providers decisions, products, content, availability, or outcomes.
+            providers' decisions, products, content, availability, or outcomes.
           </p>
         </section>
 

@@ -2,6 +2,59 @@
 
 import pool from '../db.js';
 
+const CACHE_TTL_MS = 15 * 60 * 1000;
+const RATE_LIMIT_WINDOW_MS = 2 * 60 * 1000;
+const RATE_LIMIT_MAX_EXTERNAL_FETCHES = 6;
+
+const cache = new Map();
+const ipBucket = new Map();
+
+const getClientIp = (req) => {
+  const xf = String(req?.headers?.['x-forwarded-for'] || '').trim();
+  if (xf) return xf.split(',')[0].trim();
+  return String(req?.socket?.remoteAddress || req?.connection?.remoteAddress || '').trim() || 'unknown';
+};
+
+const getCache = (key) => {
+  const v = cache.get(key);
+  if (!v) return null;
+  if (Date.now() - v.at > CACHE_TTL_MS) {
+    cache.delete(key);
+    return null;
+  }
+  return v.value;
+};
+
+const setCache = (key, value) => {
+  cache.set(key, { at: Date.now(), value });
+};
+
+const canFetchExternal = (req) => {
+  const ip = getClientIp(req);
+  const now = Date.now();
+  const b = ipBucket.get(ip);
+  if (!b || now - b.start > RATE_LIMIT_WINDOW_MS) {
+    ipBucket.set(ip, { start: now, count: 1 });
+    return true;
+  }
+  if (b.count >= RATE_LIMIT_MAX_EXTERNAL_FETCHES) return false;
+  b.count += 1;
+  return true;
+};
+
+const normalizeSources = (items) => {
+  if (!Array.isArray(items)) return [];
+  return items
+    .filter((i) => i && typeof i.title === 'string' && typeof i.link === 'string')
+    .map((i) => ({
+      title: String(i.title).replace(/\s+/g, ' ').trim(),
+      link: String(i.link).trim(),
+      pubDate: i.pubDate ? String(i.pubDate).trim() : ''
+    }))
+    .filter((i) => i.title && i.link)
+    .slice(0, 8);
+};
+
 const fetchNewsContext = async (query, { regionHint } = {}) => {
   const q = `${String(query || '').trim()} ${regionHint || 'Nigeria'}`.trim();
   const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-NG&gl=NG&ceid=NG:en`;
@@ -226,13 +279,21 @@ export default async function handler(req, res) {
       userPrompt = `Topic: "${prompt}". Write a deep-dive strategy article for Nigerian entrepreneurs.`;
 
       if (useSearch) {
-        try {
-          const { items, contextText } = await fetchNewsContext(prompt);
-          sources = items;
-          newsContext = contextText;
-        } catch {
-          newsContext = '';
-          sources = [];
+        const cacheKey = `news:${String(prompt || '').trim().toLowerCase()}`;
+        const cached = getCache(cacheKey);
+        if (cached) {
+          sources = cached.items;
+          newsContext = cached.contextText;
+        } else if (canFetchExternal(req)) {
+          try {
+            const { items, contextText } = await fetchNewsContext(prompt);
+            sources = items;
+            newsContext = contextText;
+            setCache(cacheKey, { items, contextText });
+          } catch {
+            newsContext = '';
+            sources = [];
+          }
         }
       }
     } else {
@@ -261,25 +322,56 @@ export default async function handler(req, res) {
 
       ${localContext ? `ON-SITE INDEX (use this to reference what exists on Grantify):\n${localContext}` : ''}
 
-      If you are provided with FRESH CONTEXT (headlines/links or web results), treat it as current information. Do not claim you cannot access current data or that your training is "cut off".`;
+      If you are provided with FRESH CONTEXT (headlines/links or web results), treat it as current information. Do not claim you cannot access current data or that your training is "cut off".
+
+      FACTS & FRESHNESS:
+      - Never invent specific figures, dates, approval claims, or provider policies.
+      - If you do not have fresh context, say you're answering from Grantify content and general guidance.`;
 
       if (useSearch) {
-        try {
-          const { items, contextText } = await fetchNewsContext(`${prompt} grants loans funding`, { regionHint: 'Nigeria' });
-          sources = items;
-          newsContext = contextText;
-          const ddg = await fetchDuckDuckGoContext(prompt);
-          webContext = ddg.contextText;
-          if (newsContext) {
-            systemInstruction += `\n\nYou may use the provided headlines/links as fresh context. If you reference a headline, include its link. Prefer descriptive named anchors when writing HTML.`;
+        const promptKey = String(prompt || '').trim().toLowerCase();
+        const newsKey = `chatNews:${promptKey}`;
+        const ddgKey = `chatDdg:${promptKey}`;
+
+        const cachedNews = getCache(newsKey);
+        const cachedDdg = getCache(ddgKey);
+
+        if (cachedNews) {
+          sources = cachedNews.items;
+          newsContext = cachedNews.contextText;
+        }
+
+        if (cachedDdg) {
+          webContext = cachedDdg.contextText;
+        }
+
+        if ((!cachedNews || !cachedDdg) && canFetchExternal(req)) {
+          try {
+            if (!cachedNews) {
+              const { items, contextText } = await fetchNewsContext(`${prompt} grants loans funding`, { regionHint: 'Nigeria' });
+              sources = items;
+              newsContext = contextText;
+              setCache(newsKey, { items, contextText });
+            }
+            if (!cachedDdg) {
+              const ddg = await fetchDuckDuckGoContext(prompt);
+              webContext = ddg.contextText;
+              setCache(ddgKey, { contextText: ddg.contextText, items: ddg.items });
+            }
+
+            if (newsContext) {
+              systemInstruction += `\n\nYou may use the provided headlines/links as fresh context. If you reference a headline, include its link. Prefer descriptive named anchors when writing HTML.`;
+            }
+          } catch {
+            newsContext = '';
+            webContext = '';
+            sources = [];
           }
-        } catch {
-          newsContext = '';
-          webContext = '';
-          sources = [];
         }
       }
     }
+
+    sources = normalizeSources(sources);
 
     const groqUrl = 'https://api.groq.com/openai/v1/chat/completions';
 

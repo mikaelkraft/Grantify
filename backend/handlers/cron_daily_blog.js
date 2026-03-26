@@ -87,6 +87,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  res.setHeader('Cache-Control', 'no-store');
+
   if (String(process.env.AUTOBLOG_ENABLED || '').toLowerCase() !== 'true') {
     return res.status(200).json({ success: true, skipped: true, reason: 'AUTOBLOG_ENABLED is not true' });
   }

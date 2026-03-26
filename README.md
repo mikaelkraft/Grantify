@@ -37,10 +37,16 @@ Grantify includes a comprehensive ad management system supporting:
 
 Grantify can auto-publish a daily blog post via the cron defined in [vercel.json](vercel.json) (path: `/api/cron/daily-blog`).
 
+Recommendation:
+- Keep autoblog disabled by default and enable only when you want scheduled publishing.
+- This endpoint calls external services (Groq, Google News RSS, optionally Unsplash) and can incur cost and rate limits.
+
 Environment variables:
 - `GROQ_API_KEY` (required): used to generate the daily article.
-- `AUTOBLOG_ENABLED` (required): set to `true` to allow cron publishing.
+- `AUTOBLOG_ENABLED` (required): set to `true` to allow cron publishing. Any other value keeps the cron endpoint in a safe no-op mode.
 - `UNSPLASH_ACCESS_KEY` (optional): higher-quality featured images via the Unsplash API. If omitted, the cron falls back to `source.unsplash.com` (no key required).
-- `BLOG_CRON_SECRET` (optional): enables manual triggering without the Vercel cron header.
+- `BLOG_CRON_SECRET` (optional): enables manual triggering (for testing) without the Vercel cron header.
+	- Call with `Authorization: Bearer <secret>` or `?key=<secret>`.
+	- If omitted, only Vercel Cron requests (with the `x-vercel-cron` header) are allowed.
 
 ## That is all for now...
