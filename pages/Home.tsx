@@ -486,8 +486,8 @@ export const Home: React.FC = () => {
             </Link>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-8">
-            {blogPosts.slice(0, 3).map(post => (
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 gap-4">
+            {blogPosts.slice(0, 4).map(post => (
               <Link key={post.id} to={makeBlogPath(post)} className="group bg-white dark:bg-gray-900 rounded-3xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-xl transition-all duration-300">
                 <div className="h-48 bg-gray-200 dark:bg-gray-950 relative overflow-hidden">
                   <img
@@ -515,6 +515,12 @@ export const Home: React.FC = () => {
               </Link>
             ))}
           </div>
+
+          {blogPosts.length > 4 && (
+            <div className="mt-4 text-sm text-gray-500 dark:text-gray-400 font-bold">
+              Want more? Browse more articles on the <Link to="/blog" className="text-grantify-green hover:underline">Blog</Link>.
+            </div>
+          )}
         </div>
       </section>
 

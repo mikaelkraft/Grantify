@@ -491,10 +491,16 @@ export const BlogPostView: React.FC = () => {
               </button>
             </div>
 
-            <div className="flex items-center gap-2 text-gray-400 dark:text-gray-400 font-bold">
+            <button
+              type="button"
+              onClick={() => document.getElementById('comments')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              className="flex items-center gap-2 text-gray-400 dark:text-gray-400 font-bold hover:text-grantify-green transition-colors"
+              aria-label="Jump to comments"
+              title="Jump to comments"
+            >
               <MessageSquare size={20} />
               {post.comments.length} Comments
-            </div>
+            </button>
           </div>
         </div>
       </article>
@@ -503,8 +509,8 @@ export const BlogPostView: React.FC = () => {
       {recommendedPosts.length > 0 && (
         <section className="mb-16">
           <h3 className="text-2xl font-black font-heading text-gray-900 dark:text-gray-100 mb-6">You Might Also Like</h3>
-          <div className="grid md:grid-cols-3 gap-6">
-            {recommendedPosts.map(rec => (
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 gap-4">
+            {recommendedPosts.slice(0, 4).map(rec => (
               <Link key={rec.id} to={`/blog/${makeBlogSlug(rec.title, rec.id)}`} className="group bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm hover:shadow-md transition-all">
                 <div className="h-32 bg-gray-100 dark:bg-gray-950 relative">
                   <img
@@ -525,12 +531,17 @@ export const BlogPostView: React.FC = () => {
               </Link>
             ))}
           </div>
+          {recommendedPosts.length > 4 && (
+            <div className="mt-4 text-sm text-gray-500 dark:text-gray-400 font-bold">
+              Want more? Browse more articles on the <Link to="/blog" className="text-grantify-green hover:underline">Blog</Link>.
+            </div>
+          )}
         </section>
       )}
 
       {/* Engagement Section */}
       <section className="space-y-8">
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div id="comments" className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 scroll-mt-24">
           <h3 className="text-2xl font-black font-heading text-gray-900 dark:text-gray-100">Community Discussion</h3>
 
           <div className="flex items-center gap-2">
