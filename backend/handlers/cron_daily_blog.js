@@ -152,7 +152,8 @@ CRITICAL CONTENT RULES:
 3. FOCUS deeply on Nigeria: use Naira (₦), mention local states, or CBN/BOI policies.
 4. SOUND like a person, not a textbook. Be strategic and actionable.
 5. LINKS: Use named anchors (descriptive link text). Do NOT show raw URLs in the body.
-6. FORMAT: Use <h2>, <h3>, <p>, <strong>, <ul>, <li>, and <a> tags only.`;
+6. AVOID too much use of Additionally
+7. FORMAT: Use <h2>, <h3>, <p>, <strong>, <ul>, <li>, and <a> tags only.`;
 
     const userPrompt = `Write today's ("${isoDate}") Nigeria Funding & Grants Briefing for entrepreneurs.\n\nInclude:\n- 3-5 practical moves founders can take today\n- A short section on avoiding scams\n- Clear next steps\n\nTopic direction: fresh grant/loan opportunities and policy-related updates (if relevant).`;
 
