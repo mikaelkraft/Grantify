@@ -220,7 +220,14 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
     // Check if scripts are already injected and if content has changed
     const existingScripts = document.head.querySelectorAll('[data-grantify-injected]');
-    const currentHash = headContent.length.toString(); // Simple check for change
+    // Stable lightweight hash (avoid heavy crypto; good enough for change detection)
+    const currentHash = (() => {
+      let hash = 0;
+      for (let i = 0; i < headContent.length; i++) {
+        hash = (hash * 31 + headContent.charCodeAt(i)) >>> 0;
+      }
+      return String(hash);
+    })();
     
     const existingHashMarker = document.head.querySelector('[data-grantify-ads-hash]');
     if (existingHashMarker && existingHashMarker.getAttribute('content') === currentHash) {

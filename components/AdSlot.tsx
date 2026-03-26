@@ -8,7 +8,6 @@ interface AdSlotProps {
 
 export const AdSlot: React.FC<AdSlotProps> = ({ htmlContent, className = "", label = "" }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const scriptsLoadedRef = useRef<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
@@ -93,13 +92,27 @@ export const AdSlot: React.FC<AdSlotProps> = ({ htmlContent, className = "", lab
     
     // Google AdSense Initialization
     // For AdSense, we need to call push() for each ad unit injected via SPA
-    if (containerRef.current?.querySelector('.adsbygoogle')) {
+    const adSenseUnits = containerRef.current?.querySelectorAll('.adsbygoogle') || [];
+    if (adSenseUnits.length) {
       try {
-        console.log('[AdSlot] Detected Google AdSense unit, initializing...');
+        // Ensure the global queue exists even if the script is still loading.
         (window as any).adsbygoogle = (window as any).adsbygoogle || [];
-        (window as any).adsbygoogle.push({});
+
+        // In SPAs, multiple units can be injected during navigation. Initialize each unit.
+        // Avoid throwing if AdSense isn't ready yet.
+        adSenseUnits.forEach(() => {
+          try {
+            (window as any).adsbygoogle.push({});
+          } catch (e) {
+            // Common benign cases:
+            // - script not yet loaded
+            // - "All 'ins' elements in the DOM with class=adsbygoogle already have ads in them"
+            // - account not active yet
+            console.warn('[AdSlot] AdSense push error (safe to ignore):', e);
+          }
+        });
       } catch (e) {
-        console.warn('[AdSlot] AdSense push error (usually safe to ignore if script not yet loaded):', e);
+        console.warn('[AdSlot] AdSense init error (safe to ignore):', e);
       }
     }
 
@@ -108,6 +121,19 @@ export const AdSlot: React.FC<AdSlotProps> = ({ htmlContent, className = "", lab
 
   const loadSingleScript = (originalScript: HTMLScriptElement): Promise<void> => {
     return new Promise((resolve, reject) => {
+      // If someone pasted the AdSense loader script into a slot, ignore it here.
+      // It should be loaded once globally (index.html or head injection).
+      const srcLower = String(originalScript.src || '').toLowerCase();
+      if (srcLower.includes('pagead2.googlesyndication.com/pagead/js/adsbygoogle.js')) {
+        try {
+          originalScript.parentNode?.removeChild(originalScript);
+        } catch {
+          // no-op
+        }
+        resolve();
+        return;
+      }
+
       // Determine if we should handle script manually or let contextual fragment do it
       // Note: for some ad networks like Monetag, we want to ensure scripts are completely fresh
       const newScript = document.createElement('script');
@@ -120,13 +146,11 @@ export const AdSlot: React.FC<AdSlotProps> = ({ htmlContent, className = "", lab
       // Handle external scripts with src
       if (originalScript.src) {
         const scriptSrc = originalScript.src;
-        
-        // Add cache-busting for external scripts to ensure fresh load
-        newScript.setAttribute('cache-bust', Date.now().toString());
-        console.log(`[AdSlot] Force-reloaded external script: ${scriptSrc.substring(0, 50)}...`);
+
+        // Do not add ad-hoc cache-busting attributes; many ad networks are sensitive to script tags.
+        // If a network needs cache busting, it should be done via the URL query param by that network.
 
         newScript.onload = () => {
-          scriptsLoadedRef.current.add(scriptSrc);
           triggerAdRefresh(scriptSrc);
           resolve();
         };
@@ -136,11 +160,7 @@ export const AdSlot: React.FC<AdSlotProps> = ({ htmlContent, className = "", lab
           reject(new Error(`Script load failed: ${scriptSrc}`));
         };
 
-        // For async scripts, don't wait but still execute
-        if (newScript.hasAttribute('async')) {
-           // We resolve immediately for async so next scripts don't wait
-           resolve();
-        }
+        // For async scripts, let onload/onerror resolve; we already run them in parallel upstream.
       } else {
         // Inline script - copy content
         if (originalScript.innerHTML) {

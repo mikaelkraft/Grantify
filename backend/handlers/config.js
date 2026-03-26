@@ -7,6 +7,10 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
+  // Config values (including ad HTML) are expected to change from the Admin UI.
+  // Avoid intermediary caching that can cause stale ad wiring after updates.
+  res.setHeader('Cache-Control', 'no-store');
+
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const { type } = req.query;
@@ -44,6 +48,23 @@ export default async function handler(req, res) {
     }
 
     if (type === 'ads') {
+      // Ensure base table exists for fresh databases/environments.
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS ads (
+          id INTEGER PRIMARY KEY,
+          head TEXT,
+          header TEXT,
+          body TEXT,
+          sidebar TEXT,
+          footer TEXT,
+          promo1_link TEXT,
+          promo1_text TEXT,
+          promo2_link TEXT,
+          promo2_text TEXT
+        )
+      `);
+      await pool.query('INSERT INTO ads (id) VALUES (1) ON CONFLICT (id) DO NOTHING');
+
       if (req.method === 'GET') {
         const result = await pool.query('SELECT * FROM ads WHERE id=1');
         return res.status(200).json(result.rows.length > 0 ? toCamelCase(result.rows[0]) : {});
@@ -52,6 +73,7 @@ export default async function handler(req, res) {
       if (req.method === 'POST') {
         const { head, header, body, sidebar, footer, promo1Link, promo1Text, promo2Link, promo2Text } = req.body;
 
+        // Backward-compatible: older DBs may not have promo columns.
         await pool.query(`
           ALTER TABLE ads 
           ADD COLUMN IF NOT EXISTS promo1_link TEXT,
