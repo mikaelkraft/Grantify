@@ -48,6 +48,9 @@ export const Admin: React.FC = () => {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [ads, setAds] = useState<AdConfig | null>(null);
   const [repayment, setRepayment] = useState<RepaymentContent | null>(null);
+  const [autoblogEnabled, setAutoblogEnabled] = useState<boolean>(false);
+  const [autoblogUpdatedAt, setAutoblogUpdatedAt] = useState<string | null>(null);
+  const [isSavingAutoblog, setIsSavingAutoblog] = useState(false);
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loanProviders, setLoanProviders] = useState<LoanProvider[]>([]);
   const [loanProviderSubmissions, setLoanProviderSubmissions] = useState<LoanProviderSubmission[]>([]);
@@ -314,7 +317,7 @@ export const Admin: React.FC = () => {
   const refreshData = async () => {
     setIsLoading(true);
     try {
-      const [apps, tests, adConfig, repay, adminList, providers, submissions, reviews, posts, contact, flagsData] = await Promise.all([
+      const [apps, tests, adConfig, repay, adminList, providers, submissions, reviews, posts, contact, flagsData, autoblogCfg] = await Promise.all([
         ApiService.getApplications(),
         ApiService.getTestimonials(),
         ApiService.getAds(),
@@ -325,7 +328,8 @@ export const Admin: React.FC = () => {
         ApiService.getProviderReviews(undefined, { includeHidden: includeHiddenReviews }),
         ApiService.getBlogPosts(),
         ApiService.getContactMessages(120),
-        ApiService.getFlags('open')
+        ApiService.getFlags('open'),
+        ApiService.getAutoblogConfig()
       ]);
       setApplications(apps);
       setTestimonials(tests);
@@ -339,6 +343,8 @@ export const Admin: React.FC = () => {
       setContactMessages(contact);
       setFlagsInbox(flagsData?.flags || []);
       setFlagEntities(flagsData?.entities || {});
+      setAutoblogEnabled(Boolean(autoblogCfg?.enabled));
+      setAutoblogUpdatedAt(autoblogCfg?.updatedAt ? String(autoblogCfg.updatedAt) : null);
     } catch (e) {
       console.error("Failed to load admin data", e);
       const message =
@@ -358,6 +364,25 @@ export const Admin: React.FC = () => {
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleToggleAutoblog = async () => {
+    const next = !autoblogEnabled;
+    const ok = window.confirm(next
+      ? 'Enable autoblogging? This allows the daily cron to publish when AUTOBLOG_ENABLED is true.'
+      : 'Disable autoblogging? The daily cron will skip publishing.');
+    if (!ok) return;
+
+    setIsSavingAutoblog(true);
+    try {
+      const res = await ApiService.setAutoblogEnabled(next);
+      setAutoblogEnabled(Boolean(res?.enabled));
+      setAutoblogUpdatedAt(new Date().toISOString());
+    } catch (e: any) {
+      alert(e?.message || 'Failed to update autoblog setting');
+    } finally {
+      setIsSavingAutoblog(false);
     }
   };
 
@@ -1447,6 +1472,36 @@ export const Admin: React.FC = () => {
                         placeholder="Fast-Track Loan Note"
                         aria-label="Fast-Track Loan Note"
                       />
+                    </div>
+                  </div>
+
+                  <div className="mt-10 pt-6 border-t border-gray-200 dark:border-gray-800">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h4 className="text-lg font-black">Autoblog</h4>
+                        <p className="text-xs text-gray-500 dark:text-gray-300 mt-1">
+                          This toggle controls whether the daily cron is allowed to publish.
+                          The environment gate `AUTOBLOG_ENABLED=true` must also be set.
+                        </p>
+                        {autoblogUpdatedAt && (
+                          <p className="text-[10px] text-gray-400 mt-1">Last changed: {new Date(autoblogUpdatedAt).toLocaleString()}</p>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleToggleAutoblog}
+                        disabled={isSavingAutoblog}
+                        className={`flex items-center gap-2 px-3 py-2 rounded text-xs font-black uppercase border transition ${autoblogEnabled
+                          ? 'bg-grantify-green text-white border-green-700 hover:bg-green-800'
+                          : 'bg-gray-100 dark:bg-gray-950 text-gray-800 dark:text-gray-100 border-gray-300 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-900'
+                        } ${isSavingAutoblog ? 'opacity-60 cursor-not-allowed' : ''}`}
+                        aria-label={autoblogEnabled ? 'Disable autoblog' : 'Enable autoblog'}
+                        title={autoblogEnabled ? 'Disable autoblog' : 'Enable autoblog'}
+                      >
+                        {isSavingAutoblog ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+                        {autoblogEnabled ? 'Enabled' : 'Disabled'}
+                      </button>
                     </div>
                   </div>
                 </div>

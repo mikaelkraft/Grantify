@@ -190,6 +190,23 @@ export const ApiService = {
     }
   },
 
+  // -- Autoblog Config --
+  getAutoblogConfig: async (): Promise<{ enabled: boolean; updatedAt?: string | null }> => {
+    const res = await fetch(`${API_URL}/api/config?type=autoblog`);
+    if (!res.ok) throw new Error('Failed to fetch autoblog config');
+    return await res.json();
+  },
+
+  setAutoblogEnabled: async (enabled: boolean): Promise<{ success: boolean; enabled: boolean }> => {
+    const res = await fetch(`${API_URL}/api/config?type=autoblog`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled })
+    });
+    if (!res.ok) throw new Error('Failed to update autoblog config');
+    return await res.json();
+  },
+
   // -- Applications --
   getRecentApplicantsTicker: async (): Promise<Array<{ id: string; fullName: string }>> => {
     const res = await fetch(`${API_URL}/api/leads?type=applications&public=1`);

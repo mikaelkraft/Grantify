@@ -12,6 +12,37 @@ export default async function handler(req, res) {
   const { type } = req.query;
 
   try {
+    if (type === 'autoblog') {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS autoblog_config (
+          id INTEGER PRIMARY KEY DEFAULT 1,
+          enabled BOOLEAN NOT NULL DEFAULT FALSE,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT single_row_autoblog_config CHECK (id = 1)
+        )
+      `);
+      await pool.query('INSERT INTO autoblog_config (id, enabled) VALUES (1, FALSE) ON CONFLICT (id) DO NOTHING');
+
+      if (req.method === 'GET') {
+        const result = await pool.query('SELECT enabled, updated_at FROM autoblog_config WHERE id=1');
+        const row = result.rows?.[0];
+        return res.status(200).json({ enabled: Boolean(row?.enabled), updatedAt: row?.updated_at || null });
+      }
+
+      if (req.method === 'POST') {
+        const enabled = Boolean(req.body?.enabled);
+        await pool.query(
+          `UPDATE autoblog_config
+           SET enabled = $1, updated_at = CURRENT_TIMESTAMP
+           WHERE id = 1`,
+          [enabled]
+        );
+        return res.status(200).json({ success: true, enabled });
+      }
+
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
     if (type === 'ads') {
       if (req.method === 'GET') {
         const result = await pool.query('SELECT * FROM ads WHERE id=1');

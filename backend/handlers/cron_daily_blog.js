@@ -112,6 +112,22 @@ export default async function handler(req, res) {
 
   const client = await pool.connect();
   try {
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS autoblog_config (
+        id INTEGER PRIMARY KEY DEFAULT 1,
+        enabled BOOLEAN NOT NULL DEFAULT FALSE,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT single_row_autoblog_config CHECK (id = 1)
+      )
+    `);
+    await client.query('INSERT INTO autoblog_config (id, enabled) VALUES (1, FALSE) ON CONFLICT (id) DO NOTHING');
+
+    const cfg = await client.query('SELECT enabled FROM autoblog_config WHERE id=1');
+    const isEnabledInDb = Boolean(cfg.rows?.[0]?.enabled);
+    if (!isEnabledInDb) {
+      return res.status(200).json({ success: true, skipped: true, reason: 'autoblog is disabled' });
+    }
+
     const today = new Date();
     const isoDate = today.toISOString().slice(0, 10);
 
