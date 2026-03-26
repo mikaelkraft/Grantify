@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ExternalLink, AlertTriangle, ShieldCheck, Info, Loader2, Star, CheckCircle, Zap, Award, Smartphone, MessageCircle, X, Send, CornerDownRight, ThumbsUp, Flag } from 'lucide-react';
+import { ExternalLink, AlertTriangle, ShieldCheck, Info, Loader2, Star, CheckCircle, Zap, Award, Smartphone, MessageCircle, X, Send, CornerDownRight, ThumbsUp, ThumbsDown, Flag } from 'lucide-react';
 import { ApiService } from '../services/storage';
 import { AdSlot } from '../components/AdSlot';
 import { AdConfig, LoanProvider, ProviderReview } from '../types';
@@ -34,6 +34,7 @@ export const LoanProviders: React.FC = () => {
   const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
   const [newReview, setNewReview] = useState({ name: '', rating: 5, content: '' });
   const [myLikedReviews, setMyLikedReviews] = useState<Record<string, boolean>>({});
+  const [myDislikedReviews, setMyDislikedReviews] = useState<Record<string, boolean>>({});
   const replyTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const myUserIdRef = useRef<string>('');
@@ -143,6 +144,16 @@ export const LoanProviders: React.FC = () => {
     }
   };
 
+  const handleNotHelpfulReview = async (reviewId: string) => {
+    try {
+      const res = await ApiService.toggleProviderReviewDislike(reviewId);
+      setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, dislikes: Number(res.dislikes ?? r.dislikes ?? 0) } : r));
+      setMyDislikedReviews(prev => ({ ...prev, [reviewId]: Boolean(res.disliked) }));
+    } catch (e: any) {
+      alert(e?.message || 'Failed to update not-helpful vote');
+    }
+  };
+
   const handleFlagReview = async (reviewId: string) => {
     try {
       await ApiService.flagContent({ entityType: 'provider_review', entityId: reviewId, reason: 'spam' });
@@ -208,6 +219,17 @@ export const LoanProviders: React.FC = () => {
             >
               <ThumbsUp size={12} className={myLikedReviews[review.id] ? 'fill-green-200' : ''} />
               <span>{review.likes || 0}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleNotHelpfulReview(review.id)}
+              className={`flex items-center gap-1 text-[10px] font-black uppercase transition-colors ${myDislikedReviews[review.id] ? 'text-red-600' : 'text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400'}`}
+              title={myDislikedReviews[review.id] ? 'Not helpful (click to undo)' : 'Not helpful'}
+              aria-label={myDislikedReviews[review.id] ? 'Not helpful (undo)' : 'Not helpful'}
+            >
+              <ThumbsDown size={12} className={myDislikedReviews[review.id] ? 'fill-red-200' : ''} />
+              <span>{Number(review.dislikes || 0)}</span>
             </button>
 
             <button

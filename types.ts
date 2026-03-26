@@ -116,6 +116,7 @@ export interface ProviderReview {
   rating: number;
   content: string;
   likes: number;
+  dislikes?: number;
   userId?: string;
   isHidden?: boolean;
   parentId?: string;

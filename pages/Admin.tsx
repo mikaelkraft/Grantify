@@ -55,6 +55,9 @@ export const Admin: React.FC = () => {
   const [includeHiddenReviews, setIncludeHiddenReviews] = useState(false);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
+
+  // Smart Writer helpers
+  const [smartWriteInstructions, setSmartWriteInstructions] = useState('');
   const [flagsInbox, setFlagsInbox] = useState<ContentFlag[]>([]);
   const [flagEntities, setFlagEntities] = useState<Record<string, any>>({});
 
@@ -852,11 +855,52 @@ export const Admin: React.FC = () => {
       const res = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: newPost.title, type: 'blog', useSearch: true })
+        body: JSON.stringify({
+          prompt: [
+            `Title: ${String(newPost.title || '').trim()}`,
+            `Category: ${String(newPost.category || '').trim()}`,
+            smartWriteInstructions.trim() ? `Writing instructions: ${smartWriteInstructions.trim()}` : '',
+            'Include a short <h3>Sources</h3> list at the end using named anchors when applicable.'
+          ].filter(Boolean).join('\n'),
+          type: 'blog',
+          useSearch: true
+        })
       });
       const data = await res.json();
       if (data.content) {
-        setNewPost(prev => ({ ...prev, content: data.content }));
+        setNewPost(prev => {
+          const next = { ...prev, content: data.content } as any;
+
+          // Auto-fill source fields from the freshest source item.
+          const first = Array.isArray(data?.sources) ? data.sources[0] : null;
+          const srcTitle = first && typeof first.title === 'string' ? first.title.trim() : '';
+          const srcLink = first && typeof first.link === 'string' ? first.link.trim() : '';
+          if (srcTitle && !String(next.sourceName || '').trim()) next.sourceName = srcTitle.slice(0, 120);
+          if (srcLink && !String(next.sourceUrl || '').trim()) next.sourceUrl = srcLink;
+
+          // Lightweight auto-tags if empty.
+          const existing = Array.isArray(next.tags) ? next.tags : [];
+          const normalized = new Set(existing.map((t: any) => String(t || '').trim()).filter(Boolean));
+          if (normalized.size === 0) {
+            const base = `${next.category || ''}, ${next.title || ''}`
+              .split(/[,\n]/g)
+              .map((t: string) => t.trim())
+              .filter(Boolean);
+            base.slice(0, 6).forEach((t) => normalized.add(t));
+
+            // Add a couple common topical tags if they appear in the title.
+            const tl = String(next.title || '').toLowerCase();
+            if (/(grant|fund|funding)/.test(tl)) normalized.add('Funding');
+            if (/(loan|credit)/.test(tl)) normalized.add('Loans');
+            if (/(cbn|boi|government)/.test(tl)) normalized.add('Policy');
+            if (/(strategy|growth|scale)/.test(tl)) normalized.add('Strategy');
+            if (/(agric|farm)/.test(tl)) normalized.add('Agribusiness');
+            if (/(tech|digital|startup)/.test(tl)) normalized.add('Technology');
+          }
+          next.tags = Array.from(normalized).slice(0, 10);
+
+          return next;
+        });
       }
     } catch (e) {
       console.error("AI Generation failed", e);
@@ -1881,6 +1925,15 @@ export const Admin: React.FC = () => {
                              </button>
                            </div>
                          </div>
+
+                         <div className="md:col-span-2">
+                           <textarea
+                             className={inputClassSmall + " w-full min-h-[64px]"}
+                             placeholder="Writing instructions (optional): tone, personality, story angle, who it's for…"
+                             value={smartWriteInstructions}
+                             onChange={(e) => setSmartWriteInstructions(e.target.value)}
+                           />
+                         </div>
                          
                          <input
                            className={inputClassSmall}
@@ -1918,8 +1971,15 @@ export const Admin: React.FC = () => {
                          <input 
                            className={inputClassSmall} 
                            placeholder="Tags (comma separated)" 
-                           value={newPost.tags.join(', ')} 
-                           onChange={e => setNewPost({...newPost, tags: e.target.value.split(',').map(t => t.trim())})} 
+                           value={(newPost.tags || []).join(', ')} 
+                           onChange={e => {
+                             const next = e.target.value
+                               .split(',')
+                               .map(t => t.trim())
+                               .filter(Boolean);
+                             const deduped = Array.from(new Set(next)).slice(0, 10);
+                             setNewPost({ ...newPost, tags: deduped });
+                           }}
                          />
                          
                          <input className={inputClassSmall} placeholder="Source Name (Optional)" value={newPost.sourceName} onChange={e => setNewPost({...newPost, sourceName: e.target.value})} />

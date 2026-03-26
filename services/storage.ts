@@ -476,6 +476,19 @@ export const ApiService = {
     return await res.json();
   },
 
+  toggleProviderReviewDislike: async (reviewId: string): Promise<{ dislikes: number; disliked: boolean }> => {
+    const res = await fetch(`${API_URL}/api/provider_reviews`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ action: 'dislike', reviewId, userId: getOrCreateAnonUserId() })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.error || 'Failed to update not-helpful vote');
+    }
+    return await res.json();
+  },
+
   // -- Moderation Flags --
   flagContent: async (data: { entityType: 'blog_comment' | 'provider_review'; entityId: string; reason?: string; details?: string }): Promise<void> => {
     const res = await fetch(`${API_URL}/api/flags`, {
