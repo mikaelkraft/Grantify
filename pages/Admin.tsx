@@ -15,6 +15,7 @@ import {
   Type,
   Smile,
   Flag,
+  X,
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { ApiService } from '../services/storage';
@@ -309,6 +310,7 @@ export const Admin: React.FC = () => {
   const [hasUnsavedProviders, setHasUnsavedProviders] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingPost, setIsSavingPost] = useState(false);
+  const [postSaveNotice, setPostSaveNotice] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
     if (user) refreshData();
@@ -761,6 +763,7 @@ export const Admin: React.FC = () => {
   const handleAddBlogPost = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSavingPost(true);
+    setPostSaveNotice(null);
     try {
       const derivedImage = (newPost.image || '').trim() || extractFirstImageSrcFromHtml(newPost.content) || '';
       const payload = {
@@ -792,7 +795,7 @@ export const Admin: React.FC = () => {
           };
         }));
         if (updated?.success === true || updated?.success === undefined) {
-          alert('Publication updated.');
+          setPostSaveNotice({ kind: 'success', message: 'Publication updated.' });
         }
       } else {
         const created = await ApiService.submitBlogAction({ ...payload, action: 'create' });
@@ -820,7 +823,7 @@ export const Admin: React.FC = () => {
             },
             ...prev
           ]));
-          alert('Publication published to Community Blog.');
+          setPostSaveNotice({ kind: 'success', message: 'Publication published to Community Blog.' });
         } else {
           throw new Error('Publish succeeded but no id was returned.');
         }
@@ -847,7 +850,7 @@ export const Admin: React.FC = () => {
       void refreshData();
     } catch (e) {
       const message = e instanceof Error && e.message ? e.message : 'Failed to save post';
-      alert(message);
+      setPostSaveNotice({ kind: 'error', message });
     } finally {
       setIsSavingPost(false);
     }
@@ -1970,6 +1973,29 @@ export const Admin: React.FC = () => {
                           </button>
                         )}
                       </div>
+
+                      {postSaveNotice && (
+                        <div
+                          className={`mb-4 p-3 rounded border text-sm ${postSaveNotice.kind === 'success'
+                            ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-900 text-green-800 dark:text-green-200'
+                            : 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900 text-red-800 dark:text-red-200'
+                          }`}
+                          role={postSaveNotice.kind === 'error' ? 'alert' : 'status'}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="leading-relaxed">{postSaveNotice.message}</div>
+                            <button
+                              type="button"
+                              onClick={() => setPostSaveNotice(null)}
+                              className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/5"
+                              aria-label="Dismiss message"
+                              title="Dismiss"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      )}
                       
                       <form onSubmit={handleAddBlogPost} className="grid md:grid-cols-2 gap-4">
                          <div className="md:col-span-2 flex flex-col md:flex-row gap-3">
