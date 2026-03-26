@@ -1,10 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AdSlot } from './AdSlot';
 import { ApiService } from '../services/storage';
-import { AdConfig } from '../types';
-import { Menu, X, AlertTriangle, ShieldAlert, RefreshCw, HelpCircle, Moon, Sun } from 'lucide-react';
+import { AdConfig, BlogPost, LoanProvider } from '../types';
+import { GRANT_NETWORKS } from '../utils/grantMatcher';
+import { makeBlogPath } from '../utils/blogRouting';
+import { Menu, X, AlertTriangle, ShieldAlert, RefreshCw, HelpCircle, Moon, Sun, Search } from 'lucide-react';
 import { AiChatbot } from './AiChatbot';
+
+type HeaderSearchResult =
+  | { type: 'blog'; key: string; title: string; subtitle?: string; to: string }
+  | { type: 'loan'; key: string; title: string; subtitle?: string; to: string }
+  | { type: 'grant'; key: string; title: string; subtitle?: string; href: string };
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [ads, setAds] = useState<AdConfig | null>(null);
@@ -14,6 +21,13 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const [showGuide, setShowGuide] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const location = useLocation();
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isSearchLoading, setIsSearchLoading] = useState(false);
+  const [blogIndex, setBlogIndex] = useState<BlogPost[]>([]);
+  const [loanIndex, setLoanIndex] = useState<LoanProvider[]>([]);
+  const searchBoxRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     try {
@@ -74,6 +88,120 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     // Delay ad blocker detection slightly
     setTimeout(detectAdBlock, 500);
   }, []);
+
+  useEffect(() => {
+    // Close menus/dropdowns on navigation.
+    setIsMobileMenuOpen(false);
+    setIsSearchOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const onPointerDown = (e: PointerEvent) => {
+      if (!isSearchOpen) return;
+      const target = e.target as Node | null;
+      if (!target) return;
+      if (searchBoxRef.current && searchBoxRef.current.contains(target)) return;
+      setIsSearchOpen(false);
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsSearchOpen(false);
+    };
+
+    window.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isSearchOpen]);
+
+  const ensureSearchIndex = async () => {
+    if (blogIndex.length && loanIndex.length) return;
+    if (isSearchLoading) return;
+    setIsSearchLoading(true);
+    try {
+      const [posts, providers] = await Promise.all([
+        ApiService.getBlogPosts().catch(() => [] as BlogPost[]),
+        ApiService.getLoanProviders().catch(() => [] as LoanProvider[])
+      ]);
+      setBlogIndex(Array.isArray(posts) ? posts : []);
+      setLoanIndex(Array.isArray(providers) ? providers : []);
+    } finally {
+      setIsSearchLoading(false);
+    }
+  };
+
+  const normalize = (s: string) =>
+    String(s || '')
+      .toLowerCase()
+      .replace(/&nbsp;|\u00A0/g, ' ')
+      .replace(/[^a-z0-9\s]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  const searchResults: HeaderSearchResult[] = useMemo(() => {
+    const q = normalize(searchQuery);
+    if (!q) return [];
+
+    const out: HeaderSearchResult[] = [];
+
+    for (const post of blogIndex) {
+      const title = String(post?.title || '').trim();
+      const category = String(post?.category || '').trim();
+      const author = String(post?.author || '').trim();
+      const hay = normalize(`${title} ${category} ${author} ${String(post?.content || '')}`);
+      if (!hay.includes(q)) continue;
+      const to = makeBlogPath({ id: String(post.id), title });
+      out.push({
+        type: 'blog',
+        key: `blog_${post.id}`,
+        title: title || 'Untitled post',
+        subtitle: category || 'Community Blog',
+        to
+      });
+      if (out.length >= 8) break;
+    }
+
+    if (out.length < 8) {
+      for (const provider of loanIndex) {
+        const name = String(provider?.name || '').trim();
+        const tag = String(provider?.tag || '').trim();
+        const website = String(provider?.website || '').trim();
+        const hay = normalize(`${name} ${tag} ${website} ${String(provider?.description || '')}`);
+        if (!hay.includes(q)) continue;
+        out.push({
+          type: 'loan',
+          key: `loan_${name}`,
+          title: name || 'Loan provider',
+          subtitle: tag || 'Loan Providers & Reviews',
+          to: '/loan-providers'
+        });
+        if (out.length >= 10) break;
+      }
+    }
+
+    if (out.length < 10) {
+      for (const g of GRANT_NETWORKS) {
+        const name = String(g?.name || '').trim();
+        const desc = String(g?.description || '').trim();
+        const hay = normalize(`${name} ${desc} ${(g?.keywords || []).join(' ')} ${(g?.categories || []).join(' ')} ${String(g?.region || '')}`);
+        if (!hay.includes(q)) continue;
+        const href = String(g?.link || '').trim();
+        if (!/^https?:\/\//i.test(href)) continue;
+        out.push({
+          type: 'grant',
+          key: `grant_${g.id}`,
+          title: name || 'Grant partner',
+          subtitle: g.region ? `${String(g.region).toUpperCase()} • Grant partner` : 'Grant partner',
+          href
+        });
+        if (out.length >= 12) break;
+      }
+    }
+
+    return out.slice(0, 12);
+  }, [searchQuery, blogIndex, loanIndex]);
 
   const setTheme = (theme: 'light' | 'dark') => {
     const shouldBeDark = theme === 'dark';
@@ -288,8 +416,90 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             <span>Grantify</span>
           </Link>
 
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex gap-6 items-center">
+          {/* Desktop Search + Nav */}
+          <div className="hidden md:flex items-center gap-4">
+            <div ref={searchBoxRef} className="relative">
+              <div className="flex items-center gap-2 bg-white/10 hover:bg-white/15 transition rounded-full px-3 py-2">
+                <Search size={16} className="text-white/80" />
+                <input
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setIsSearchOpen(true);
+                  }}
+                  onFocus={() => {
+                    setIsSearchOpen(true);
+                    void ensureSearchIndex();
+                  }}
+                  placeholder="Search blog, loans, grants…"
+                  className="w-[280px] lg:w-[360px] bg-transparent outline-none text-sm placeholder:text-white/70"
+                  aria-label="Search"
+                />
+                {Boolean(searchQuery.trim()) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setIsSearchOpen(false);
+                    }}
+                    className="p-1 rounded-full hover:bg-white/10"
+                    aria-label="Clear search"
+                    title="Clear"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              {isSearchOpen && (
+                <div className="absolute right-0 mt-2 w-[440px] max-w-[calc(100vw-24px)] bg-white dark:bg-gray-950 text-gray-800 dark:text-gray-100 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+                  <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-800 text-[10px] uppercase tracking-widest font-black text-gray-500 dark:text-gray-400 flex items-center justify-between">
+                    <span>Search</span>
+                    {isSearchLoading && <span>Loading…</span>}
+                  </div>
+
+                  {!searchQuery.trim() ? (
+                    <div className="p-4 text-sm text-gray-500 dark:text-gray-400">
+                      Type to search the Community Blog, Loan Providers, and Grant Partners.
+                    </div>
+                  ) : searchResults.length === 0 ? (
+                    <div className="p-4 text-sm text-gray-500 dark:text-gray-400">
+                      No results found.
+                    </div>
+                  ) : (
+                    <div className="max-h-[360px] overflow-y-auto">
+                      {searchResults.map((r) => (
+                        <div key={r.key} className="border-b border-gray-50 dark:border-gray-900 last:border-b-0">
+                          {r.type === 'grant' ? (
+                            <a
+                              href={r.href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900"
+                              onClick={() => setIsSearchOpen(false)}
+                            >
+                              <div className="text-sm font-black text-grantify-green">{r.title}</div>
+                              {r.subtitle && <div className="text-xs text-gray-500 dark:text-gray-400 font-bold">{r.subtitle}</div>}
+                            </a>
+                          ) : (
+                            <Link
+                              to={r.to}
+                              className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900"
+                              onClick={() => setIsSearchOpen(false)}
+                            >
+                              <div className="text-sm font-black text-grantify-green">{r.title}</div>
+                              {r.subtitle && <div className="text-xs text-gray-500 dark:text-gray-400 font-bold">{r.subtitle}</div>}
+                            </Link>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <nav className="flex gap-6 items-center">
             {navLinks.map(link => (
               <Link 
                 key={link.to} 
@@ -310,10 +520,23 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
               <span className="hidden lg:inline">{isDarkMode ? 'Light' : 'Dark'}</span>
             </button>
-          </nav>
+            </nav>
+          </div>
 
           {/* Mobile actions */}
           <div className="md:hidden flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setIsSearchOpen((v) => !v);
+                void ensureSearchIndex();
+              }}
+              className="text-white p-2 rounded-full hover:bg-white/10 transition"
+              aria-label={isSearchOpen ? 'Close search' : 'Open search'}
+              title="Search"
+            >
+              <Search size={18} />
+            </button>
             <button
               type="button"
               onClick={() => setTheme(isDarkMode ? 'light' : 'dark')}
@@ -337,6 +560,73 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             </button>
           </div>
         </div>
+
+        {/* Mobile Search Panel */}
+        {isSearchOpen && (
+          <div className="md:hidden px-3 sm:px-4 pb-4" ref={searchBoxRef}>
+            <div className="bg-white/10 rounded-2xl p-3">
+              <div className="flex items-center gap-2">
+                <Search size={16} className="text-white/80" />
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search blog, loans, grants…"
+                  className="w-full bg-transparent outline-none text-sm placeholder:text-white/70"
+                  aria-label="Search"
+                  autoFocus
+                />
+                {Boolean(searchQuery.trim()) && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="p-1 rounded-full hover:bg-white/10"
+                    aria-label="Clear search"
+                    title="Clear"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              <div className="mt-3 bg-white dark:bg-gray-950 text-gray-800 dark:text-gray-100 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+                {isSearchLoading ? (
+                  <div className="p-4 text-sm text-gray-500 dark:text-gray-400 font-bold">Loading…</div>
+                ) : !searchQuery.trim() ? (
+                  <div className="p-4 text-sm text-gray-500 dark:text-gray-400">Type to search the Community Blog, Loan Providers, and Grant Partners.</div>
+                ) : searchResults.length === 0 ? (
+                  <div className="p-4 text-sm text-gray-500 dark:text-gray-400">No results found.</div>
+                ) : (
+                  <div className="max-h-[320px] overflow-y-auto">
+                    {searchResults.map((r) => (
+                      <div key={r.key} className="border-b border-gray-50 dark:border-gray-900 last:border-b-0">
+                        {r.type === 'grant' ? (
+                          <a
+                            href={r.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900"
+                            onClick={() => setIsSearchOpen(false)}
+                          >
+                            <div className="text-sm font-black text-grantify-green">{r.title}</div>
+                            {r.subtitle && <div className="text-xs text-gray-500 dark:text-gray-400 font-bold">{r.subtitle}</div>}
+                          </a>
+                        ) : (
+                          <Link
+                            to={r.to}
+                            className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900"
+                            onClick={() => setIsSearchOpen(false)}
+                          >
+                            <div className="text-sm font-black text-grantify-green">{r.title}</div>
+                            {r.subtitle && <div className="text-xs text-gray-500 dark:text-gray-400 font-bold">{r.subtitle}</div>}
+                          </Link>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Mobile Nav */}
         {isMobileMenuOpen && (

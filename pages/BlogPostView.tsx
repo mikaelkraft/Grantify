@@ -292,7 +292,7 @@ export const BlogPostView: React.FC = () => {
     return (
       <div className="min-h-[500px] flex flex-col items-center justify-center text-grantify-green">
         <Loader2 className="animate-spin w-12 h-12 mb-4" />
-        <p>Reading the article...</p>
+        <p>Loading the Article</p>
       </div>
     );
   }
