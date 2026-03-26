@@ -770,7 +770,7 @@ export const Admin: React.FC = () => {
       };
 
       if (isEditingPost && newPost.id) {
-        await ApiService.submitBlogAction({ ...payload, action: 'update' });
+        const updated = await ApiService.submitBlogAction({ ...payload, action: 'update' });
         setBlogPosts(prev => prev.map(p => {
           if (String(p.id) !== String(newPost.id)) return p;
           return {
@@ -791,6 +791,9 @@ export const Admin: React.FC = () => {
             createdAt: payload.createdAt || p.createdAt
           };
         }));
+        if (updated?.success === true || updated?.success === undefined) {
+          alert('Publication updated.');
+        }
       } else {
         const created = await ApiService.submitBlogAction({ ...payload, action: 'create' });
         if (created?.id) {
@@ -817,6 +820,9 @@ export const Admin: React.FC = () => {
             },
             ...prev
           ]));
+          alert('Publication published to Community Blog.');
+        } else {
+          throw new Error('Publish succeeded but no id was returned.');
         }
       }
       
