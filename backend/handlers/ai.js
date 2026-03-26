@@ -250,7 +250,7 @@ export default async function handler(req, res) {
       });
     }
     return res.status(200).json({
-      text: `Hi, I'm your Grantify Concierge on https://grantify.help. Live AI responses are currently offline on this deployment. You can still browse the Community Blog and the Loan Providers & Reviews pages, and I can guide you on what to check next.`
+      text: `Hi, I'm your Grantify Concierge on https://grantify.help. Live AI responses are currently search-based on this deployment. You can still browse the Community Blog and the Loan Providers & Reviews pages, and I can guide you on what to check next.`
     });
   }
 
@@ -274,7 +274,8 @@ export default async function handler(req, res) {
       3. FOCUS deeply on Nigeria: use Naira (₦), mention local states, or CBN/BOI policies.
       4. SOUND like a person, not a textbook. Be strategic and actionable.
       5. LINKS: If you include any links in the article body, use named anchors (descriptive link text). Do NOT show raw URLs in the body.
-      6. FORMAT: Use <h2>, <h3>, <p>, <strong>, <ul>, <li>, and <a> tags only.`;
+      6. AVOID too much use of Additionally
+      7. FORMAT: Use <h2>, <h3>, <h4>, <small>, <preformatted>, <p>, <strong>, <ul>, <li>, and <a> tags only.`;
 
       userPrompt = `Topic: "${prompt}". Write a deep-dive strategy article for Nigerian entrepreneurs.`;
 
