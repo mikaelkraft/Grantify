@@ -773,7 +773,7 @@ export const Admin: React.FC = () => {
       };
 
       if (isEditingPost && newPost.id) {
-        const updated = await ApiService.submitBlogAction({ ...payload, action: 'update' });
+        const updated = await ApiService.submitBlogAction({ ...payload, id: String(newPost.id), action: 'update' });
         setBlogPosts(prev => prev.map(p => {
           if (String(p.id) !== String(newPost.id)) return p;
           return {

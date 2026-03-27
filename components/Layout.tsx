@@ -3,7 +3,6 @@ import { Link, useLocation } from 'react-router-dom';
 import { AdSlot } from './AdSlot';
 import { ApiService } from '../services/storage';
 import { AdConfig, BlogPost, LoanProvider } from '../types';
-import { GRANT_NETWORKS } from '../utils/grantMatcher';
 import { makeBlogPath } from '../utils/blogRouting';
 import { Menu, X, AlertTriangle, ShieldAlert, RefreshCw, HelpCircle, Moon, Sun, Search } from 'lucide-react';
 import { AiChatbot } from './AiChatbot';
@@ -11,7 +10,7 @@ import { AiChatbot } from './AiChatbot';
 type HeaderSearchResult =
   | { type: 'blog'; key: string; title: string; subtitle?: string; to: string }
   | { type: 'loan'; key: string; title: string; subtitle?: string; to: string }
-  | { type: 'grant'; key: string; title: string; subtitle?: string; href: string };
+  ;
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [ads, setAds] = useState<AdConfig | null>(null);
@@ -178,25 +177,6 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           to: '/loan-providers'
         });
         if (out.length >= 10) break;
-      }
-    }
-
-    if (out.length < 10) {
-      for (const g of GRANT_NETWORKS) {
-        const name = String(g?.name || '').trim();
-        const desc = String(g?.description || '').trim();
-        const hay = normalize(`${name} ${desc} ${(g?.keywords || []).join(' ')} ${(g?.categories || []).join(' ')} ${String(g?.region || '')}`);
-        if (!hay.includes(q)) continue;
-        const href = String(g?.link || '').trim();
-        if (!/^https?:\/\//i.test(href)) continue;
-        out.push({
-          type: 'grant',
-          key: `grant_${g.id}`,
-          title: name || 'Grant partner',
-          subtitle: g.region ? `${String(g.region).toUpperCase()} • Grant partner` : 'Grant partner',
-          href
-        });
-        if (out.length >= 12) break;
       }
     }
 

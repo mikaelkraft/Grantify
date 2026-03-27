@@ -262,6 +262,10 @@ export default async function handler(req, res) {
     let sources = [];
     let localContext = '';
 
+    const promptLower = String(prompt || '').toLowerCase();
+    const wantsSourcesExplicitly = /\b(source|sources|reference|references|cite|citation|citations|links?)\b/.test(promptLower);
+    const looksLikeGrantLinking = /\b(grant|grants|funding|apply|application|eligib|deadline|portal|link)\b/.test(promptLower);
+
     const nowIso = new Date().toISOString();
 
     if (type === 'blog') {
@@ -323,11 +327,12 @@ export default async function handler(req, res) {
 
       ${localContext ? `ON-SITE INDEX (use this to reference what exists on Grantify):\n${localContext}` : ''}
 
-      If you are provided with FRESH CONTEXT (headlines/links or web results), treat it as current information. Do not claim you cannot access current data or that your training is "cut off".
+      If you are provided with headlines/links or web results, treat it as current information. Do not claim you cannot access current data or that your training is "cut off".
 
-      FACTS & FRESHNESS:
+      FACTS:
       - Never invent specific figures, dates, approval claims, or provider policies.
-      - If you do not have fresh context, say you're answering from Grantify content and general guidance.`;
+      - Answer straightforwardly. Do not announce that you fetched fresh context.
+      - Only include sources/links when the user asked, or when providing grant/application links or time-sensitive claims.`;
 
       if (useSearch) {
         const promptKey = String(prompt || '').trim().toLowerCase();
@@ -360,9 +365,7 @@ export default async function handler(req, res) {
               setCache(ddgKey, { contextText: ddg.contextText, items: ddg.items });
             }
 
-            if (newsContext) {
-              systemInstruction += `\n\nYou may use the provided headlines/links as fresh context. If you reference a headline, include its link. Prefer descriptive named anchors when writing HTML.`;
-            }
+            // No extra instruction needed here; keep outputs concise.
           } catch {
             newsContext = '';
             webContext = '';
@@ -383,6 +386,8 @@ export default async function handler(req, res) {
           .map((m) => ({ role: m.role, content: m.content }))
       : [];
 
+    const includeContextBlocks = type === 'blog' || wantsSourcesExplicitly || looksLikeGrantLinking;
+
     const messages = type === 'blog'
       ? [
           { role: 'system', content: systemInstruction },
@@ -393,10 +398,10 @@ export default async function handler(req, res) {
         ]
       : [
           { role: 'system', content: systemInstruction },
-          ...(newsContext
-            ? [{ role: 'user', content: `Fresh context (headlines + links). Use only if relevant and do not invent facts beyond them:\n${newsContext}` }]
+          ...(includeContextBlocks && newsContext
+            ? [{ role: 'user', content: `Headlines + links (use only if relevant and do not invent facts beyond them):\n${newsContext}` }]
             : []),
-          ...(webContext
+          ...(includeContextBlocks && webContext
             ? [{ role: 'user', content: `Optional web context (quick lookup results). Use only if relevant and do not invent facts beyond them:\n${webContext}` }]
             : []),
           ...normalizedHistory,

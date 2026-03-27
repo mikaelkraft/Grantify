@@ -378,9 +378,12 @@ export const AiChatbot: React.FC = () => {
               >
                 <ChevronDown size={20} />
               </button>
-              <div className="text-[10px] text-green-100 font-black uppercase tracking-widest -mt-1">
-                drag
-              </div>
+            </div>
+          </div>
+
+          <div className="px-6 pb-2 -mt-3 flex justify-end">
+            <div className="text-[10px] text-green-100 font-black uppercase tracking-widest">
+              drag
             </div>
           </div>
 
