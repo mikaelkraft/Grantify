@@ -112,6 +112,32 @@ export default async function handler(req, res) {
 
   const client = await pool.connect();
   try {
+    // Run log table (helps verify if Vercel cron is actually firing).
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS cron_runs (
+        id TEXT PRIMARY KEY,
+        cron_name TEXT NOT NULL,
+        status TEXT NOT NULL,
+        reason TEXT,
+        detail TEXT,
+        is_vercel_cron BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    const runId = Date.now().toString();
+    const logRun = async (status, reason, detail) => {
+      try {
+        await client.query(
+          `INSERT INTO cron_runs (id, cron_name, status, reason, detail, is_vercel_cron)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [runId, 'daily-blog', String(status), reason ? String(reason) : null, detail ? String(detail) : null, Boolean(isVercelCron)]
+        );
+      } catch {
+        // no-op
+      }
+    };
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS autoblog_config (
         id INTEGER PRIMARY KEY DEFAULT 1,
@@ -125,6 +151,7 @@ export default async function handler(req, res) {
     const cfg = await client.query('SELECT enabled FROM autoblog_config WHERE id=1');
     const isEnabledInDb = Boolean(cfg.rows?.[0]?.enabled);
     if (!isEnabledInDb) {
+      await logRun('skipped', 'autoblog is disabled', null);
       return res.status(200).json({ success: true, skipped: true, reason: 'autoblog is disabled' });
     }
 
@@ -135,6 +162,7 @@ export default async function handler(req, res) {
       `SELECT id FROM blog_posts WHERE tags @> ARRAY['daily']::text[] AND created_at::date = CURRENT_DATE LIMIT 1`
     );
     if (existing.rows.length > 0) {
+      await logRun('skipped', 'already posted today', String(existing.rows[0].id));
       return res.status(200).json({ success: true, skipped: true, id: existing.rows[0].id });
     }
 
@@ -224,9 +252,21 @@ CRITICAL CONTENT RULES:
       ]
     );
 
+    await logRun('success', 'posted', id);
     return res.status(200).json({ success: true, id, title, sourcesCount: newsItems.length });
   } catch (e) {
     console.error('daily-blog cron error:', e);
+    try {
+      // best-effort log
+      const runId = Date.now().toString();
+      await client.query(
+        `INSERT INTO cron_runs (id, cron_name, status, reason, detail, is_vercel_cron)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [runId, 'daily-blog', 'error', 'exception', e instanceof Error ? e.message : String(e), Boolean(isVercelCron)]
+      );
+    } catch {
+      // no-op
+    }
     return res.status(500).json({ error: e instanceof Error ? e.message : 'Unknown error' });
   } finally {
     client.release();

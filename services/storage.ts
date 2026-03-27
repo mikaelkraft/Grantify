@@ -191,7 +191,13 @@ export const ApiService = {
   },
 
   // -- Autoblog Config --
-  getAutoblogConfig: async (): Promise<{ enabled: boolean; updatedAt?: string | null }> => {
+  getAutoblogConfig: async (): Promise<{
+    enabled: boolean;
+    updatedAt?: string | null;
+    lastRun?: any;
+    lastSuccessRun?: any;
+    lastErrorRun?: any;
+  }> => {
     const res = await fetch(`${API_URL}/api/config?type=autoblog`);
     if (!res.ok) throw new Error('Failed to fetch autoblog config');
     return await res.json();

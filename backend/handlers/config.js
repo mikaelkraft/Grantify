@@ -28,9 +28,49 @@ export default async function handler(req, res) {
       await pool.query('INSERT INTO autoblog_config (id, enabled) VALUES (1, FALSE) ON CONFLICT (id) DO NOTHING');
 
       if (req.method === 'GET') {
+        let lastRun = null;
+        let lastSuccessRun = null;
+        let lastErrorRun = null;
+        try {
+          const [last, lastSuccess, lastError] = await Promise.all([
+            pool.query(
+              `SELECT status, reason, detail, is_vercel_cron, created_at
+               FROM cron_runs
+               WHERE cron_name = 'daily-blog'
+               ORDER BY created_at DESC
+               LIMIT 1`
+            ),
+            pool.query(
+              `SELECT status, reason, detail, is_vercel_cron, created_at
+               FROM cron_runs
+               WHERE cron_name = 'daily-blog' AND status = 'success'
+               ORDER BY created_at DESC
+               LIMIT 1`
+            ),
+            pool.query(
+              `SELECT status, reason, detail, is_vercel_cron, created_at
+               FROM cron_runs
+               WHERE cron_name = 'daily-blog' AND status = 'error'
+               ORDER BY created_at DESC
+               LIMIT 1`
+            ),
+          ]);
+          lastRun = last.rows?.[0] ?? null;
+          lastSuccessRun = lastSuccess.rows?.[0] ?? null;
+          lastErrorRun = lastError.rows?.[0] ?? null;
+        } catch {
+          // cron_runs may not exist yet; ignore
+        }
+
         const result = await pool.query('SELECT enabled, updated_at FROM autoblog_config WHERE id=1');
         const row = result.rows?.[0];
-        return res.status(200).json({ enabled: Boolean(row?.enabled), updatedAt: row?.updated_at || null });
+        return res.status(200).json({
+          enabled: Boolean(row?.enabled),
+          updatedAt: row?.updated_at || null,
+          lastRun,
+          lastSuccessRun,
+          lastErrorRun,
+        });
       }
 
       if (req.method === 'POST') {

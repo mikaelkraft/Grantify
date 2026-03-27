@@ -51,6 +51,9 @@ export const Admin: React.FC = () => {
   const [repayment, setRepayment] = useState<RepaymentContent | null>(null);
   const [autoblogEnabled, setAutoblogEnabled] = useState<boolean>(false);
   const [autoblogUpdatedAt, setAutoblogUpdatedAt] = useState<string | null>(null);
+  const [autoblogLastRun, setAutoblogLastRun] = useState<any>(null);
+  const [autoblogLastSuccessRun, setAutoblogLastSuccessRun] = useState<any>(null);
+  const [autoblogLastErrorRun, setAutoblogLastErrorRun] = useState<any>(null);
   const [isSavingAutoblog, setIsSavingAutoblog] = useState(false);
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loanProviders, setLoanProviders] = useState<LoanProvider[]>([]);
@@ -347,6 +350,9 @@ export const Admin: React.FC = () => {
       setFlagEntities(flagsData?.entities || {});
       setAutoblogEnabled(Boolean(autoblogCfg?.enabled));
       setAutoblogUpdatedAt(autoblogCfg?.updatedAt ? String(autoblogCfg.updatedAt) : null);
+      setAutoblogLastRun(autoblogCfg?.lastRun ?? null);
+      setAutoblogLastSuccessRun(autoblogCfg?.lastSuccessRun ?? null);
+      setAutoblogLastErrorRun(autoblogCfg?.lastErrorRun ?? null);
     } catch (e) {
       console.error("Failed to load admin data", e);
       const message =
@@ -1494,6 +1500,25 @@ export const Admin: React.FC = () => {
                         </p>
                         {autoblogUpdatedAt && (
                           <p className="text-[10px] text-gray-400 mt-1">Last changed: {new Date(autoblogUpdatedAt).toLocaleString()}</p>
+                        )}
+                        {autoblogLastRun && (
+                          <p className="text-[10px] text-gray-400 mt-1">
+                            Last cron: {autoblogLastRun.created_at ? new Date(autoblogLastRun.created_at).toLocaleString() : 'unknown'}
+                            {autoblogLastRun.status ? ` — ${String(autoblogLastRun.status)}` : ''}
+                            {autoblogLastRun.reason ? ` (${String(autoblogLastRun.reason)})` : ''}
+                          </p>
+                        )}
+                        {autoblogLastSuccessRun && (
+                          <p className="text-[10px] text-gray-400 mt-1">
+                            Last success: {autoblogLastSuccessRun.created_at ? new Date(autoblogLastSuccessRun.created_at).toLocaleString() : 'unknown'}
+                            {autoblogLastSuccessRun.detail ? ` — ${String(autoblogLastSuccessRun.detail)}` : ''}
+                          </p>
+                        )}
+                        {autoblogLastErrorRun && (
+                          <p className="text-[10px] text-gray-400 mt-1">
+                            Last error: {autoblogLastErrorRun.created_at ? new Date(autoblogLastErrorRun.created_at).toLocaleString() : 'unknown'}
+                            {autoblogLastErrorRun.detail ? ` — ${String(autoblogLastErrorRun.detail).slice(0, 180)}` : ''}
+                          </p>
                         )}
                       </div>
 
