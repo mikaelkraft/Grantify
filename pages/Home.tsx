@@ -422,40 +422,40 @@ export const Home: React.FC = () => {
                 ))}
               </div>
 
-              <div className="space-y-4">
-                {sortedPartners.map(network => (
-                  isExternalLink(network.link) ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {sortedPartners.map(network => {
+                  const content = (
+                    <>
+                      <div className="w-10 h-10 bg-white dark:bg-gray-900 rounded-lg flex items-center justify-center p-1.5 shadow-sm text-grantify-green border border-gray-100 dark:border-gray-800 shrink-0">
+                        <ShieldCheck size={20} />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-sm font-bold text-gray-800 dark:text-gray-100 group-hover:text-grantify-green transition-colors truncate">{network.name}</h4>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Verified Provider</p>
+                      </div>
+                    </>
+                  );
+
+                  return isExternalLink(network.link) ? (
                     <a
                       key={network.id}
                       href={network.link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 hover:border-grantify-green/30 transition-all cursor-pointer group"
+                      className="flex items-center gap-3 p-3 rounded-2xl bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 hover:border-grantify-green/30 transition-all cursor-pointer group"
                       title={`Visit ${network.name}`}
                     >
-                      <div className="w-10 h-10 bg-white dark:bg-gray-900 rounded-lg flex items-center justify-center p-1.5 shadow-sm text-grantify-green border border-gray-100 dark:border-gray-800">
-                        <ShieldCheck size={20} />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-gray-800 dark:text-gray-100 group-hover:text-grantify-green transition-colors">{network.name}</h4>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Verified Provider</p>
-                      </div>
+                      {content}
                     </a>
                   ) : (
                     <div
                       key={network.id}
-                      className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 transition-all"
+                      className="flex items-center gap-3 p-3 rounded-2xl bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"
                     >
-                      <div className="w-10 h-10 bg-white dark:bg-gray-900 rounded-lg flex items-center justify-center p-1.5 shadow-sm text-grantify-green border border-gray-100 dark:border-gray-800">
-                        <ShieldCheck size={20} />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-gray-800 dark:text-gray-100">{network.name}</h4>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Verified Provider</p>
-                      </div>
+                      {content}
                     </div>
-                  )
-                ))}
+                  );
+                })}
               </div>
            </div>
 
