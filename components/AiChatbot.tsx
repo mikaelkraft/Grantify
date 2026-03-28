@@ -378,12 +378,9 @@ export const AiChatbot: React.FC = () => {
               >
                 <ChevronDown size={20} />
               </button>
-            </div>
-          </div>
-
-          <div className="px-6 pb-2 -mt-3 flex justify-end">
-            <div className="text-[10px] text-green-100 font-black uppercase tracking-widest">
-              drag
+              <div className="text-[10px] text-green-100 font-black uppercase tracking-widest mt-1">
+                drag
+              </div>
             </div>
           </div>
 
@@ -447,6 +444,11 @@ export const AiChatbot: React.FC = () => {
         aria-label={isOpen ? 'Close AI assistant' : 'Open AI assistant'}
       >
         {isOpen ? <X size={28} /> : <MessageSquare size={28} />}
+        {!isOpen && (
+          <span className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[9px] font-black uppercase tracking-widest text-white/90">
+            drag
+          </span>
+        )}
         {!isOpen && (
           <span className="absolute -top-1 -right-1 w-5 h-5 bg-grantify-gold rounded-full flex items-center justify-center text-[10px] font-black text-grantify-green shadow-md">
             1

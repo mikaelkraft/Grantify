@@ -17,6 +17,33 @@ import testimonialsIndex from '../backend/handlers/testimonials_index.js';
 import testimonialsId from '../backend/handlers/testimonials_id.js';
 import cronDailyBlog from '../backend/handlers/cron_daily_blog.js';
 
+const ensureJsonBody = async (req) => {
+  // Vercel may not populate req.body for non-POST methods.
+  if (req?.body !== undefined) return;
+  const method = String(req?.method || '').toUpperCase();
+  if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') return;
+
+  const contentType = String(req?.headers?.['content-type'] || '').toLowerCase();
+  if (!contentType.includes('application/json')) return;
+
+  try {
+    const chunks = [];
+    await new Promise((resolve, reject) => {
+      req.on('data', (c) => chunks.push(c));
+      req.on('end', resolve);
+      req.on('error', reject);
+    });
+    const raw = Buffer.concat(chunks).toString('utf8');
+    if (!raw.trim()) {
+      req.body = {};
+      return;
+    }
+    req.body = JSON.parse(raw);
+  } catch {
+    // If parsing fails, keep req.body undefined to let handlers error naturally.
+  }
+};
+
 const ensureQueryObject = (req) => {
   if (req?.query && typeof req.query === 'object') return;
 
@@ -39,6 +66,8 @@ const getPathSegments = (req) => {
 
 export default async function handler(req, res) {
   const segments = getPathSegments(req);
+
+  await ensureJsonBody(req);
 
   if (segments.length === 0) {
     return res.status(404).json({ error: 'Not found' });
