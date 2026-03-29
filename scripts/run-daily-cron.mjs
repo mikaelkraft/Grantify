@@ -1,6 +1,13 @@
+import { existsSync } from 'node:fs';
+
 const secret = String(process.env.BLOG_CRON_SECRET || '').trim();
 if (!secret) {
   console.error('Missing BLOG_CRON_SECRET in environment.');
+  if (existsSync('.env')) {
+    console.error('Tip: run `npm run cron:daily` (it uses `node --env-file=.env ...`) or run `node --env-file=.env scripts/run-daily-cron.mjs`.');
+  } else {
+    console.error('Tip: set BLOG_CRON_SECRET and CRON_BASE_URL in your shell environment.');
+  }
   process.exit(1);
 }
 

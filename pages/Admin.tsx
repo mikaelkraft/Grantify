@@ -928,7 +928,7 @@ export const Admin: React.FC = () => {
             `Title: ${String(newPost.title || '').trim()}`,
             `Category: ${String(newPost.category || '').trim()}`,
             smartWriteInstructions.trim() ? `Writing instructions: ${smartWriteInstructions.trim()}` : '',
-            'Write in a direct, practical tone. Do not add a Sources section. Do not include raw URLs. Do not write a conclusion section.'
+            'Write in a direct, practical tone. It may cover any sector (technology, healthcare, agriculture, education, energy, manufacturing, creative economy) when relevant. Do not include raw URLs. Do not write a conclusion section.'
           ].filter(Boolean).join('\n'),
           type: 'blog',
           useSearch: true

@@ -141,14 +141,8 @@ const buildSourcesHtml = (items) => {
   const listItems = safeItems
     .map((i) => {
       const title = i.title.replace(/</g, '&lt;').replace(/>/g, '&gt;').trim();
-      let host = '';
-      try {
-        host = new URL(String(i.link)).hostname;
-      } catch {
-        host = '';
-      }
-      const suffix = host ? ` <small>(${host})</small>` : '';
-      return `<li>${title}${suffix}</li>`;
+      const href = String(i.link).replace(/"/g, '&quot;').trim();
+      return `<li><a href="${href}" target="_blank" rel="noopener noreferrer">${title}</a></li>`;
     })
     .join('');
 
@@ -292,7 +286,10 @@ export default async function handler(req, res) {
       7. Do NOT add a "Sources" section or citations in the article body.
       8. FORMAT: Use <h2>, <h3>, <h4>, <small>, <preformatted>, <p>, <strong>, <ul>, <li>, and <a> tags only.`;
 
-      userPrompt = `Topic: "${prompt}". Write a deep-dive strategy article for Nigerian entrepreneurs.`;
+      userPrompt = `Topic: "${prompt}". Write a deep-dive strategy article for a Nigerian audience.
+
+    Cover relevant angles across sectors when appropriate (examples: technology, healthcare, agriculture, education, energy, manufacturing, creative economy).
+    Keep it practical and action-oriented, with clear next steps.`;
 
       if (useSearch) {
         const cacheKey = `news:${String(prompt || '').trim().toLowerCase()}`;

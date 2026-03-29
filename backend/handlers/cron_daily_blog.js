@@ -64,14 +64,8 @@ const buildSourcesHtml = (items) => {
   const listItems = safeItems
     .map((i) => {
       const title = i.title.replace(/</g, '&lt;').replace(/>/g, '&gt;').trim();
-      let host = '';
-      try {
-        host = new URL(String(i.link)).hostname;
-      } catch {
-        host = '';
-      }
-      const suffix = host ? ` <small>(${host})</small>` : '';
-      return `<li>${title}${suffix}</li>`;
+      const href = String(i.link).replace(/"/g, '&quot;').trim();
+      return `<li><a href="${href}" target="_blank" rel="noopener noreferrer">${title}</a></li>`;
     })
     .join('');
 
@@ -86,6 +80,29 @@ const extractTitleFromHtml = (html) => {
   } catch {
     return null;
   }
+};
+
+const stripDatesFromTitle = (title) => {
+  const input = String(title || '').trim();
+  if (!input) return '';
+
+  // Remove common date patterns anywhere in the title.
+  let t = input
+    // ISO-like: 2026-03-29 or 2026/03/29
+    .replace(/\b(20\d{2})[-/](0?[1-9]|1[0-2])[-/](0?[1-9]|[12]\d|3[01])\b/g, '')
+    // Month name: March 29, 2026
+    .replace(/\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s*20\d{2}\b/gi, '')
+    // Short month: Mar 29, 2026
+    .replace(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\s+\d{1,2},\s*20\d{2}\b/gi, '');
+
+  // Clean dangling separators / empty parentheses.
+  t = t
+    .replace(/\(\s*\)/g, '')
+    .replace(/\s*[-–|:]\s*$/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
+  return t;
 };
 
 const bestEffortLogCronRun = async ({
@@ -158,6 +175,13 @@ export default async function handler(req, res) {
   const hasValidSecret = expected ? (bearer === expected || key === expected) : false;
 
   if (!isVercelCron && !hasValidSecret) {
+    await bestEffortLogCronRun({
+      cronName: 'daily-blog',
+      status: 'unauthorized',
+      reason: 'missing x-vercel-cron header and invalid/missing secret',
+      detail: `${String(req.headers.host || '')} ${String(req.method || '')} ${String(req.url || '')}`.trim() || null,
+      isVercelCron,
+    });
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
@@ -218,9 +242,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, skipped: true, reason: 'autoblog is disabled' });
     }
 
-    const today = new Date();
-    const isoDate = today.toISOString().slice(0, 10);
-
     const existing = await client.query(
       `SELECT id FROM blog_posts WHERE tags @> ARRAY['daily']::text[] AND created_at::date = CURRENT_DATE LIMIT 1`
     );
@@ -229,13 +250,16 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, skipped: true, id: existing.rows[0].id });
     }
 
-    const newsItems = await fetchNewsItems('SME grants loans funding entrepreneurship');
+    const newsItems = await fetchNewsItems('funding grants loans opportunities technology health agriculture education energy manufacturing SMEs');
     const newsContext = newsItems
       .map((i, idx) => `${idx + 1}. ${i.title}${i.pubDate ? ` (${i.pubDate})` : ''} - ${i.link}`)
       .join('\n');
 
     const systemInstruction = `You are a top-tier Nigerian business consultant and financial journalist.
 Write an authoritative, human-sounding 650-900 word article in HTML format.
+
+  TITLE RULE:
+  - The first <h2> is the title. Do NOT include any date in the title.
 
 CRITICAL CONTENT RULES:
 1. NEVER use em dashes (—). Use commas, colons, or periods instead.
@@ -247,7 +271,7 @@ CRITICAL CONTENT RULES:
 6. AVOID too much use of Additionally
 7. FORMAT: Use <h2>, <h3>, <p>, <strong>, <ul>, <li>, and <a> tags only.`;
 
-    const userPrompt = `Write today's ("${isoDate}") Nigeria Funding & Grants Briefing for entrepreneurs.\n\nInclude:\n- 3-5 practical moves founders can take today\n- A short section on avoiding scams\n- Clear next steps\n\nTopic direction: fresh grant/loan opportunities and policy-related updates (if relevant).`;
+    const userPrompt = `Write today's Nigeria Funding & Opportunities Briefing.\n\nCover a mix of sectors where funding is needed (examples: technology, healthcare, agriculture, education, manufacturing, clean energy, creative economy).\n\nInclude:\n- 3-5 practical moves readers can take today\n- A short section on avoiding scams\n- Clear next steps\n\nTopic direction: fresh opportunities (grants/loans/accelerators/market programs) and policy-related updates (if relevant).`;
 
     const messages = [
       { role: 'system', content: systemInstruction },
@@ -278,7 +302,8 @@ CRITICAL CONTENT RULES:
 
     const data = await aiRes.json();
     const html = data.choices?.[0]?.message?.content || '';
-    const title = extractTitleFromHtml(html) || `Nigeria Funding Briefing (${isoDate})`;
+    const extractedTitle = extractTitleFromHtml(html) || '';
+    const title = stripDatesFromTitle(extractedTitle) || 'Nigeria Funding & Opportunities Briefing';
 
     const image = await fetchUnsplashImage(`${title} Nigeria business`);
 
@@ -307,7 +332,7 @@ CRITICAL CONTENT RULES:
         tags,
         newsItems.length ? 'Google News (RSS)' : '',
         newsItems.length
-          ? 'https://news.google.com/rss/search?q=SME%20grants%20loans%20funding%20entrepreneurship%20Nigeria&hl=en-NG&gl=NG&ceid=NG:en'
+          ? 'https://news.google.com/rss/search?q=funding%20grants%20loans%20opportunities%20technology%20health%20agriculture%20education%20energy%20manufacturing%20SMEs%20Nigeria&hl=en-NG&gl=NG&ceid=NG:en'
           : '',
         Math.floor(12 + Math.random() * 64),
         Math.floor(6 + Math.random() * 28),
