@@ -472,9 +472,12 @@ app.post('/api/ai', async (req, res) => {
       CRITICAL CONTENT RULES:
       1. NEVER use em dashes (—). Use commas, colons, or periods instead.
       2. AVOID generic AI openings or conclusions.
+      2b. Do NOT include a "Conclusion" section or wrap-up paragraph. End with concrete next steps.
       3. FOCUS deeply on Nigeria: use Naira (₦), mention local states, or CBN/BOI policies.
       4. SOUND like a person, not a textbook. Be strategic and actionable.
-      5. FORMAT: Use <h2>, <h3>, <p>, <strong>, and <ul> tags only.`;
+      5. Do NOT add a "Sources" section or citations in the article body.
+      6. Do NOT include raw URLs.
+      7. FORMAT: Use <h2>, <h3>, <p>, <strong>, and <ul> tags only.`;
 
       userPrompt = `Topic: "${prompt}". Write a deep-dive strategy article for Nigerian entrepreneurs.`;
     } else {
@@ -485,12 +488,15 @@ app.post('/api/ai', async (req, res) => {
       STYLE RULES:
       - No em dashes (—). Use commas, colons, or periods.
       - Be concise and practical. Ask at most 1 clarifying question when needed.
+      - Be resolute: when you have enough info, give a direct answer. Do not hedge.
       - Do NOT say you are a "text-based assistant" or that you're on "no website". You are on Grantify.
 
       LINK RULES:
       - Never show raw URLs as visible text.
       - When linking, use: <a href="...">descriptive text</a>.
-      - Max 3 links per message. Prefer internal Grantify links like <a href="/blog">Community Blog</a> and <a href="/loan-providers">Loan Providers & Reviews</a>.`;
+      - Max 2 links per message.
+      - Only include internal Grantify links when the user asked where to click or asked you to reference on-site content.
+      - Do not include external links unless explicitly requested.`;
     }
 
     const normalizedHistory = Array.isArray(history)

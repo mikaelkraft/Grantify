@@ -134,15 +134,21 @@ const buildSourcesHtml = (items) => {
   if (!Array.isArray(items) || items.length === 0) return '';
   const safeItems = items
     .filter((i) => i && typeof i.title === 'string' && typeof i.link === 'string')
-    .slice(0, 8);
+    .slice(0, 3);
 
   if (safeItems.length === 0) return '';
 
   const listItems = safeItems
     .map((i) => {
       const title = i.title.replace(/</g, '&lt;').replace(/>/g, '&gt;').trim();
-      const href = i.link.replace(/"/g, '&quot;').trim();
-      return `<li><a href="${href}" target="_blank" rel="noopener noreferrer">${title}</a></li>`;
+      let host = '';
+      try {
+        host = new URL(String(i.link)).hostname;
+      } catch {
+        host = '';
+      }
+      const suffix = host ? ` <small>(${host})</small>` : '';
+      return `<li>${title}${suffix}</li>`;
     })
     .join('');
 
@@ -265,6 +271,9 @@ export default async function handler(req, res) {
     const promptLower = String(prompt || '').toLowerCase();
     const wantsSourcesExplicitly = /\b(source|sources|reference|references|cite|citation|citations|links?)\b/.test(promptLower);
     const looksLikeGrantLinking = /\b(grant|grants|funding|apply|application|eligib|deadline|portal|link)\b/.test(promptLower);
+    const includeSources = Boolean(req.body?.includeSources) || wantsSourcesExplicitly;
+    const includeSourcesAuto = Boolean(useSearch) && looksLikeGrantLinking;
+    const includeSourcesEffective = includeSources || includeSourcesAuto;
 
     const nowIso = new Date().toISOString();
 
@@ -275,17 +284,21 @@ export default async function handler(req, res) {
       CRITICAL CONTENT RULES:
       1. NEVER use em dashes (—). Use commas, colons, or periods instead.
       2. AVOID generic AI openings or conclusions.
+      2b. Do NOT include a "Conclusion" section or wrap-up paragraph. End with concrete next steps.
       3. FOCUS deeply on Nigeria: use Naira (₦), mention local states, or CBN/BOI policies.
       4. SOUND like a person, not a textbook. Be strategic and actionable.
-      5. LINKS: If you include any links in the article body, use named anchors (descriptive link text). Do NOT show raw URLs in the body.
+      5. LINKS: Do NOT include raw URLs. Only include links if the editor explicitly requested them. If you must link, use named anchors (descriptive link text).
       6. AVOID too much use of Additionally
-      7. FORMAT: Use <h2>, <h3>, <h4>, <small>, <preformatted>, <p>, <strong>, <ul>, <li>, and <a> tags only.`;
+      7. Do NOT add a "Sources" section or citations in the article body.
+      8. FORMAT: Use <h2>, <h3>, <h4>, <small>, <preformatted>, <p>, <strong>, <ul>, <li>, and <a> tags only.`;
 
       userPrompt = `Topic: "${prompt}". Write a deep-dive strategy article for Nigerian entrepreneurs.`;
 
       if (useSearch) {
         const cacheKey = `news:${String(prompt || '').trim().toLowerCase()}`;
+        const ddgKey = `blogDdg:${String(prompt || '').trim().toLowerCase()}`;
         const cached = getCache(cacheKey);
+        const cachedDdg = getCache(ddgKey);
         if (cached) {
           sources = cached.items;
           newsContext = cached.contextText;
@@ -298,6 +311,18 @@ export default async function handler(req, res) {
           } catch {
             newsContext = '';
             sources = [];
+          }
+        }
+
+        if (cachedDdg) {
+          webContext = cachedDdg.contextText;
+        } else if (canFetchExternal(req)) {
+          try {
+            const ddg = await fetchDuckDuckGoContext(prompt);
+            webContext = ddg.contextText;
+            setCache(ddgKey, { contextText: ddg.contextText, items: ddg.items });
+          } catch {
+            webContext = '';
           }
         }
       }
@@ -315,13 +340,16 @@ export default async function handler(req, res) {
       STYLE RULES:
       - No em dashes (—). Use commas, colons, or periods.
       - Be concise and practical. Ask at most 1 clarifying question when needed.
+      - Be resolute: when you have enough info, give a direct answer. Do not hedge.
       - Do NOT say you are a "text-based assistant" or that you're on "no website". You are on Grantify.
       - Do NOT hedge with "I'm not sure" if you were given fresh context. Only hedge when truly missing context.
 
       LINK RULES:
       - Never show raw URLs as visible text.
       - When linking, use: <a href="...">descriptive text</a>.
-      - Max 3 links per message. Prefer internal Grantify links like <a href="/blog">Community Blog</a> and <a href="/loan-providers">Loan Providers & Reviews</a>.
+      - Max 2 links per message.
+      - Only include internal Grantify links when the user asked where to click or asked you to reference on-site content.
+      - Do not include external links unless explicitly requested.
 
       CURRENT DATE/TIME (server): ${nowIso}
 
@@ -332,7 +360,7 @@ export default async function handler(req, res) {
       FACTS:
       - Never invent specific figures, dates, approval claims, or provider policies.
       - Answer straightforwardly. Do not announce that you fetched fresh context.
-      - Only include sources/links when the user asked, or when providing grant/application links or time-sensitive claims.`;
+      - Use the provided web context to stay current, but do not list sources unless asked.`;
 
       if (useSearch) {
         const promptKey = String(prompt || '').trim().toLowerCase();
@@ -386,13 +414,16 @@ export default async function handler(req, res) {
           .map((m) => ({ role: m.role, content: m.content }))
       : [];
 
-    const includeContextBlocks = type === 'blog' || wantsSourcesExplicitly || looksLikeGrantLinking;
+    const includeContextBlocks = Boolean(useSearch) || type === 'blog' || wantsSourcesExplicitly || looksLikeGrantLinking;
 
     const messages = type === 'blog'
       ? [
           { role: 'system', content: systemInstruction },
           ...(newsContext
             ? [{ role: 'user', content: `Use these recent headlines and links as context (do not invent facts beyond them):\n${newsContext}` }]
+            : []),
+          ...(webContext
+            ? [{ role: 'user', content: `Optional web context (quick lookup results). Use only if relevant and do not invent facts beyond it:\n${webContext}` }]
             : []),
           { role: 'user', content: userPrompt }
         ]
@@ -426,11 +457,14 @@ export default async function handler(req, res) {
     const aiText = postProcessAnchors(data.choices?.[0]?.message?.content || 'No response generated.');
 
     if (type === 'blog') {
-      const sourcesHtml = buildSourcesHtml(sources);
-      const finalHtml = sourcesHtml && !String(aiText).includes('<h3>Sources</h3>')
-        ? `${aiText}\n${sourcesHtml}`
-        : aiText;
-      return res.status(200).json({ content: finalHtml, sources });
+      if (includeSourcesEffective) {
+        const sourcesHtml = buildSourcesHtml(sources);
+        const finalHtml = sourcesHtml && !String(aiText).includes('<h3>Sources</h3>')
+          ? `${aiText}\n${sourcesHtml}`
+          : aiText;
+        return res.status(200).json({ content: finalHtml, sources });
+      }
+      return res.status(200).json({ content: aiText, sources });
     }
 
     return res.status(200).json({ text: aiText, sources });

@@ -58,14 +58,20 @@ const buildSourcesHtml = (items) => {
   if (!Array.isArray(items) || items.length === 0) return '';
   const safeItems = items
     .filter((i) => i && typeof i.title === 'string' && typeof i.link === 'string')
-    .slice(0, 8);
+    .slice(0, 3);
   if (safeItems.length === 0) return '';
 
   const listItems = safeItems
     .map((i) => {
       const title = i.title.replace(/</g, '&lt;').replace(/>/g, '&gt;').trim();
-      const href = i.link.replace(/"/g, '&quot;').trim();
-      return `<li><a href="${href}" target="_blank" rel="noopener noreferrer">${title}</a></li>`;
+      let host = '';
+      try {
+        host = new URL(String(i.link)).hostname;
+      } catch {
+        host = '';
+      }
+      const suffix = host ? ` <small>(${host})</small>` : '';
+      return `<li>${title}${suffix}</li>`;
     })
     .join('');
 
@@ -177,9 +183,10 @@ Write an authoritative, human-sounding 650-900 word article in HTML format.
 CRITICAL CONTENT RULES:
 1. NEVER use em dashes (—). Use commas, colons, or periods instead.
 2. AVOID generic AI openings or conclusions.
+2b. Do NOT include a "Conclusion" section or wrap-up paragraph. End with concrete next steps.
 3. FOCUS deeply on Nigeria: use Naira (₦), mention local states, or CBN/BOI policies.
 4. SOUND like a person, not a textbook. Be strategic and actionable.
-5. LINKS: Use named anchors (descriptive link text). Do NOT show raw URLs in the body.
+5. LINKS: Do NOT include raw URLs in the body. Do NOT add a Sources section or citations.
 6. AVOID too much use of Additionally
 7. FORMAT: Use <h2>, <h3>, <p>, <strong>, <ul>, <li>, and <a> tags only.`;
 
