@@ -88,6 +88,49 @@ const extractTitleFromHtml = (html) => {
   }
 };
 
+const bestEffortLogCronRun = async ({
+  cronName,
+  status,
+  reason,
+  detail,
+  isVercelCron,
+}) => {
+  try {
+    const client = await pool.connect();
+    try {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS cron_runs (
+          id TEXT PRIMARY KEY,
+          cron_name TEXT NOT NULL,
+          status TEXT NOT NULL,
+          reason TEXT,
+          detail TEXT,
+          is_vercel_cron BOOLEAN NOT NULL DEFAULT FALSE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      const runId = Date.now().toString();
+      await client.query(
+        `INSERT INTO cron_runs (id, cron_name, status, reason, detail, is_vercel_cron)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          runId,
+          String(cronName || 'daily-blog'),
+          String(status || 'unknown'),
+          reason ? String(reason) : null,
+          detail ? String(detail) : null,
+          Boolean(isVercelCron),
+        ]
+      );
+    } finally {
+      client.release();
+    }
+  } catch {
+    // no-op
+  }
+};
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -95,11 +138,18 @@ export default async function handler(req, res) {
 
   res.setHeader('Cache-Control', 'no-store');
 
+  const isVercelCron = Boolean(req.headers['x-vercel-cron']);
+
   if (String(process.env.AUTOBLOG_ENABLED || '').toLowerCase() !== 'true') {
+    await bestEffortLogCronRun({
+      cronName: 'daily-blog',
+      status: 'skipped',
+      reason: 'AUTOBLOG_ENABLED is not true',
+      detail: null,
+      isVercelCron,
+    });
     return res.status(200).json({ success: true, skipped: true, reason: 'AUTOBLOG_ENABLED is not true' });
   }
-
-  const isVercelCron = Boolean(req.headers['x-vercel-cron']);
 
   const expected = process.env.BLOG_CRON_SECRET;
   const auth = String(req.headers.authorization || '');
@@ -113,6 +163,13 @@ export default async function handler(req, res) {
 
   const groqKey = process.env.GROQ_API_KEY;
   if (!groqKey) {
+    await bestEffortLogCronRun({
+      cronName: 'daily-blog',
+      status: 'error',
+      reason: 'GROQ_API_KEY is not configured',
+      detail: null,
+      isVercelCron,
+    });
     return res.status(500).json({ error: 'GROQ_API_KEY is not configured' });
   }
 
