@@ -6,6 +6,7 @@ import { Loader2, ThumbsUp, Heart, Hand, MessageSquare, ArrowLeft, Send, Calenda
 import { AdSlot } from '../components/AdSlot';
 import { FacebookShareButton, TwitterShareButton, WhatsappShareButton, LinkedinShareButton, FacebookIcon, WhatsappIcon, LinkedinIcon } from 'react-share';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
+import { derivePostImage } from '../utils/blogImage';
 import { makeBlogSlug, parseBlogParam } from '../utils/blogRouting';
 
 const XShareIcon: React.FC<{ size?: number; round?: boolean; bgStyle?: React.CSSProperties; iconFillColor?: string }> = ({
@@ -81,6 +82,16 @@ export const BlogPostView: React.FC = () => {
   const [didCopyLink, setDidCopyLink] = useState(false);
   const [commentsSort, setCommentsSort] = useState<'oldest' | 'newest' | 'helpful'>('oldest');
   const [myLikedComments, setMyLikedComments] = useState<Record<string, boolean>>({});
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('admin_session');
+      setIsAdmin(Boolean(saved));
+    } catch {
+      setIsAdmin(false);
+    }
+  }, []);
 
   const myUserId = useMemo(() => {
     try {
@@ -119,7 +130,9 @@ export const BlogPostView: React.FC = () => {
 
       const stripHtml = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
       const description = normalizeNbsp(stripHtml(post.content || '')).slice(0, 160) || 'Discover funding options and learn from community intelligence.';
-      const image = (post.image && !String(post.image).startsWith('data:')) ? String(post.image) : '/og-default.svg';
+      const derived = derivePostImage(post);
+      const safeImage = (derived && !String(derived).startsWith('data:')) ? String(derived) : '';
+      const image = safeImage || '/og-default.svg';
 
       const setMeta = (selector: string, attr: 'content', value: string) => {
         const el = document.head.querySelector(selector) as HTMLMetaElement | null;
@@ -136,6 +149,11 @@ export const BlogPostView: React.FC = () => {
       // no-op
     }
   }, [post?.id]);
+
+  const heroImage = useMemo(() => {
+    if (!post) return '';
+    return derivePostImage(post) || getBlogPlaceholderImage(post.title);
+  }, [post?.id, post?.image, post?.content, post?.title]);
 
   useEffect(() => {
     if (!effectiveId) return;
@@ -381,7 +399,7 @@ export const BlogPostView: React.FC = () => {
       <article className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm mb-12">
         <div className="overflow-hidden rounded-t-3xl">
           <img
-            src={post.image || getBlogPlaceholderImage(post.title)}
+            src={heroImage}
             alt={post.title}
             className="w-full h-80 object-cover"
             loading="lazy"
@@ -411,6 +429,20 @@ export const BlogPostView: React.FC = () => {
           <h1 className="text-3xl md:text-5xl font-black font-heading text-gray-900 dark:text-gray-100 mb-8 leading-tight break-normal">
             {safeTitle}
           </h1>
+
+          {isAdmin && (
+            <div className="mb-8">
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-100 hover:border-grantify-green/50 hover:text-grantify-green"
+                onClick={() => navigate(`/admin?tab=blog&editPostId=${encodeURIComponent(String(post.id))}`)}
+                aria-label="Edit this post"
+                title="Edit this post"
+              >
+                Edit Post
+              </button>
+            </div>
+          )}
 
 
           <div lang="en" className="max-w-none text-gray-700 dark:text-gray-200 text-sm leading-relaxed quill-content">
@@ -514,7 +546,7 @@ export const BlogPostView: React.FC = () => {
               <Link key={rec.id} to={`/blog/${makeBlogSlug(rec.title, rec.id)}`} className="group bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm hover:shadow-md transition-all">
                 <div className="h-32 bg-gray-100 dark:bg-gray-950 relative">
                   <img
-                    src={rec.image || getBlogPlaceholderImage(rec.title)}
+                    src={derivePostImage(rec) || getBlogPlaceholderImage(rec.title)}
                     alt={rec.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     loading="lazy"

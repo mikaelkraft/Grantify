@@ -8,6 +8,7 @@ import { BlogTicker } from '../components/BlogTicker';
 import { BlogSlider } from '../components/BlogSlider';
 import { matchGrantNetwork, GRANT_NETWORKS } from '../utils/grantMatcher';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
+import { derivePostImage } from '../utils/blogImage';
 import { makeBlogPath } from '../utils/blogRouting';
 import { LoanType, ApplicationStatus, LoanApplication, Testimonial, AdConfig, BlogPost, GrantNetwork } from '../types';
 import { 
@@ -493,7 +494,7 @@ export const Home: React.FC = () => {
               <Link key={post.id} to={makeBlogPath(post)} className="group bg-white dark:bg-gray-900 rounded-3xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-xl transition-all duration-300">
                 <div className="h-48 bg-gray-200 dark:bg-gray-950 relative overflow-hidden">
                   <img
-                    src={post.image || getBlogPlaceholderImage(post.title)}
+                    src={derivePostImage(post) || getBlogPlaceholderImage(post.title)}
                     alt={post.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     loading="lazy"

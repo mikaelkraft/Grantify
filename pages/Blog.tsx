@@ -4,6 +4,7 @@ import { ApiService } from '../services/storage';
 import { BlogPost } from '../types';
 import { Loader2, MessageSquare, ThumbsUp, Heart, Hand, Calendar, ChevronRight, Eye } from 'lucide-react';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
+import { derivePostImage } from '../utils/blogImage';
 import { makeBlogPath } from '../utils/blogRouting';
 
 export const Blog: React.FC = () => {
@@ -98,7 +99,7 @@ export const Blog: React.FC = () => {
             >
               <div className="aspect-video bg-gray-100 dark:bg-gray-950 overflow-hidden relative">
                 <img
-                  src={post.image || getBlogPlaceholderImage(post.title)}
+                  src={derivePostImage(post) || getBlogPlaceholderImage(post.title)}
                   alt={post.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   loading="lazy"

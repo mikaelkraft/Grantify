@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { BlogPost } from '../types';
 import { ThumbsUp, ChevronRight, Eye } from 'lucide-react';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
+import { derivePostImage } from '../utils/blogImage';
 import { makeBlogPath } from '../utils/blogRouting';
 
 interface Props {
@@ -45,7 +46,7 @@ export const BlogSlider: React.FC<Props> = ({ posts }) => {
               >
                 <div className="h-40 relative overflow-hidden">
                   <img
-                    src={post.image || getBlogPlaceholderImage(post.title)}
+                    src={derivePostImage(post) || getBlogPlaceholderImage(post.title)}
                     alt={post.title}
                     className="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-700"
                     loading="lazy"

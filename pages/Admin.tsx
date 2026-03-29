@@ -738,16 +738,36 @@ export const Admin: React.FC = () => {
     }
   };
 
-  const extractFirstImageSrcFromHtml = (html: string): string | null => {
+  const [pendingEditPostId, setPendingEditPostId] = useState<string | null>(null);
+
+  useEffect(() => {
     try {
-      const doc = new DOMParser().parseFromString(html || '', 'text/html');
-      const img = doc.querySelector('img');
-      const src = img?.getAttribute('src');
-      return src && src.trim() ? src.trim() : null;
+      const params = new URLSearchParams(window.location.search);
+      const tab = (params.get('tab') || '').trim();
+      const editPostId = (params.get('editPostId') || '').trim();
+
+      const allowedTabs = new Set([
+        'applications',
+        'testimonials',
+        'ads',
+        'providers',
+        'contact',
+        'content',
+        'reviews',
+        'blog',
+        'moderation',
+        'admins'
+      ]);
+
+      if (tab && allowedTabs.has(tab)) setActiveTab(tab);
+      if (editPostId) {
+        setActiveTab('blog');
+        setPendingEditPostId(editPostId);
+      }
     } catch {
-      return null;
+      // no-op
     }
-  };
+  }, []);
 
   const handleFeaturedImageUpload = async (file: File | null | undefined) => {
     if (!file) return;
@@ -771,10 +791,9 @@ export const Admin: React.FC = () => {
     setIsSavingPost(true);
     setPostSaveNotice(null);
     try {
-      const derivedImage = (newPost.image || '').trim() || extractFirstImageSrcFromHtml(newPost.content) || '';
       const payload = {
         ...newPost,
-        image: derivedImage,
+        image: (newPost.image || '').trim(),
         content: autoLinkUrls ? linkifyHtml(newPost.content) : newPost.content
       };
 
@@ -861,6 +880,15 @@ export const Admin: React.FC = () => {
       setIsSavingPost(false);
     }
   };
+
+  useEffect(() => {
+    if (!pendingEditPostId) return;
+    const found = blogPosts.find(p => String(p.id) === String(pendingEditPostId));
+    if (!found) return;
+    setActiveTab('blog');
+    handleEditBlogPost(found);
+    setPendingEditPostId(null);
+  }, [pendingEditPostId, blogPosts]);
 
   const handleEditBlogPost = (post: BlogPost) => {
     setNewPost({
@@ -2240,11 +2268,7 @@ export const Admin: React.FC = () => {
                               ref={quillRef}
                               theme="snow"
                               value={newPost.content}
-                              onChange={(content) => setNewPost(prev => {
-                                if ((prev.image || '').trim()) return { ...prev, content };
-                                const extracted = extractFirstImageSrcFromHtml(content);
-                                return { ...prev, content, image: extracted || prev.image };
-                              })}
+                              onChange={(content) => setNewPost(prev => ({ ...prev, content }))}
                               modules={quillModules}
                               formats={quillFormats}
                               className="flex-grow admin-quill"

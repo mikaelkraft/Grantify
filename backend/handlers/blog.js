@@ -62,6 +62,20 @@ const containsLinkLikeText = (value) => {
   return /https?:\/\//.test(s) || /\bwww\./.test(s);
 };
 
+const extractFirstImageSrcFromHtml = (html) => {
+  const s = String(html ?? '');
+  if (!s) return '';
+  const match = s.match(/<img\b[^>]*?\bsrc\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/i);
+  const src = (match && (match[1] || match[2] || match[3])) ? String(match[1] || match[2] || match[3]) : '';
+  return src.trim();
+};
+
+const deriveFeaturedImage = (explicitImage, content) => {
+  const direct = String(explicitImage ?? '').trim();
+  if (direct) return direct;
+  return extractFirstImageSrcFromHtml(content) || '';
+};
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, PUT, OPTIONS');
@@ -349,10 +363,12 @@ export default async function handler(req, res) {
       const seededClaps = typeof claps === 'number' ? claps : Math.floor(3 + Math.random() * 18);
       const seededViews = typeof views === 'number' ? views : Math.floor(120 + Math.random() * 900);
 
+      const featuredImage = deriveFeaturedImage(image, content);
+
       await client.query(
         `INSERT INTO blog_posts (id, title, content, author, author_role, category, image, tags, source_name, source_url, likes, loves, claps, views, created_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, COALESCE($15, CURRENT_TIMESTAMP))`,
-        [id, title, content, author, authorRole, category, image, tags || [], sourceName, sourceUrl, seededLikes, seededLoves, seededClaps, seededViews, createdAt || null]
+        [id, title, content, author, authorRole, category, featuredImage, tags || [], sourceName, sourceUrl, seededLikes, seededLoves, seededClaps, seededViews, createdAt || null]
       );
 
       return res.status(200).json({ success: true, id });
@@ -360,6 +376,8 @@ export default async function handler(req, res) {
 
     if (req.method === 'PUT') {
       const { id, title, content, author, authorRole, category, image, tags, sourceName, sourceUrl, views, createdAt, likes, loves, claps } = req.body;
+
+      const featuredImage = deriveFeaturedImage(image, content);
       await client.query(
         `UPDATE blog_posts
          SET title = $1,
@@ -375,7 +393,7 @@ export default async function handler(req, res) {
              created_at = COALESCE($11, created_at),
              updated_at = CURRENT_TIMESTAMP
          WHERE id = $12`,
-        [title, content, author, authorRole, category, image, tags || [], sourceName, sourceUrl, typeof views === 'number' ? views : null, createdAt || null, id]
+        [title, content, author, authorRole, category, featuredImage, tags || [], sourceName, sourceUrl, typeof views === 'number' ? views : null, createdAt || null, id]
       );
 
       if (typeof likes === 'number' || typeof loves === 'number' || typeof claps === 'number') {
