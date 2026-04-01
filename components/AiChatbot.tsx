@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MessageSquare, X, Send, Loader2, Bot, ChevronDown } from 'lucide-react';
+import { MessageSquare, X, Send, Loader2, Bot } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -341,6 +341,47 @@ export const AiChatbot: React.FC = () => {
     setIsOpen((v) => !v);
   };
 
+  const handleHeaderDragPointerDown: React.PointerEventHandler<HTMLButtonElement> = (e) => {
+    // Left click or touch only
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    (e.currentTarget as HTMLButtonElement).setPointerCapture?.(e.pointerId);
+    dragStateRef.current = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      originX: pos.x,
+      originY: pos.y,
+      moved: false
+    };
+  };
+
+  const handleHeaderDragPointerMove: React.PointerEventHandler<HTMLButtonElement> = (e) => {
+    const st = dragStateRef.current;
+    if (st.pointerId !== e.pointerId) return;
+    const dx = e.clientX - st.startX;
+    const dy = e.clientY - st.startY;
+    if (!st.moved && Math.hypot(dx, dy) < 6) return;
+    st.moved = true;
+    setPos(clampPos({ x: st.originX + dx, y: st.originY + dy }));
+  };
+
+  const handleHeaderDragPointerUp: React.PointerEventHandler<HTMLButtonElement> = (e) => {
+    const st = dragStateRef.current;
+    if (st.pointerId !== e.pointerId) return;
+    dragStateRef.current.pointerId = null;
+    if (!st.moved) return;
+
+    setPos((p) => {
+      const next = clampPos(p);
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+
   const popDirection = pos.y > 560 ? 'up' : 'down';
   const chatWindowClass = popDirection === 'up'
     ? 'bottom-[76px] right-0'
@@ -370,17 +411,28 @@ export const AiChatbot: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="flex flex-col items-end">
-              <button 
+            <div className="flex items-center gap-2">
+              <button
+                onPointerDown={handleHeaderDragPointerDown}
+                onPointerMove={handleHeaderDragPointerMove}
+                onPointerUp={handleHeaderDragPointerUp}
+                onPointerCancel={handleHeaderDragPointerUp}
+                className="px-3 py-1.5 rounded-full text-[10px] text-green-100 font-black uppercase tracking-widest hover:bg-white/10 transition touch-none cursor-grab active:cursor-grabbing"
+                title="Drag"
+                aria-label="Drag chat"
+                type="button"
+              >
+                drag
+              </button>
+              <button
                 onClick={() => setIsOpen(false)}
                 className="p-2 hover:bg-white/10 rounded-full transition"
-                title="Minimize chat"
+                title="Close chat"
+                aria-label="Close chat"
+                type="button"
               >
-                <ChevronDown size={20} />
+                <X size={20} />
               </button>
-              <div className="text-[10px] text-green-100 font-black uppercase tracking-widest mt-1">
-                drag
-              </div>
             </div>
           </div>
 
