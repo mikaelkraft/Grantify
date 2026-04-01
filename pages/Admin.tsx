@@ -17,7 +17,7 @@ import {
   Flag,
   X,
 } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ApiService } from '../services/storage';
 import { AdminUser, LoanApplication, Testimonial, AdConfig, UserRole, RepaymentContent, LoanProvider, LoanProviderSubmission, BlogPost, ProviderReview, ContactMessage, ContentFlag } from '../types';
 import ReactQuill from 'react-quill-new';
@@ -105,6 +105,54 @@ export const Admin: React.FC = () => {
   const [isEditingPost, setIsEditingPost] = useState(false);
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [autoLinkUrls, setAutoLinkUrls] = useState(true);
+  const [oneDriveStatus, setOneDriveStatus] = useState<{ enabled: boolean; provider: string; connected: boolean } | null>(null);
+  const oneDriveStatusRef = useRef<typeof oneDriveStatus>(null);
+
+  const formatCronSource = (run: any) => (run?.is_vercel_cron ? 'vercel' : 'manual');
+
+  useEffect(() => {
+    oneDriveStatusRef.current = oneDriveStatus;
+  }, [oneDriveStatus]);
+
+  useEffect(() => {
+    let canceled = false;
+    let intervalId: number | null = null;
+
+    const fetchStatus = async () => {
+      if (!user) return;
+      if (activeTab !== 'blog') return;
+      try {
+        const status = await ApiService.getOneDriveStatus();
+        if (!canceled) setOneDriveStatus(status);
+      } catch {
+        if (!canceled) setOneDriveStatus(null);
+      }
+    };
+
+    const onFocus = () => {
+      fetchStatus();
+    };
+
+    if (user && activeTab === 'blog') {
+      window.addEventListener('focus', onFocus);
+      fetchStatus();
+
+      // While disconnected, poll so the UI flips to Connected
+      intervalId = window.setInterval(() => {
+        const s = oneDriveStatusRef.current;
+        if (!s) return;
+        if (s.enabled && s.provider === 'onedrive' && !s.connected) {
+          fetchStatus();
+        }
+      }, 8000);
+    }
+
+    return () => {
+      canceled = true;
+      window.removeEventListener('focus', onFocus);
+      if (intervalId !== null) window.clearInterval(intervalId);
+    };
+  }, [activeTab, user?.id]);
 
   const linkifyHtml = (html: string): string => {
     if (!html || typeof html !== 'string') return html;
@@ -250,6 +298,29 @@ export const Admin: React.FC = () => {
     if (!file.type.startsWith('image/')) {
       alert('Please select an image file.');
       return;
+    }
+
+    try {
+      const url = await ApiService.uploadImage(file, { folder: 'blog-images' });
+      insertQuillEmbed('image', url);
+      return;
+    } catch (err: any) {
+      const connectUrl = String(err?.connectUrl || '').trim();
+      const msg = String(err?.message || '').toLowerCase();
+
+      if (connectUrl) {
+        try { window.open(connectUrl, '_blank', 'noopener,noreferrer'); } catch {}
+        alert('OneDrive is not connected yet. A OneDrive consent page was opened; complete it, then retry the upload.');
+        return;
+      }
+
+      if (msg.includes('uploads are disabled') || msg.includes('not configured') || msg.includes('not connected')) {
+        alert(String(err?.message || 'Image uploads are not configured.'));
+        return;
+      }
+
+      // Fallback: embed as base64 (keeps editor usable if storage is temporarily unavailable).
+      console.warn('Offsite image upload failed; falling back to base64', err);
     }
 
     const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -774,6 +845,28 @@ export const Admin: React.FC = () => {
     if (!file.type.startsWith('image/')) {
       alert('Please select an image file.');
       return;
+    }
+
+    try {
+      const url = await ApiService.uploadImage(file, { folder: 'blog-images' });
+      setNewPost(prev => ({ ...prev, image: url }));
+      return;
+    } catch (err: any) {
+      const connectUrl = String(err?.connectUrl || '').trim();
+      const msg = String(err?.message || '').toLowerCase();
+
+      if (connectUrl) {
+        try { window.open(connectUrl, '_blank', 'noopener,noreferrer'); } catch {}
+        alert('OneDrive is not connected yet. A OneDrive consent page was opened; complete it, then retry the upload.');
+        return;
+      }
+
+      if (msg.includes('uploads are disabled') || msg.includes('not configured') || msg.includes('not connected')) {
+        alert(String(err?.message || 'Image uploads are not configured.'));
+        return;
+      }
+
+      console.warn('Offsite featured image upload failed; falling back to base64', err);
     }
 
     const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -1533,18 +1626,21 @@ export const Admin: React.FC = () => {
                           <p className="text-[10px] text-gray-400 mt-1">
                             Last cron: {autoblogLastRun.created_at ? new Date(autoblogLastRun.created_at).toLocaleString() : 'unknown'}
                             {autoblogLastRun.status ? ` — ${String(autoblogLastRun.status)}` : ''}
+                            {` — ${formatCronSource(autoblogLastRun)}`}
                             {autoblogLastRun.reason ? ` (${String(autoblogLastRun.reason)})` : ''}
                           </p>
                         )}
                         {autoblogLastSuccessRun && (
                           <p className="text-[10px] text-gray-400 mt-1">
                             Last success: {autoblogLastSuccessRun.created_at ? new Date(autoblogLastSuccessRun.created_at).toLocaleString() : 'unknown'}
+                            {` — ${formatCronSource(autoblogLastSuccessRun)}`}
                             {autoblogLastSuccessRun.detail ? ` — ${String(autoblogLastSuccessRun.detail)}` : ''}
                           </p>
                         )}
                         {autoblogLastErrorRun && (
                           <p className="text-[10px] text-gray-400 mt-1">
                             Last error: {autoblogLastErrorRun.created_at ? new Date(autoblogLastErrorRun.created_at).toLocaleString() : 'unknown'}
+                            {` — ${formatCronSource(autoblogLastErrorRun)}`}
                             {autoblogLastErrorRun.detail ? ` — ${String(autoblogLastErrorRun.detail).slice(0, 180)}` : ''}
                           </p>
                         )}
@@ -2178,6 +2274,12 @@ export const Admin: React.FC = () => {
                            aria-label="Claps"
                            title="Claps"
                          />
+
+                         {oneDriveStatus && oneDriveStatus.enabled && oneDriveStatus.provider === 'onedrive' && (
+                           <div className="md:col-span-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                             OneDrive: {oneDriveStatus.connected ? 'Connected' : 'Not connected'}
+                           </div>
+                         )}
                          
                          <div className="md:col-span-2 flex flex-col md:flex-row gap-3">
                            <input

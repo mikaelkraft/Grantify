@@ -25,6 +25,64 @@ import {
 // When deployed to Vercel, leave VITE_API_URL empty to use same-origin API routes
 const API_URL = import.meta.env.VITE_API_URL || ''; 
 
+const getAdminSessionHeader = (): string | null => {
+  try {
+    const raw = localStorage.getItem('admin_session');
+    if (!raw) return null;
+    // Send as base64(JSON) so the server can parse consistently.
+    return btoa(unescape(encodeURIComponent(raw)));
+  } catch {
+    return null;
+  }
+};
+
+const decodeUploadError = async (res: Response): Promise<string> => {
+  try {
+    const data = await res.json();
+    const err = String(data?.error || res.statusText || 'Upload failed');
+    const connectUrl = String(data?.connectUrl || '');
+    return connectUrl ? `${err} (connect: ${connectUrl})` : err;
+  } catch {
+    return String(res.statusText || 'Upload failed');
+  }
+};
+
+const uploadToOneDriveSession = async (uploadUrl: string, file: File): Promise<any> => {
+  // OneDrive upload sessions require chunked upload for larger files.
+  // We'll chunk everything to keep logic consistent.
+  const chunkSize = 3.2 * 1024 * 1024; // 3.2MB
+  let start = 0;
+
+  while (start < file.size) {
+    const end = Math.min(file.size, start + chunkSize);
+    const chunk = file.slice(start, end);
+
+    const res = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Range': `bytes ${start}-${end - 1}/${file.size}`,
+      },
+      body: chunk,
+    });
+
+    if (res.status === 202) {
+      // Continue
+      start = end;
+      continue;
+    }
+
+    if (res.ok) {
+      // Final response contains item metadata
+      const data = await res.json().catch(() => ({}));
+      return data;
+    }
+
+    throw new Error('Failed to upload image');
+  }
+
+  throw new Error('Failed to upload image');
+};
+
 const getOrCreateAnonUserId = (): string => {
   try {
     const key = 'grantify_uid';
@@ -201,6 +259,100 @@ export const ApiService = {
     const res = await fetch(`${API_URL}/api/config?type=autoblog`);
     if (!res.ok) throw new Error('Failed to fetch autoblog config');
     return await res.json();
+  },
+
+  // -- Offsite Uploads (S3/R2 via presigned PUT) --
+  uploadImage: async (file: File, opts?: { folder?: string }): Promise<string> => {
+    if (!file || !(file instanceof File)) throw new Error('Missing file');
+    if (!file.type?.startsWith('image/')) throw new Error('Only image uploads are supported');
+    if (file.size > 8 * 1024 * 1024) throw new Error('Image is too large (max 8MB)');
+
+    const adminHeader = getAdminSessionHeader();
+    if (!adminHeader) throw new Error('Admin session missing');
+
+    const presignRes = await fetch(`${API_URL}/api/uploads/image`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Session': adminHeader,
+      },
+      body: JSON.stringify({
+        filename: file.name || 'image.png',
+        contentType: file.type,
+        folder: opts?.folder || 'blog-images',
+      }),
+    });
+
+    if (!presignRes.ok) {
+      // Preserve connectUrl if present (OneDrive flow)
+      let data: any = null;
+      try { data = await presignRes.json(); } catch { data = null; }
+      const msg = String(data?.error || presignRes.statusText || 'Upload failed');
+      const err: any = new Error(msg);
+      if (data?.connectUrl) err.connectUrl = String(data.connectUrl);
+      throw err;
+    }
+
+    const presign = await presignRes.json();
+    const uploadUrl = String(presign?.uploadUrl || '');
+    const provider = String(presign?.provider || 's3');
+    const publicUrl = String(presign?.publicUrl || '');
+    if (!uploadUrl) throw new Error('Invalid upload response');
+
+    if (provider === 'onedrive') {
+      const item = await uploadToOneDriveSession(uploadUrl, file);
+      const itemId = String(item?.id || '').trim();
+      if (!itemId) throw new Error('OneDrive upload succeeded but item id is missing');
+
+      const finalizeRes = await fetch(`${API_URL}/api/uploads/onedrive/finalize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Session': adminHeader,
+        },
+        body: JSON.stringify({ itemId }),
+      });
+
+      if (!finalizeRes.ok) {
+        const msg = await decodeUploadError(finalizeRes);
+        throw new Error(msg);
+      }
+
+      const fin = await finalizeRes.json();
+      const finUrl = String(fin?.publicUrl || '');
+      if (!finUrl) throw new Error('Missing OneDrive publicUrl');
+      return finUrl;
+    }
+
+    if (!publicUrl) throw new Error('Invalid upload response');
+
+    const putRes = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type },
+      body: file,
+    });
+    if (!putRes.ok) throw new Error('Failed to upload image');
+
+    return publicUrl;
+  },
+
+  getOneDriveStatus: async (): Promise<{ enabled: boolean; provider: string; connected: boolean }> => {
+    const adminHeader = getAdminSessionHeader();
+    if (!adminHeader) throw new Error('Admin session missing');
+
+    const res = await fetch(`${API_URL}/api/uploads/onedrive/status`, {
+      method: 'GET',
+      headers: {
+        'X-Admin-Session': adminHeader,
+      },
+    });
+    if (!res.ok) throw new Error('Failed to fetch OneDrive status');
+    const data = await res.json();
+    return {
+      enabled: Boolean(data?.enabled),
+      provider: String(data?.provider || ''),
+      connected: Boolean(data?.connected),
+    };
   },
 
   setAutoblogEnabled: async (enabled: boolean): Promise<{ success: boolean; enabled: boolean }> => {
