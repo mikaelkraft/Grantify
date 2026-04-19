@@ -18,6 +18,7 @@ Supported providers:
 
 - `s3` (S3/R2-compatible object storage)
 - `onedrive` (uses your OneDrive quota; requires OAuth)
+- `gdrive` (uses your Google Drive quota; requires OAuth)
 
 ### Environment variables
 
@@ -27,6 +28,49 @@ Pick a provider:
 
 - `OFFSITE_UPLOADS_PROVIDER=s3` (default)
 - `OFFSITE_UPLOADS_PROVIDER=onedrive`
+- `OFFSITE_UPLOADS_PROVIDER=gdrive`
+
+### Google Drive configuration
+
+Required:
+
+- `GDRIVE_CLIENT_ID`
+- `GDRIVE_CLIENT_SECRET`
+
+Optional (defaults shown):
+
+- `GDRIVE_REDIRECT_URI` (default: `https://<your-domain>/api/uploads/gdrive/callback`)
+
+How to generate `GDRIVE_CLIENT_ID` / `GDRIVE_CLIENT_SECRET`:
+
+1. Go to Google Cloud Console → create/select a project.
+2. APIs & Services → Library → enable **Google Drive API**.
+3. APIs & Services → OAuth consent screen:
+	- Choose **External** (typical) or **Internal** (Workspace only).
+	- Add your app name and support email.
+	- Add test users (your Google account) if the app is in testing.
+4. APIs & Services → Credentials → Create Credentials → **OAuth client ID**.
+	- Application type: **Web application**.
+	- Authorized redirect URIs: add the exact callback URL(s) you will use:
+	  - Production: `https://<your-domain>/api/uploads/gdrive/callback`
+	  - Local dev (optional): `http://localhost:3001/api/uploads/gdrive/callback`
+5. Copy the generated values into environment variables:
+	- `GDRIVE_CLIENT_ID` (Client ID)
+	- `GDRIVE_CLIENT_SECRET` (Client secret)
+
+Notes:
+
+- The redirect URI must match exactly (including `http` vs `https` and port). If you use local dev, set `GDRIVE_REDIRECT_URI=http://localhost:3001/api/uploads/gdrive/callback`.
+- Google only returns a refresh token the first time you consent for a given client + user. If you don’t get a refresh token, remove the app from your Google Account → Security → Third-party access, then reconnect.
+
+Connect once (as an Admin):
+
+- When prompted in the Admin UI during an image upload, complete the Google consent flow in the newly opened tab/window, then retry the upload.
+
+Notes:
+
+- Uploaded images are stored under `Grantify/blog-images` in your Drive.
+- Public visitors can view images via `/api/uploads/gdrive/image?id=<fileId>` (the server streams the bytes from Drive).
 
 ### OneDrive (free) configuration
 

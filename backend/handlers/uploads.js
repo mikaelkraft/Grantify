@@ -7,6 +7,7 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import pool from '../db.js';
 import { getOriginFromReq, refreshOneDriveAccessToken, graphFetch, kvSet, toStr as sharedToStr } from './onedrive_shared.js';
+import { refreshGDriveAccessToken, getOrCreateBlogImagesFolderId, toStr as gToStr } from './gdrive_shared.js';
 
 const toStr = (v) => (typeof v === 'string' ? v : Array.isArray(v) ? v.join(',') : v === undefined || v === null ? '' : String(v));
 
@@ -119,6 +120,60 @@ export default async function handler(req, res) {
     const id = crypto.randomUUID();
     const key = sanitizePathname(`${safeFolder}/${yyyy}/${mm}/${id}.${ext}`);
 
+    if (provider === 'gdrive') {
+      const origin = getOriginFromReq(req);
+
+      let accessToken = '';
+      try {
+        accessToken = await refreshGDriveAccessToken(req);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Google Drive auth error';
+        if (String(e?.code || '') === 'GDRIVE_NOT_CONNECTED') {
+          const token = crypto.randomBytes(16).toString('hex');
+          await kvSet(`gdrive_connect_token_${token}`, '1');
+          const connectUrl = `${origin}/api/uploads/gdrive/connect?token=${encodeURIComponent(token)}`;
+          return res.status(409).json({ error: 'Google Drive not connected', connectUrl });
+        }
+        return res.status(503).json({ error: msg });
+      }
+
+      const folderId = await getOrCreateBlogImagesFolderId(accessToken).catch(() => null);
+      const createUrl = 'https://www.googleapis.com/upload/drive/v3/files?' + new URLSearchParams({
+        uploadType: 'resumable',
+      }).toString();
+
+      const metadata = {
+        name: `${id}.${ext}`,
+        ...(folderId ? { parents: [String(folderId)] } : {}),
+      };
+
+      const sessRes = await fetch(createUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json; charset=utf-8',
+          'X-Upload-Content-Type': contentType,
+        },
+        body: JSON.stringify(metadata),
+      });
+
+      if (!sessRes.ok) {
+        const text = await sessRes.text().catch(() => '');
+        return res.status(400).json({ error: gToStr(text || 'Failed to create Google Drive upload session') });
+      }
+
+      const uploadUrl = gToStr(sessRes.headers.get('location')).trim();
+      if (!uploadUrl) return res.status(400).json({ error: 'Google Drive session missing uploadUrl' });
+
+      return res.status(200).json({
+        provider: 'gdrive',
+        uploadUrl,
+        method: 'PUT',
+        headers: { 'Content-Type': contentType },
+        maxBytes: 8 * 1024 * 1024,
+      });
+    }
+
     if (provider === 'onedrive') {
       const origin = getOriginFromReq(req);
       const adminSessionRaw = toStr(req?.headers?.['x-admin-session']).trim();
@@ -179,7 +234,7 @@ export default async function handler(req, res) {
     if (!bucket || !accessKeyId || !secretAccessKey || !publicBaseUrl) {
       return res.status(503).json({
         error: 'Offsite storage is not configured',
-        hint: 'Set OFFSITE_UPLOADS_PROVIDER=onedrive OR configure S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, S3_PUBLIC_BASE_URL (and optionally S3_ENDPOINT, S3_REGION)'
+        hint: 'Set OFFSITE_UPLOADS_PROVIDER=gdrive OR OFFSITE_UPLOADS_PROVIDER=onedrive OR configure S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, S3_PUBLIC_BASE_URL (and optionally S3_ENDPOINT, S3_REGION)'
       });
     }
 

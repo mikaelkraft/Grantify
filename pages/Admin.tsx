@@ -122,7 +122,7 @@ export const Admin: React.FC = () => {
       if (!user) return;
       if (activeTab !== 'blog') return;
       try {
-        const status = await ApiService.getOneDriveStatus();
+        const status = await ApiService.getDriveStatus();
         if (!canceled) setOneDriveStatus(status);
       } catch {
         if (!canceled) setOneDriveStatus(null);
@@ -141,7 +141,7 @@ export const Admin: React.FC = () => {
       intervalId = window.setInterval(() => {
         const s = oneDriveStatusRef.current;
         if (!s) return;
-        if (s.enabled && s.provider === 'onedrive' && !s.connected) {
+        if (s.enabled && s.provider === 'gdrive' && !s.connected) {
           fetchStatus();
         }
       }, 8000);
@@ -310,7 +310,7 @@ export const Admin: React.FC = () => {
 
       if (connectUrl) {
         try { window.open(connectUrl, '_blank', 'noopener,noreferrer'); } catch {}
-        alert('OneDrive is not connected yet. A OneDrive consent page was opened; complete it, then retry the upload.');
+        alert('Google Drive is not connected yet. A Google consent page was opened; complete it, then retry the upload.');
         return;
       }
 
@@ -857,7 +857,7 @@ export const Admin: React.FC = () => {
 
       if (connectUrl) {
         try { window.open(connectUrl, '_blank', 'noopener,noreferrer'); } catch {}
-        alert('OneDrive is not connected yet. A OneDrive consent page was opened; complete it, then retry the upload.');
+        alert('Google Drive is not connected yet. A Google consent page was opened; complete it, then retry the upload.');
         return;
       }
 
@@ -2275,9 +2275,9 @@ export const Admin: React.FC = () => {
                            title="Claps"
                          />
 
-                         {oneDriveStatus && oneDriveStatus.enabled && oneDriveStatus.provider === 'onedrive' && (
+                         {oneDriveStatus && oneDriveStatus.enabled && oneDriveStatus.provider === 'gdrive' && (
                            <div className="md:col-span-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                             OneDrive: {oneDriveStatus.connected ? 'Connected' : 'Not connected'}
+                             Google Drive: {oneDriveStatus.connected ? 'Connected' : 'Not connected'}
                            </div>
                          )}
                          

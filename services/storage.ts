@@ -83,6 +83,21 @@ const uploadToOneDriveSession = async (uploadUrl: string, file: File): Promise<a
   throw new Error('Failed to upload image');
 };
 
+const uploadToGDriveSession = async (uploadUrl: string, file: File): Promise<any> => {
+  // Google Drive resumable upload: a single PUT with the file completes the upload.
+  const res = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': file.type,
+    },
+    body: file,
+  });
+
+  if (!res.ok) throw new Error('Failed to upload image');
+  const data = await res.json().catch(() => ({}));
+  return data;
+};
+
 const getOrCreateAnonUserId = (): string => {
   try {
     const key = 'grantify_uid';
@@ -299,6 +314,31 @@ export const ApiService = {
     const publicUrl = String(presign?.publicUrl || '');
     if (!uploadUrl) throw new Error('Invalid upload response');
 
+    if (provider === 'gdrive') {
+      const item = await uploadToGDriveSession(uploadUrl, file);
+      const fileId = String(item?.id || '').trim();
+      if (!fileId) throw new Error('Google Drive upload succeeded but file id is missing');
+
+      const finalizeRes = await fetch(`${API_URL}/api/uploads/gdrive/finalize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Session': adminHeader,
+        },
+        body: JSON.stringify({ fileId }),
+      });
+
+      if (!finalizeRes.ok) {
+        const msg = await decodeUploadError(finalizeRes);
+        throw new Error(msg);
+      }
+
+      const fin = await finalizeRes.json();
+      const finUrl = String(fin?.publicUrl || '');
+      if (!finUrl) throw new Error('Missing Google Drive publicUrl');
+      return finUrl;
+    }
+
     if (provider === 'onedrive') {
       const item = await uploadToOneDriveSession(uploadUrl, file);
       const itemId = String(item?.id || '').trim();
@@ -336,17 +376,17 @@ export const ApiService = {
     return publicUrl;
   },
 
-  getOneDriveStatus: async (): Promise<{ enabled: boolean; provider: string; connected: boolean }> => {
+  getDriveStatus: async (): Promise<{ enabled: boolean; provider: string; connected: boolean }> => {
     const adminHeader = getAdminSessionHeader();
     if (!adminHeader) throw new Error('Admin session missing');
 
-    const res = await fetch(`${API_URL}/api/uploads/onedrive/status`, {
+    const res = await fetch(`${API_URL}/api/uploads/gdrive/status`, {
       method: 'GET',
       headers: {
         'X-Admin-Session': adminHeader,
       },
     });
-    if (!res.ok) throw new Error('Failed to fetch OneDrive status');
+    if (!res.ok) throw new Error('Failed to fetch Drive status');
     const data = await res.json();
     return {
       enabled: Boolean(data?.enabled),

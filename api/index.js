@@ -17,6 +17,11 @@ import testimonialsIndex from '../backend/handlers/testimonials_index.js';
 import testimonialsId from '../backend/handlers/testimonials_id.js';
 import cronDailyBlog from '../backend/handlers/cron_daily_blog.js';
 import uploads from '../backend/handlers/uploads.js';
+import gDriveConnect from '../backend/handlers/gdrive_connect.js';
+import gDriveCallback from '../backend/handlers/gdrive_callback.js';
+import gDriveFinalize from '../backend/handlers/gdrive_finalize.js';
+import gDriveStatus from '../backend/handlers/gdrive_status.js';
+import gDriveImage from '../backend/handlers/gdrive_image.js';
 import oneDriveConnect from '../backend/handlers/onedrive_connect.js';
 import oneDriveCallback from '../backend/handlers/onedrive_callback.js';
 import oneDriveFinalize from '../backend/handlers/onedrive_finalize.js';
@@ -110,6 +115,11 @@ export default async function handler(req, res) {
 
     if (root === 'uploads') {
       if (rest.join('/') === 'image') return uploads(req, res);
+      if (rest.join('/') === 'gdrive/connect') return gDriveConnect(req, res);
+      if (rest.join('/') === 'gdrive/callback') return gDriveCallback(req, res);
+      if (rest.join('/') === 'gdrive/finalize') return gDriveFinalize(req, res);
+      if (rest.join('/') === 'gdrive/status') return gDriveStatus(req, res);
+      if (rest.join('/') === 'gdrive/image') return gDriveImage(req, res);
       if (rest.join('/') === 'onedrive/connect') return oneDriveConnect(req, res);
       if (rest.join('/') === 'onedrive/callback') return oneDriveCallback(req, res);
       if (rest.join('/') === 'onedrive/finalize') return oneDriveFinalize(req, res);
