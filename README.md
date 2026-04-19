@@ -10,6 +10,22 @@ Important:
 
 If enabled, a daily blog post can be auto-published via the cron defined in [vercel.json](vercel.json) at the path `/api/cron/daily-blog`.
 
+### Cron authentication (why you may see 401)
+
+The endpoint is protected. In Vercel, the recommended way to secure cron jobs is to set `CRON_SECRET` in your Vercel Environment Variables. When `CRON_SECRET` is set, Vercel Cron Jobs will call your cron URL with:
+
+- `Authorization: Bearer <CRON_SECRET>`
+
+This repo also supports `BLOG_CRON_SECRET` for manual/local triggering (`/api/cron/daily-blog?key=...`).
+
+If your logs show `401 Unauthorized` from `vercel-cron/1.0`, it usually means:
+
+- You set `BLOG_CRON_SECRET`, but did not set `CRON_SECRET` in Vercel (so Vercel didn’t attach the Authorization header).
+
+Fix:
+
+- In Vercel → Project → Settings → Environment Variables: set `CRON_SECRET` to the same value as `BLOG_CRON_SECRET`.
+
 ## Offsite Blog Image Uploads
 
 To reduce Vercel bandwidth/storage usage (and avoid storing images in Postgres), the Admin blog editor can upload images directly to offsite storage using signed upload URLs.

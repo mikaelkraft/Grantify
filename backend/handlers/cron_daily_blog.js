@@ -168,17 +168,34 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, skipped: true, reason: 'AUTOBLOG_ENABLED is not true' });
   }
 
-  const expected = process.env.BLOG_CRON_SECRET;
+  // Vercel Cron Jobs can automatically send `Authorization: Bearer <CRON_SECRET>`
+  // when you define `CRON_SECRET` in the Vercel Environment Variables.
+  // For backward compatibility we also support BLOG_CRON_SECRET.
+  const expected = process.env.CRON_SECRET || process.env.BLOG_CRON_SECRET;
   const auth = String(req.headers.authorization || '');
   const bearer = auth.startsWith('Bearer ') ? auth.slice('Bearer '.length).trim() : '';
   const key = String(req.query?.key || '');
   const hasValidSecret = expected ? (bearer === expected || key === expected) : false;
 
-  if (!isVercelCron && !hasValidSecret) {
+  // Require a secret if one is configured. This is the safest mode and works with Vercel Cron Jobs
+  // when CRON_SECRET is set in your project settings.
+  if (expected && !hasValidSecret) {
     await bestEffortLogCronRun({
       cronName: 'daily-blog',
       status: 'unauthorized',
-      reason: 'missing x-vercel-cron header and invalid/missing secret',
+      reason: 'invalid/missing cron secret',
+      detail: `${String(req.headers.host || '')} ${String(req.method || '')} ${String(req.url || '')}`.trim() || null,
+      isVercelCron,
+    });
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  // If no secret is configured, allow only if Vercel explicitly marks it as a cron.
+  if (!expected && !isVercelCron) {
+    await bestEffortLogCronRun({
+      cronName: 'daily-blog',
+      status: 'unauthorized',
+      reason: 'no secret configured and missing x-vercel-cron header',
       detail: `${String(req.headers.host || '')} ${String(req.method || '')} ${String(req.url || '')}`.trim() || null,
       isVercelCron,
     });
