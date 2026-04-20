@@ -1331,6 +1331,13 @@ export const Admin: React.FC = () => {
              <Flag size={18} /> Moderation
            </button>
 
+           {/* Super Admin Only Tab */}
+           <button
+             onClick={() => setActiveTab('admins')}
+             className={`w-full text-left px-4 py-2 rounded mt-4 border-t border-gray-300 dark:border-gray-800 pt-4 flex items-center gap-2 transition ${activeTab === 'admins' ? 'bg-grantify-green text-white' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
+           >
+             <Shield size={16}/> {user.role === UserRole.SUPER_ADMIN ? 'Admins & Profile' : 'My Profile'}
+           </button>
         </div>
 
         {/* Content Area */}
