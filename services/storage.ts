@@ -651,6 +651,17 @@ export const ApiService = {
     return await res.json();
   },
 
+  getBlogRecommendations: async (opts: { excludeId: string; limit?: number; category?: string }): Promise<BlogPost[]> => {
+    const qs = new URLSearchParams({ summary: '1' });
+    if (opts?.excludeId) qs.set('excludeId', String(opts.excludeId));
+    if (opts?.limit) qs.set('limit', String(opts.limit));
+    if (opts?.category) qs.set('category', String(opts.category));
+
+    const res = await fetch(`${API_URL}/api/blog?${qs.toString()}`);
+    if (!res.ok) throw new Error('Failed to fetch recommended posts');
+    return await res.json();
+  },
+
   submitBlogAction: async (data: any): Promise<any> => {
     const payload = { ...(data || {}) };
     if (payload?.action === 'comment' || payload?.action === 'likeComment') {

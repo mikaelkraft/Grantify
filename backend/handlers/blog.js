@@ -148,6 +148,56 @@ export default async function handler(req, res) {
         });
       }
 
+      const isSummary = toStr(req.query?.summary).trim() === '1';
+      const excludeId = toStr(req.query?.excludeId).trim();
+      const limitRaw = Number.parseInt(toStr(req.query?.limit).trim() || '0', 10);
+      const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 50) : 0;
+
+      if (isSummary) {
+        const params = [];
+        let where = '';
+        if (category) {
+          params.push(category);
+          where += `${where ? ' AND' : ' WHERE'} category = $${params.length}`;
+        }
+        if (excludeId) {
+          params.push(excludeId);
+          where += `${where ? ' AND' : ' WHERE'} id <> $${params.length}`;
+        }
+
+        const limSql = limit ? ` LIMIT ${limit}` : '';
+        const result = await client.query(
+          `SELECT id, title, author, author_role, category, image, tags, source_name, source_url,
+                  COALESCE(likes, 0) as likes, COALESCE(loves, 0) as loves, COALESCE(claps, 0) as claps, COALESCE(views, 0) as views,
+                  created_at, updated_at,
+                  (SELECT COUNT(*) FROM blog_comments WHERE post_id = blog_posts.id) as comments_count
+           FROM blog_posts
+           ${where}
+           ORDER BY created_at DESC${limSql}`,
+          params
+        );
+
+        return res.status(200).json(result.rows.map(row => ({
+          id: row.id,
+          title: row.title,
+          content: '',
+          author: row.author,
+          authorRole: row.author_role,
+          image: row.image,
+          category: row.category,
+          tags: row.tags,
+          sourceName: row.source_name,
+          sourceUrl: row.source_url,
+          likes: row.likes ?? 0,
+          loves: row.loves ?? 0,
+          claps: row.claps ?? 0,
+          views: row.views ?? 0,
+          commentsCount: parseInt(row.comments_count),
+          createdAt: row.created_at,
+          updatedAt: row.updated_at
+        })));
+      }
+
       let query = 'SELECT *, (SELECT COUNT(*) FROM blog_comments WHERE post_id = blog_posts.id) as comments_count FROM blog_posts';
       const params = [];
       if (category) {

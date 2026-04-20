@@ -162,6 +162,41 @@ export const BlogPostView: React.FC = () => {
   }, [effectiveId, commentsSort]);
 
   useEffect(() => {
+    if (!post?.id) return;
+    let canceled = false;
+
+    // Load non-critical data in the background so the article renders ASAP.
+    ApiService.getBlogRecommendations({
+      excludeId: String(post.id),
+      limit: 4,
+      category: post.category || undefined,
+    })
+      .then((recs) => {
+        if (canceled) return;
+        const filtered = (Array.isArray(recs) ? recs : []).filter(p => String(p.id) !== String(post.id));
+        setRecommendedPosts(filtered.slice(0, 4));
+      })
+      .catch(() => {
+        if (canceled) return;
+        setRecommendedPosts([]);
+      });
+
+    ApiService.getAds()
+      .then((adData) => {
+        if (canceled) return;
+        setAds(adData);
+      })
+      .catch(() => {
+        if (canceled) return;
+        setAds(null);
+      });
+
+    return () => {
+      canceled = true;
+    };
+  }, [post?.id]);
+
+  useEffect(() => {
     if (!post || !slugOrId) return;
     // Only canonicalize if the URL already refers to this post's id.
     // Otherwise (e.g., user clicked a recommended post), we may still be showing
@@ -208,13 +243,6 @@ export const BlogPostView: React.FC = () => {
         setMyReaction(null);
       }
       
-      // Fetch recommended posts (excluding current one)
-      const allPosts = await ApiService.getBlogPosts();
-      setRecommendedPosts(allPosts.filter(p => String(p.id) !== String(data.id)).slice(0, 3));
-
-      // Fetch ads
-      const adData = await ApiService.getAds();
-      setAds(adData);
     } catch (e) {
       console.error(e);
       navigate('/blog');
