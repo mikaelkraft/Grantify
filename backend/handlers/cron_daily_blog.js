@@ -2,6 +2,32 @@
 
 import pool from '../db.js';
 
+const parseAdminSession = (req) => {
+  try {
+    const raw = req.headers['x-admin-session'];
+    if (!raw) return null;
+    const json = decodeURIComponent(escape(Buffer.from(String(raw), 'base64').toString('utf8')));
+    const parsed = JSON.parse(json);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const requireValidAdmin = async (req) => {
+  const session = parseAdminSession(req);
+  if (!session?.id || !session?.passwordHash) return null;
+  try {
+    const res = await pool.query('SELECT id, password_hash FROM admin_users WHERE id = $1', [session.id]);
+    const row = res.rows?.[0];
+    if (!row) return null;
+    if (String(row.password_hash) !== String(session.passwordHash)) return null;
+    return session;
+  } catch {
+    return null;
+  }
+};
+
 const fetchUnsplashImage = async (query) => {
   const key = process.env.UNSPLASH_ACCESS_KEY;
   const q = String(query || '').trim();
@@ -183,13 +209,18 @@ const bestEffortLogCronRun = async ({
 };
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  const method = String(req.method || '').toUpperCase();
+  if (method !== 'GET' && method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   res.setHeader('Cache-Control', 'no-store');
 
   const isVercelCron = Boolean(req.headers['x-vercel-cron']);
+  const isManualAdmin = method === 'POST';
+
+  if (isManualAdmin) {
+    const admin = await requireValidAdmin(req);
+    if (!admin) return res.status(401).json({ error: 'Unauthorized' });
+  }
 
   if (String(process.env.AUTOBLOG_ENABLED || '').toLowerCase() !== 'true') {
     await bestEffortLogCronRun({
@@ -213,7 +244,7 @@ export default async function handler(req, res) {
 
   // Require a secret if one is configured. This is the safest mode and works with Vercel Cron Jobs
   // when CRON_SECRET is set in your project settings.
-  if (expected && !hasValidSecret) {
+  if (!isManualAdmin && expected && !hasValidSecret) {
     await bestEffortLogCronRun({
       cronName: 'daily-blog',
       status: 'unauthorized',
@@ -225,7 +256,7 @@ export default async function handler(req, res) {
   }
 
   // If no secret is configured, allow only if Vercel explicitly marks it as a cron.
-  if (!expected && !isVercelCron) {
+  if (!isManualAdmin && !expected && !isVercelCron) {
     await bestEffortLogCronRun({
       cronName: 'daily-blog',
       status: 'unauthorized',
@@ -293,10 +324,12 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, skipped: true, reason: 'autoblog is disabled' });
     }
 
+    const force = Boolean(req.body?.force) || String(req.query?.force || '').trim() === '1';
+
     const existing = await client.query(
       `SELECT id FROM blog_posts WHERE tags @> ARRAY['daily']::text[] AND created_at::date = CURRENT_DATE LIMIT 1`
     );
-    if (existing.rows.length > 0) {
+    if (existing.rows.length > 0 && !force) {
       await logRun('skipped', 'already posted today', String(existing.rows[0].id));
       return res.status(200).json({ success: true, skipped: true, reason: 'already posted today', id: existing.rows[0].id });
     }
@@ -393,8 +426,8 @@ CRITICAL CONTENT RULES:
       ]
     );
 
-    await logRun('success', 'posted', id);
-    return res.status(200).json({ success: true, id, title, sourcesCount: newsItems.length });
+    await logRun('success', force ? 'posted (forced)' : 'posted', id);
+    return res.status(200).json({ success: true, id, title, sourcesCount: newsItems.length, forced: force });
   } catch (e) {
     console.error('daily-blog cron error:', e);
     try {

@@ -65,6 +65,7 @@ export const Admin: React.FC = () => {
   const [autoblogLastSuccessRun, setAutoblogLastSuccessRun] = useState<any>(null);
   const [autoblogLastErrorRun, setAutoblogLastErrorRun] = useState<any>(null);
   const [isSavingAutoblog, setIsSavingAutoblog] = useState(false);
+  const [isRunningDailyCron, setIsRunningDailyCron] = useState(false);
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loanProviders, setLoanProviders] = useState<LoanProvider[]>([]);
   const [loanProviderSubmissions, setLoanProviderSubmissions] = useState<LoanProviderSubmission[]>([]);
@@ -486,6 +487,42 @@ export const Admin: React.FC = () => {
       alert(e?.message || 'Failed to update autoblog setting');
     } finally {
       setIsSavingAutoblog(false);
+    }
+  };
+
+  const handleRunDailyCron = async (force: boolean) => {
+    const ok = window.confirm(force
+      ? 'Run the daily autoblog now (FORCE)? This will publish even if a daily post already exists today.'
+      : 'Run the daily autoblog now? This may skip if today\'s daily post already exists.'
+    );
+    if (!ok) return;
+
+    setIsRunningDailyCron(true);
+    try {
+      const res = await ApiService.triggerDailyBlogCron({ force });
+      if (res?.skipped) {
+        alert(res?.reason ? `Skipped: ${res.reason}` : 'Skipped');
+      } else if (res?.id) {
+        alert(`Posted. ID: ${res.id}${res?.title ? `\nTitle: ${res.title}` : ''}`);
+      } else {
+        alert('Triggered.');
+      }
+      void refreshData();
+    } catch (e: any) {
+      alert(e?.message || 'Failed to run daily cron');
+    } finally {
+      setIsRunningDailyCron(false);
+    }
+  };
+
+  const handleDeleteContactMessage = async (id: string) => {
+    const ok = window.confirm('Delete this contact message? This cannot be undone.');
+    if (!ok) return;
+    try {
+      await ApiService.deleteContactMessage(String(id));
+      setContactMessages(prev => prev.filter(m => String(m.id) !== String(id)));
+    } catch (e: any) {
+      alert(e?.message || 'Failed to delete contact message');
     }
   };
 
@@ -1242,7 +1279,6 @@ export const Admin: React.FC = () => {
              {id: 'testimonials', label: 'Testimonials'},
              {id: 'ads', label: 'Ad Management'},
              {id: 'providers', label: 'Loan Providers'},
-             {id: 'contact', label: 'Contact Messages'},
              {id: 'content', label: 'Page Content'}
            ].map(tab => (
              <button
@@ -1330,12 +1366,13 @@ export const Admin: React.FC = () => {
                           <th className="p-3 text-left">From</th>
                           <th className="p-3 text-left">Subject</th>
                           <th className="p-3 text-left">Message</th>
+                          <th className="p-3 text-left">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                         {contactMessages.length === 0 ? (
                           <tr>
-                            <td className="p-4 text-gray-500" colSpan={4}>No messages yet.</td>
+                            <td className="p-4 text-gray-500" colSpan={5}>No messages yet.</td>
                           </tr>
                         ) : (
                           contactMessages.map((m) => (
@@ -1350,6 +1387,17 @@ export const Admin: React.FC = () => {
                               </td>
                               <td className="p-3 text-xs font-bold text-gray-800 dark:text-gray-100">{m.subject}</td>
                               <td className="p-3 text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{m.message}</td>
+                              <td className="p-3 whitespace-nowrap">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteContactMessage(String(m.id))}
+                                  className="text-red-600 hover:bg-red-100 dark:hover:bg-red-950/30 p-2 rounded"
+                                  title="Delete message"
+                                  aria-label="Delete message"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </td>
                             </tr>
                           ))
                         )}
@@ -1753,20 +1801,37 @@ export const Admin: React.FC = () => {
                         )}
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={handleToggleAutoblog}
-                        disabled={isSavingAutoblog}
-                        className={`flex items-center gap-2 px-3 py-2 rounded text-xs font-black uppercase border transition ${autoblogEnabled
-                          ? 'bg-grantify-green text-white border-green-700 hover:bg-green-800'
-                          : 'bg-gray-100 dark:bg-gray-950 text-gray-800 dark:text-gray-100 border-gray-300 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-900'
-                        } ${isSavingAutoblog ? 'opacity-60 cursor-not-allowed' : ''}`}
-                        aria-label={autoblogEnabled ? 'Disable autoblog' : 'Enable autoblog'}
-                        title={autoblogEnabled ? 'Disable autoblog' : 'Enable autoblog'}
-                      >
-                        {isSavingAutoblog ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
-                        {autoblogEnabled ? 'Enabled' : 'Disabled'}
-                      </button>
+                      <div className="flex flex-col items-end gap-2">
+                        <button
+                          type="button"
+                          onClick={handleToggleAutoblog}
+                          disabled={isSavingAutoblog}
+                          className={`flex items-center gap-2 px-3 py-2 rounded text-xs font-black uppercase border transition ${autoblogEnabled
+                            ? 'bg-grantify-green text-white border-green-700 hover:bg-green-800'
+                            : 'bg-gray-100 dark:bg-gray-950 text-gray-800 dark:text-gray-100 border-gray-300 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-900'
+                          } ${isSavingAutoblog ? 'opacity-60 cursor-not-allowed' : ''}`}
+                          aria-label={autoblogEnabled ? 'Disable autoblog' : 'Enable autoblog'}
+                          title={autoblogEnabled ? 'Disable autoblog' : 'Enable autoblog'}
+                        >
+                          {isSavingAutoblog ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+                          {autoblogEnabled ? 'Enabled' : 'Disabled'}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleRunDailyCron(true)}
+                          disabled={isRunningDailyCron}
+                          className={`flex items-center gap-2 px-3 py-2 rounded text-xs font-black uppercase border transition ${isRunningDailyCron
+                            ? 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-950 text-gray-800 dark:text-gray-100 border-gray-300 dark:border-gray-700'
+                            : 'bg-gray-900 dark:bg-gray-950 text-white border-gray-900 dark:border-gray-700 hover:bg-gray-800'}
+                          `}
+                          aria-label="Run daily autoblog now (force)"
+                          title="Run daily autoblog now (force)"
+                        >
+                          {isRunningDailyCron ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+                          Run Now (Force)
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
