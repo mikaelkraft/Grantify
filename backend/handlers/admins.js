@@ -2,10 +2,22 @@
 
 import pool from '../db.js';
 
+const parseAdminSession = (req) => {
+  try {
+    const raw = req.headers['x-admin-session'];
+    if (!raw) return null;
+    const json = decodeURIComponent(escape(Buffer.from(String(raw), 'base64').toString('utf8')));
+    const parsed = JSON.parse(json);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Admin-Session, Authorization');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
@@ -56,6 +68,77 @@ export default async function handler(req, res) {
           name: u.name,
           role: u.role,
           passwordHash: u.password_hash
+        });
+      }
+
+      if (action === 'updateProfile') {
+        const session = parseAdminSession(req);
+        if (!session?.id || !session?.passwordHash) {
+          return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const { name, username, currentPassword, newPassword } = req.body || {};
+
+        const bcrypt = await import('bcryptjs').then(m => m.default);
+        const existingRes = await pool.query(
+          'SELECT id, username, role, name, password_hash FROM admin_users WHERE id = $1',
+          [session.id]
+        );
+        if (existingRes.rows.length === 0) return res.status(401).json({ error: 'Unauthorized' });
+
+        const existing = existingRes.rows[0];
+        if (String(existing.password_hash) !== String(session.passwordHash)) {
+          return res.status(401).json({ error: 'Session expired. Please log in again.' });
+        }
+
+        const nextName = typeof name === 'string' ? name.trim() : existing.name;
+        const nextUsername = typeof username === 'string' ? username.trim() : existing.username;
+        if (!nextUsername) return res.status(400).json({ error: 'Username is required' });
+
+        if (nextUsername !== existing.username) {
+          const check = await pool.query('SELECT id FROM admin_users WHERE username = $1 AND id <> $2', [nextUsername, existing.id]);
+          if (check.rows.length > 0) return res.status(409).json({ error: 'That username is already in use' });
+        }
+
+        const wantsPasswordChange = Boolean(newPassword);
+        let nextPasswordHash = String(existing.password_hash);
+
+        if (wantsPasswordChange) {
+          const cur = String(currentPassword || '');
+          const nextPw = String(newPassword || '');
+          if (!cur) return res.status(400).json({ error: 'Current password is required to change your password' });
+          if (nextPw.length < 6) return res.status(400).json({ error: 'New password must be at least 6 characters' });
+
+          const isHashed = nextPasswordHash.startsWith('$2');
+          let isMatch = false;
+          if (isHashed) {
+            isMatch = await bcrypt.compare(cur, nextPasswordHash);
+          } else {
+            isMatch = cur === nextPasswordHash;
+            if (isMatch) {
+              const upgradedHash = await bcrypt.hash(cur, 10);
+              await pool.query('UPDATE admin_users SET password_hash = $1 WHERE id = $2', [upgradedHash, existing.id]);
+              nextPasswordHash = upgradedHash;
+            }
+          }
+
+          if (!isMatch) return res.status(401).json({ error: 'Current password is incorrect' });
+
+          nextPasswordHash = await bcrypt.hash(nextPw, 10);
+        }
+
+        const updatedRes = await pool.query(
+          'UPDATE admin_users SET name = $1, username = $2, password_hash = $3 WHERE id = $4 RETURNING id, username, role, name, password_hash',
+          [nextName, nextUsername, nextPasswordHash, existing.id]
+        );
+        const u = updatedRes.rows[0];
+
+        return res.status(200).json({
+          id: u.id,
+          username: u.username,
+          name: u.name,
+          role: u.role,
+          passwordHash: u.password_hash,
         });
       }
 

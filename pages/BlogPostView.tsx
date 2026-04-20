@@ -9,10 +9,9 @@ import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
 import { derivePostImage } from '../utils/blogImage';
 import { makeBlogSlug, parseBlogParam } from '../utils/blogRouting';
 
-const XShareIcon: React.FC<{ size?: number; round?: boolean; bgStyle?: React.CSSProperties; iconFillColor?: string }> = ({
+const XShareIcon: React.FC<{ size?: number; round?: boolean; iconFillColor?: string }> = ({
   size = 32,
   round = false,
-  bgStyle,
   iconFillColor = '#ffffff'
 }) => {
   const r = round ? size / 2 : 6;
@@ -23,7 +22,6 @@ const XShareIcon: React.FC<{ size?: number; round?: boolean; bgStyle?: React.CSS
       viewBox="0 0 32 32"
       role="img"
       aria-label="X"
-      style={bgStyle}
     >
       <rect x="0" y="0" width="32" height="32" rx={r} fill="#000000" />
       {/* Simple X mark approximating the X logo */}
@@ -162,6 +160,41 @@ export const BlogPostView: React.FC = () => {
   }, [effectiveId, commentsSort]);
 
   useEffect(() => {
+    if (!post?.id) return;
+    let canceled = false;
+
+    // Load non-critical data in the background so the article renders ASAP.
+    ApiService.getBlogRecommendations({
+      excludeId: String(post.id),
+      limit: 4,
+      category: post.category || undefined,
+    })
+      .then((recs) => {
+        if (canceled) return;
+        const filtered = (Array.isArray(recs) ? recs : []).filter(p => String(p.id) !== String(post.id));
+        setRecommendedPosts(filtered.slice(0, 4));
+      })
+      .catch(() => {
+        if (canceled) return;
+        setRecommendedPosts([]);
+      });
+
+    ApiService.getAds()
+      .then((adData) => {
+        if (canceled) return;
+        setAds(adData);
+      })
+      .catch(() => {
+        if (canceled) return;
+        setAds(null);
+      });
+
+    return () => {
+      canceled = true;
+    };
+  }, [post?.id]);
+
+  useEffect(() => {
     if (!post || !slugOrId) return;
     // Only canonicalize if the URL already refers to this post's id.
     // Otherwise (e.g., user clicked a recommended post), we may still be showing
@@ -208,13 +241,6 @@ export const BlogPostView: React.FC = () => {
         setMyReaction(null);
       }
       
-      // Fetch recommended posts (excluding current one)
-      const allPosts = await ApiService.getBlogPosts();
-      setRecommendedPosts(allPosts.filter(p => String(p.id) !== String(data.id)).slice(0, 3));
-
-      // Fetch ads
-      const adData = await ApiService.getAds();
-      setAds(adData);
     } catch (e) {
       console.error(e);
       navigate('/blog');

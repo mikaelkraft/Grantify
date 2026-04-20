@@ -17,7 +17,7 @@ import {
   Flag,
   X,
 } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useTransition } from 'react';
 import { ApiService } from '../services/storage';
 import { AdminUser, LoanApplication, Testimonial, AdConfig, UserRole, RepaymentContent, LoanProvider, LoanProviderSubmission, BlogPost, ProviderReview, ContactMessage, ContentFlag } from '../types';
 import ReactQuill from 'react-quill-new';
@@ -40,6 +40,15 @@ export const Admin: React.FC = () => {
   });
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  const [profileForm, setProfileForm] = useState({
+    name: '',
+    username: '',
+    currentPassword: '',
+    newPassword: '',
+    confirmNewPassword: '',
+  });
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
   
   const [activeTab, setActiveTab] = useState('applications');
   const [isLoading, setIsLoading] = useState(false);
@@ -108,11 +117,25 @@ export const Admin: React.FC = () => {
   const [oneDriveStatus, setOneDriveStatus] = useState<{ enabled: boolean; provider: string; connected: boolean } | null>(null);
   const oneDriveStatusRef = useRef<typeof oneDriveStatus>(null);
 
+  const [isHydratingSelectedPost, setIsHydratingSelectedPost] = useState(false);
+  const [, startTransition] = useTransition();
+
   const formatCronSource = (run: any) => (run?.is_vercel_cron ? 'vercel' : 'manual');
 
   useEffect(() => {
     oneDriveStatusRef.current = oneDriveStatus;
   }, [oneDriveStatus]);
+
+  useEffect(() => {
+    if (!user) return;
+    setProfileForm({
+      name: user.name || '',
+      username: user.username || '',
+      currentPassword: '',
+      newPassword: '',
+      confirmNewPassword: '',
+    });
+  }, [user?.id]);
 
   useEffect(() => {
     let canceled = false;
@@ -497,6 +520,58 @@ export const Admin: React.FC = () => {
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem('admin_session');
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    const wantsPasswordChange = Boolean(profileForm.newPassword || profileForm.confirmNewPassword);
+    if (wantsPasswordChange) {
+      if (!profileForm.currentPassword) {
+        alert('Enter your current password to change your password.');
+        return;
+      }
+      if (!profileForm.newPassword) {
+        alert('Enter a new password.');
+        return;
+      }
+      if (profileForm.newPassword !== profileForm.confirmNewPassword) {
+        alert('New passwords do not match.');
+        return;
+      }
+      if (profileForm.newPassword.length < 6) {
+        alert('New password must be at least 6 characters.');
+        return;
+      }
+    }
+
+    setIsSavingProfile(true);
+    try {
+      const updated = await ApiService.updateMyProfile({
+        name: profileForm.name,
+        username: profileForm.username,
+        currentPassword: wantsPasswordChange ? profileForm.currentPassword : undefined,
+        newPassword: wantsPasswordChange ? profileForm.newPassword : undefined,
+      });
+
+      setUser(updated);
+      localStorage.setItem('admin_session', JSON.stringify(updated));
+      setAdmins(prev => prev.map(a => (a.id === updated.id ? { ...a, ...updated } : a)));
+
+      setProfileForm(prev => ({
+        ...prev,
+        currentPassword: '',
+        newPassword: '',
+        confirmNewPassword: '',
+      }));
+
+      alert('Profile updated.');
+    } catch (e: any) {
+      alert(e?.message || 'Failed to update profile');
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
   const exportApplicationsCSV = () => {
@@ -984,10 +1059,15 @@ export const Admin: React.FC = () => {
   }, [pendingEditPostId, blogPosts]);
 
   const handleEditBlogPost = (post: BlogPost) => {
+    // ReactQuill can be expensive to hydrate with large HTML. Stage the update
+    // so the UI can switch to "editing" immediately without a long main-thread stall.
+    setIsHydratingSelectedPost(true);
+    setIsEditingPost(true);
+
     setNewPost({
       id: post.id,
       title: post.title,
-      content: post.content,
+      content: '',
       author: post.author,
       authorRole: post.authorRole,
       category: post.category,
@@ -1001,8 +1081,17 @@ export const Admin: React.FC = () => {
       claps: post.claps,
       createdAt: post.createdAt
     });
-    setIsEditingPost(true);
+
     document.getElementById('new-post-form')?.scrollIntoView({ behavior: 'smooth' });
+
+    // Defer the heavy content set to the next frame.
+    window.requestAnimationFrame(() => {
+      startTransition(() => {
+        setNewPost(prev => ({ ...prev, content: post.content || '' }));
+      });
+      // Clear the loading indicator after the content is enqueued.
+      window.setTimeout(() => setIsHydratingSelectedPost(false), 0);
+    });
   };
 
   const handleAiSmartWrite = async () => {
@@ -1168,14 +1257,12 @@ export const Admin: React.FC = () => {
            </button>
 
            {/* Super Admin Only Tab */}
-           {user.role === UserRole.SUPER_ADMIN && (
-             <button
-               onClick={() => setActiveTab('admins')}
-               className={`w-full text-left px-4 py-2 rounded mt-4 border-t border-gray-300 dark:border-gray-800 pt-4 flex items-center gap-2 transition ${activeTab === 'admins' ? 'bg-grantify-green text-white' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
-             >
-               <Shield size={16}/> Manage Admins
-             </button>
-           )}
+           <button
+             onClick={() => setActiveTab('admins')}
+             className={`w-full text-left px-4 py-2 rounded mt-4 border-t border-gray-300 dark:border-gray-800 pt-4 flex items-center gap-2 transition ${activeTab === 'admins' ? 'bg-grantify-green text-white' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
+           >
+             <Shield size={16}/> {user.role === UserRole.SUPER_ADMIN ? 'Admins & Profile' : 'My Profile'}
+           </button>
         </div>
 
         {/* Content Area */}
@@ -2124,26 +2211,47 @@ export const Admin: React.FC = () => {
                       </div>
 
                       {postSaveNotice && (
-                        <div
-                          className={`mb-4 p-3 rounded border text-sm ${postSaveNotice.kind === 'success'
-                            ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-900 text-green-800 dark:text-green-200'
-                            : 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900 text-red-800 dark:text-red-200'
-                          }`}
-                          role={postSaveNotice.kind === 'error' ? 'alert' : 'status'}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="leading-relaxed">{postSaveNotice.message}</div>
-                            <button
-                              type="button"
-                              onClick={() => setPostSaveNotice(null)}
-                              className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/5"
-                              aria-label="Dismiss message"
-                              title="Dismiss"
-                            >
-                              <X size={14} />
-                            </button>
+                        postSaveNotice.kind === 'error' ? (
+                          <div
+                            className={`mb-4 p-3 rounded border text-sm ${
+                              'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900 text-red-800 dark:text-red-200'
+                            }`}
+                            role="alert"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="leading-relaxed">{postSaveNotice.message}</div>
+                              <button
+                                type="button"
+                                onClick={() => setPostSaveNotice(null)}
+                                className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/5"
+                                aria-label="Dismiss message"
+                                title="Dismiss"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
                           </div>
-                        </div>
+                        ) : (
+                          <div
+                            className={`mb-4 p-3 rounded border text-sm ${
+                              'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-900 text-green-800 dark:text-green-200'
+                            }`}
+                            role="status"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="leading-relaxed">{postSaveNotice.message}</div>
+                              <button
+                                type="button"
+                                onClick={() => setPostSaveNotice(null)}
+                                className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/5"
+                                aria-label="Dismiss message"
+                                title="Dismiss"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        )
                       )}
                       
                       <form onSubmit={handleAddBlogPost} className="grid md:grid-cols-2 gap-4">
@@ -2358,6 +2466,11 @@ export const Admin: React.FC = () => {
                                 <div className="text-[10px] text-gray-400 hidden md:block">Uncheck for bare plaintext links</div>
                               </div>
                             </div>
+                            {isHydratingSelectedPost && (
+                              <div className="px-3 py-2 text-xs text-gray-500 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center gap-2">
+                                <Loader2 size={14} className="animate-spin" /> Loading post content…
+                              </div>
+                            )}
                             <input
                               ref={inlineImageInputRef}
                               type="file"
@@ -2454,10 +2567,86 @@ export const Admin: React.FC = () => {
                 </div>
               )}
 
-              {/* Admin Management Tab (Super Admin Only) */}
-              {activeTab === 'admins' && user.role === UserRole.SUPER_ADMIN && (
+              {/* Admins & Profile Tab */}
+              {activeTab === 'admins' && (
                 <div>
-                    <h3 className="text-xl font-bold mb-6">Manage Administrators</h3>
+                    <h3 className="text-xl font-bold mb-4">My Profile</h3>
+
+                    <form onSubmit={handleSaveProfile} className="bg-gray-50 dark:bg-gray-900 p-4 rounded border border-gray-200 dark:border-gray-800 mb-8">
+                      <div className="grid md:grid-cols-2 gap-3">
+                        <div>
+                          <label htmlFor="profile-name" className="block text-xs font-bold text-gray-600 dark:text-gray-200 mb-1">Full Name</label>
+                          <input
+                            id="profile-name"
+                            type="text"
+                            className={inputClassSmall}
+                            value={profileForm.name}
+                            onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
+                            autoComplete="name"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="profile-username" className="block text-xs font-bold text-gray-600 dark:text-gray-200 mb-1">Username / Email</label>
+                          <input
+                            id="profile-username"
+                            type="text"
+                            className={inputClassSmall}
+                            value={profileForm.username}
+                            onChange={(e) => setProfileForm(prev => ({ ...prev, username: e.target.value }))}
+                            autoComplete="username"
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="profile-current-password" className="block text-xs font-bold text-gray-600 dark:text-gray-200 mb-1">Current Password (only needed to change password)</label>
+                          <input
+                            id="profile-current-password"
+                            type="password"
+                            className={inputClassSmall}
+                            value={profileForm.currentPassword}
+                            onChange={(e) => setProfileForm(prev => ({ ...prev, currentPassword: e.target.value }))}
+                            autoComplete="current-password"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="profile-new-password" className="block text-xs font-bold text-gray-600 dark:text-gray-200 mb-1">New Password</label>
+                          <input
+                            id="profile-new-password"
+                            type="password"
+                            className={inputClassSmall}
+                            value={profileForm.newPassword}
+                            onChange={(e) => setProfileForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                            autoComplete="new-password"
+                          />
+                          <div className="mt-2">
+                            <label htmlFor="profile-confirm-new-password" className="block text-xs font-bold text-gray-600 dark:text-gray-200 mb-1">Confirm New Password</label>
+                            <input
+                              id="profile-confirm-new-password"
+                              type="password"
+                              className={inputClassSmall}
+                              value={profileForm.confirmNewPassword}
+                              onChange={(e) => setProfileForm(prev => ({ ...prev, confirmNewPassword: e.target.value }))}
+                              autoComplete="new-password"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex items-center gap-3">
+                        <button
+                          type="submit"
+                          disabled={isSavingProfile}
+                          className="bg-grantify-green text-white px-4 py-2 rounded hover:bg-green-700 font-bold disabled:opacity-60"
+                        >
+                          {isSavingProfile ? 'Saving…' : 'Save Profile'}
+                        </button>
+                        <div className="text-xs text-gray-500">Leave password fields blank to keep your current password.</div>
+                      </div>
+                    </form>
+
+                    {user.role === UserRole.SUPER_ADMIN && (
+                      <>
+                        <h3 className="text-xl font-bold mb-6">Manage Administrators</h3>
                     
                     {/* Add New Admin */}
                     <div className="bg-gray-100 p-4 rounded mb-8 border">
@@ -2539,6 +2728,8 @@ export const Admin: React.FC = () => {
                         </tbody>
                       </table>
                     </div>
+                      </>
+                    )}
                 </div>
               )}
             </>

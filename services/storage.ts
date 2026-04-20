@@ -545,6 +545,38 @@ export const ApiService = {
     return null;
   },
 
+  updateMyProfile: async (data: {
+    name: string;
+    username: string;
+    currentPassword?: string;
+    newPassword?: string;
+  }): Promise<AdminUser> => {
+    const adminHeader = getAdminSessionHeader();
+    if (!adminHeader) throw new Error('Admin session missing');
+
+    const res = await fetch(`${API_URL}/api/admins?action=updateProfile`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Session': adminHeader,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+      let message = 'Failed to update profile';
+      try {
+        const payload = await res.json();
+        if (payload?.error) message = String(payload.error);
+      } catch {
+        // ignore
+      }
+      throw new Error(message);
+    }
+
+    return await res.json();
+  },
+
   // -- Referral (generates new code per session - no localStorage) --
   getMyReferralData: (): ReferralData => {
     return {
@@ -616,6 +648,17 @@ export const ApiService = {
     if (opts?.includeHidden) qs.set('includeHidden', '1');
     const res = await fetch(`${API_URL}/api/blog?${qs.toString()}`);
     if (!res.ok) throw new Error('Failed to fetch blog post');
+    return await res.json();
+  },
+
+  getBlogRecommendations: async (opts: { excludeId: string; limit?: number; category?: string }): Promise<BlogPost[]> => {
+    const qs = new URLSearchParams({ summary: '1' });
+    if (opts?.excludeId) qs.set('excludeId', String(opts.excludeId));
+    if (opts?.limit) qs.set('limit', String(opts.limit));
+    if (opts?.category) qs.set('category', String(opts.category));
+
+    const res = await fetch(`${API_URL}/api/blog?${qs.toString()}`);
+    if (!res.ok) throw new Error('Failed to fetch recommended posts');
     return await res.json();
   },
 
