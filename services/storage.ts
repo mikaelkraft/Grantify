@@ -545,6 +545,38 @@ export const ApiService = {
     return null;
   },
 
+  updateMyProfile: async (data: {
+    name: string;
+    username: string;
+    currentPassword?: string;
+    newPassword?: string;
+  }): Promise<AdminUser> => {
+    const adminHeader = getAdminSessionHeader();
+    if (!adminHeader) throw new Error('Admin session missing');
+
+    const res = await fetch(`${API_URL}/api/admins?action=updateProfile`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Session': adminHeader,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+      let message = 'Failed to update profile';
+      try {
+        const payload = await res.json();
+        if (payload?.error) message = String(payload.error);
+      } catch {
+        // ignore
+      }
+      throw new Error(message);
+    }
+
+    return await res.json();
+  },
+
   // -- Referral (generates new code per session - no localStorage) --
   getMyReferralData: (): ReferralData => {
     return {

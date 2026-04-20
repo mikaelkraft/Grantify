@@ -330,7 +330,7 @@ CRITICAL CONTENT RULES:
       : html;
 
     const id = Date.now().toString();
-    const author = 'Grantify Editorial';
+    const author = 'Grantifier';
     const authorRole = 'Editor';
     const category = 'Grants';
     const tags = ['daily', 'nigeria', 'funding'];
