@@ -1,6 +1,7 @@
 import {
   Shield,
   LogOut,
+  User,
   Plus,
   Save,
   MessageSquare,
@@ -1210,6 +1211,32 @@ export const Admin: React.FC = () => {
       <div className="flex flex-col md:flex-row h-full flex-grow">
         {/* Sidebar Tabs */}
         <div className="w-full md:w-64 bg-gray-100 dark:bg-gray-950 p-4 space-y-2 border-r border-gray-200 dark:border-gray-800">
+           <button
+             type="button"
+             onClick={() => {
+               setActiveTab('admins');
+               window.setTimeout(() => document.getElementById('my-profile')?.scrollIntoView({ behavior: 'smooth' }), 0);
+             }}
+             className={`w-full flex items-center gap-2 p-3 rounded transition ${activeTab === 'admins' ? 'bg-grantify-green text-white shadow-md' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
+             title="Edit your profile"
+           >
+             <User size={18} /> My Profile
+           </button>
+
+           {user.role === UserRole.SUPER_ADMIN && (
+             <button
+               type="button"
+               onClick={() => {
+                 setActiveTab('admins');
+                 window.setTimeout(() => document.getElementById('manage-admins')?.scrollIntoView({ behavior: 'smooth' }), 0);
+               }}
+               className={`w-full flex items-center gap-2 p-3 rounded transition ${activeTab === 'admins' ? 'bg-grantify-green text-white shadow-md' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
+               title="Manage administrator accounts"
+             >
+               <Shield size={18} /> Manage Admins
+             </button>
+           )}
+
            {[
              {id: 'applications', label: 'Applications'},
              {id: 'testimonials', label: 'Testimonials'},
@@ -1256,13 +1283,6 @@ export const Admin: React.FC = () => {
              <Flag size={18} /> Moderation
            </button>
 
-           {/* Super Admin Only Tab */}
-           <button
-             onClick={() => setActiveTab('admins')}
-             className={`w-full text-left px-4 py-2 rounded mt-4 border-t border-gray-300 dark:border-gray-800 pt-4 flex items-center gap-2 transition ${activeTab === 'admins' ? 'bg-grantify-green text-white' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
-           >
-             <Shield size={16}/> {user.role === UserRole.SUPER_ADMIN ? 'Admins & Profile' : 'My Profile'}
-           </button>
         </div>
 
         {/* Content Area */}
@@ -2283,23 +2303,27 @@ export const Admin: React.FC = () => {
                            className={inputClassSmall}
                            placeholder="Author"
                            value={newPost.author}
-                           disabled
+                             onChange={e => setNewPost({ ...newPost, author: e.target.value })}
                            aria-label="Author"
-                           title="Author is set from the logged-in admin"
+                             title="Author shown on the post"
                          />
 
-                         <select
-                           className={inputClassSmall}
-                           value={newPost.authorRole}
-                           onChange={e => setNewPost({ ...newPost, authorRole: e.target.value })}
-                           aria-label="Author role"
-                           title="Author role shown on the post"
-                         >
-                           <option value="Chief Strategist">Chief Strategist</option>
-                           <option value="Editor">Editor</option>
-                           <option value="Contributor">Contributor</option>
-                           <option value="Team Member">Team Member</option>
-                         </select>
+                           <input
+                             className={inputClassSmall}
+                             placeholder="Author role"
+                             value={newPost.authorRole}
+                             onChange={e => setNewPost({ ...newPost, authorRole: e.target.value })}
+                             aria-label="Author role"
+                             title="Author role shown on the post"
+                             list="author-role-options"
+                           />
+
+                           <datalist id="author-role-options">
+                             <option value="Chief Strategist" />
+                             <option value="Editor" />
+                             <option value="Contributor" />
+                             <option value="Team Member" />
+                           </datalist>
                          
                          <select 
                            className={inputClassSmall} 
@@ -2570,7 +2594,7 @@ export const Admin: React.FC = () => {
               {/* Admins & Profile Tab */}
               {activeTab === 'admins' && (
                 <div>
-                    <h3 className="text-xl font-bold mb-4">My Profile</h3>
+                    <h3 id="my-profile" className="text-xl font-bold mb-4">My Profile</h3>
 
                     <form onSubmit={handleSaveProfile} className="bg-gray-50 dark:bg-gray-900 p-4 rounded border border-gray-200 dark:border-gray-800 mb-8">
                       <div className="grid md:grid-cols-2 gap-3">
@@ -2646,7 +2670,7 @@ export const Admin: React.FC = () => {
 
                     {user.role === UserRole.SUPER_ADMIN && (
                       <>
-                        <h3 className="text-xl font-bold mb-6">Manage Administrators</h3>
+                        <h3 id="manage-admins" className="text-xl font-bold mb-6">Manage Administrators</h3>
                     
                     {/* Add New Admin */}
                     <div className="bg-gray-100 p-4 rounded mb-8 border">

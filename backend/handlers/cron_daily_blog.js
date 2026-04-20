@@ -28,6 +28,40 @@ const fetchUnsplashImage = async (query) => {
   }
 };
 
+const buildUnsplashQuery = ({ title, newsItems }) => {
+  const text = [title, ...(Array.isArray(newsItems) ? newsItems.map(i => i?.title).filter(Boolean) : [])]
+    .map(v => String(v || ''))
+    .join(' ')
+    .toLowerCase();
+
+  const has = (...needles) => needles.some(n => text.includes(String(n).toLowerCase()));
+
+  const themes = [
+    { when: () => has('agric', 'farm', 'rice', 'maize', 'cassava'), q: 'nigerian agriculture farmers' },
+    { when: () => has('health', 'hospital', 'clinic', 'medical'), q: 'nigeria healthcare clinic' },
+    { when: () => has('education', 'school', 'students', 'university'), q: 'nigeria education classroom' },
+    { when: () => has('solar', 'renewable', 'energy', 'power'), q: 'nigeria renewable energy solar' },
+    { when: () => has('manufactur', 'factory', 'industrial'), q: 'nigeria manufacturing factory' },
+    { when: () => has('fintech', 'bank', 'cbn', 'loan', 'credit', 'microfinance'), q: 'nigeria finance fintech startup' },
+    { when: () => has('startup', 'tech', 'software', 'ai', 'innovation'), q: 'nigeria tech startup entrepreneurs' },
+    { when: () => has('women', 'female', 'girl'), q: 'nigerian women entrepreneurs' },
+    { when: () => has('youth', 'students', 'graduates'), q: 'nigerian youth entrepreneurship' },
+  ];
+
+  const picked = themes.find(t => t.when());
+  if (picked) return picked.q;
+
+  const cleanedTitle = String(title || '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/[^a-zA-Z0-9\s]/g, ' ')
+    .replace(/\b(briefing|today|daily|nigeria|nigerian|funding|opportunities|update|updates)\b/gi, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
+  const short = cleanedTitle.split(' ').slice(0, 6).join(' ').trim();
+  return short ? `nigeria entrepreneurs ${short}` : 'nigeria entrepreneurs funding';
+};
+
 const fetchNewsItems = async (query) => {
   const q = `${String(query || '').trim()} Nigeria`.trim();
   const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-NG&gl=NG&ceid=NG:en`;
@@ -264,7 +298,7 @@ export default async function handler(req, res) {
     );
     if (existing.rows.length > 0) {
       await logRun('skipped', 'already posted today', String(existing.rows[0].id));
-      return res.status(200).json({ success: true, skipped: true, id: existing.rows[0].id });
+      return res.status(200).json({ success: true, skipped: true, reason: 'already posted today', id: existing.rows[0].id });
     }
 
     const newsItems = await fetchNewsItems('funding grants loans opportunities technology health agriculture education energy manufacturing SMEs');
@@ -322,7 +356,8 @@ CRITICAL CONTENT RULES:
     const extractedTitle = extractTitleFromHtml(html) || '';
     const title = stripDatesFromTitle(extractedTitle) || 'Nigeria Funding & Opportunities Briefing';
 
-    const image = await fetchUnsplashImage(`${title} Nigeria business`);
+    const imageQuery = buildUnsplashQuery({ title, newsItems });
+    const image = await fetchUnsplashImage(imageQuery);
 
     const sourcesHtml = buildSourcesHtml(newsItems);
     const finalHtml = sourcesHtml && !String(html).includes('<h3>Sources</h3>')
