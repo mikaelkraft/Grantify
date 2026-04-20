@@ -457,27 +457,14 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                     <div className="max-h-[360px] overflow-y-auto">
                       {searchResults.map((r) => (
                         <div key={r.key} className="border-b border-gray-50 dark:border-gray-900 last:border-b-0">
-                          {r.type === 'grant' ? (
-                            <a
-                              href={r.href}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900"
-                              onClick={() => setIsSearchOpen(false)}
-                            >
-                              <div className="text-sm font-black text-grantify-green">{r.title}</div>
-                              {r.subtitle && <div className="text-xs text-gray-500 dark:text-gray-400 font-bold">{r.subtitle}</div>}
-                            </a>
-                          ) : (
-                            <Link
-                              to={r.to}
-                              className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900"
-                              onClick={() => setIsSearchOpen(false)}
-                            >
-                              <div className="text-sm font-black text-grantify-green">{r.title}</div>
-                              {r.subtitle && <div className="text-xs text-gray-500 dark:text-gray-400 font-bold">{r.subtitle}</div>}
-                            </Link>
-                          )}
+                          <Link
+                            to={r.to}
+                            className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900"
+                            onClick={() => setIsSearchOpen(false)}
+                          >
+                            <div className="text-sm font-black text-grantify-green">{r.title}</div>
+                            {r.subtitle && <div className="text-xs text-gray-500 dark:text-gray-400 font-bold">{r.subtitle}</div>}
+                          </Link>
                         </div>
                       ))}
                     </div>
@@ -583,31 +570,18 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                   <div className="p-4 text-sm text-gray-500 dark:text-gray-400">No results found.</div>
                 ) : (
                   <div className="max-h-[320px] overflow-y-auto">
-                    {searchResults.map((r) => (
-                      <div key={r.key} className="border-b border-gray-50 dark:border-gray-900 last:border-b-0">
-                        {r.type === 'grant' ? (
-                          <a
-                            href={r.href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900"
-                            onClick={() => setIsSearchOpen(false)}
-                          >
-                            <div className="text-sm font-black text-grantify-green">{r.title}</div>
-                            {r.subtitle && <div className="text-xs text-gray-500 dark:text-gray-400 font-bold">{r.subtitle}</div>}
-                          </a>
-                        ) : (
-                          <Link
-                            to={r.to}
-                            className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900"
-                            onClick={() => setIsSearchOpen(false)}
-                          >
-                            <div className="text-sm font-black text-grantify-green">{r.title}</div>
-                            {r.subtitle && <div className="text-xs text-gray-500 dark:text-gray-400 font-bold">{r.subtitle}</div>}
-                          </Link>
-                        )}
-                      </div>
-                    ))}
+                        {searchResults.map((r) => (
+                          <div key={r.key} className="border-b border-gray-50 dark:border-gray-900 last:border-b-0">
+                            <Link
+                              to={r.to}
+                              className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900"
+                              onClick={() => setIsSearchOpen(false)}
+                            >
+                              <div className="text-sm font-black text-grantify-green">{r.title}</div>
+                              {r.subtitle && <div className="text-xs text-gray-500 dark:text-gray-400 font-bold">{r.subtitle}</div>}
+                            </Link>
+                          </div>
+                        ))}
                   </div>
                 )}
               </div>

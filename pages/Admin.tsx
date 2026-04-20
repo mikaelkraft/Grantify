@@ -2211,26 +2211,47 @@ export const Admin: React.FC = () => {
                       </div>
 
                       {postSaveNotice && (
-                        <div
-                          className={`mb-4 p-3 rounded border text-sm ${postSaveNotice.kind === 'success'
-                            ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-900 text-green-800 dark:text-green-200'
-                            : 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900 text-red-800 dark:text-red-200'
-                          }`}
-                          role={postSaveNotice.kind === 'error' ? 'alert' : 'status'}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="leading-relaxed">{postSaveNotice.message}</div>
-                            <button
-                              type="button"
-                              onClick={() => setPostSaveNotice(null)}
-                              className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/5"
-                              aria-label="Dismiss message"
-                              title="Dismiss"
-                            >
-                              <X size={14} />
-                            </button>
+                        postSaveNotice.kind === 'error' ? (
+                          <div
+                            className={`mb-4 p-3 rounded border text-sm ${
+                              'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900 text-red-800 dark:text-red-200'
+                            }`}
+                            role="alert"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="leading-relaxed">{postSaveNotice.message}</div>
+                              <button
+                                type="button"
+                                onClick={() => setPostSaveNotice(null)}
+                                className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/5"
+                                aria-label="Dismiss message"
+                                title="Dismiss"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
                           </div>
-                        </div>
+                        ) : (
+                          <div
+                            className={`mb-4 p-3 rounded border text-sm ${
+                              'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-900 text-green-800 dark:text-green-200'
+                            }`}
+                            role="status"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="leading-relaxed">{postSaveNotice.message}</div>
+                              <button
+                                type="button"
+                                onClick={() => setPostSaveNotice(null)}
+                                className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/5"
+                                aria-label="Dismiss message"
+                                title="Dismiss"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        )
                       )}
                       
                       <form onSubmit={handleAddBlogPost} className="grid md:grid-cols-2 gap-4">
@@ -2554,8 +2575,9 @@ export const Admin: React.FC = () => {
                     <form onSubmit={handleSaveProfile} className="bg-gray-50 dark:bg-gray-900 p-4 rounded border border-gray-200 dark:border-gray-800 mb-8">
                       <div className="grid md:grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-xs font-bold text-gray-600 dark:text-gray-200 mb-1">Full Name</label>
+                          <label htmlFor="profile-name" className="block text-xs font-bold text-gray-600 dark:text-gray-200 mb-1">Full Name</label>
                           <input
+                            id="profile-name"
                             type="text"
                             className={inputClassSmall}
                             value={profileForm.name}
@@ -2564,8 +2586,9 @@ export const Admin: React.FC = () => {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-gray-600 dark:text-gray-200 mb-1">Username / Email</label>
+                          <label htmlFor="profile-username" className="block text-xs font-bold text-gray-600 dark:text-gray-200 mb-1">Username / Email</label>
                           <input
+                            id="profile-username"
                             type="text"
                             className={inputClassSmall}
                             value={profileForm.username}
@@ -2575,8 +2598,9 @@ export const Admin: React.FC = () => {
                         </div>
 
                         <div>
-                          <label className="block text-xs font-bold text-gray-600 dark:text-gray-200 mb-1">Current Password (only needed to change password)</label>
+                          <label htmlFor="profile-current-password" className="block text-xs font-bold text-gray-600 dark:text-gray-200 mb-1">Current Password (only needed to change password)</label>
                           <input
+                            id="profile-current-password"
                             type="password"
                             className={inputClassSmall}
                             value={profileForm.currentPassword}
@@ -2585,8 +2609,9 @@ export const Admin: React.FC = () => {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-gray-600 dark:text-gray-200 mb-1">New Password</label>
+                          <label htmlFor="profile-new-password" className="block text-xs font-bold text-gray-600 dark:text-gray-200 mb-1">New Password</label>
                           <input
+                            id="profile-new-password"
                             type="password"
                             className={inputClassSmall}
                             value={profileForm.newPassword}
@@ -2594,8 +2619,9 @@ export const Admin: React.FC = () => {
                             autoComplete="new-password"
                           />
                           <div className="mt-2">
-                            <label className="block text-xs font-bold text-gray-600 dark:text-gray-200 mb-1">Confirm New Password</label>
+                            <label htmlFor="profile-confirm-new-password" className="block text-xs font-bold text-gray-600 dark:text-gray-200 mb-1">Confirm New Password</label>
                             <input
+                              id="profile-confirm-new-password"
                               type="password"
                               className={inputClassSmall}
                               value={profileForm.confirmNewPassword}

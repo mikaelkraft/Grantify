@@ -9,10 +9,9 @@ import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
 import { derivePostImage } from '../utils/blogImage';
 import { makeBlogSlug, parseBlogParam } from '../utils/blogRouting';
 
-const XShareIcon: React.FC<{ size?: number; round?: boolean; bgStyle?: React.CSSProperties; iconFillColor?: string }> = ({
+const XShareIcon: React.FC<{ size?: number; round?: boolean; iconFillColor?: string }> = ({
   size = 32,
   round = false,
-  bgStyle,
   iconFillColor = '#ffffff'
 }) => {
   const r = round ? size / 2 : 6;
@@ -23,7 +22,6 @@ const XShareIcon: React.FC<{ size?: number; round?: boolean; bgStyle?: React.CSS
       viewBox="0 0 32 32"
       role="img"
       aria-label="X"
-      style={bgStyle}
     >
       <rect x="0" y="0" width="32" height="32" rx={r} fill="#000000" />
       {/* Simple X mark approximating the X logo */}

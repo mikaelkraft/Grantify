@@ -407,19 +407,27 @@ export const Home: React.FC = () => {
                     { key: 'international' as const, label: 'International' }
                   ]
                 ).map(opt => (
-                  <button
-                    key={opt.key}
-                    type="button"
-                    onClick={() => setPartnerRegionFilter(opt.key)}
-                    className={
-                      partnerRegionFilter === opt.key
-                        ? 'px-3 py-1.5 rounded-xl bg-grantify-green text-white text-[10px] font-black uppercase tracking-widest'
-                        : 'px-3 py-1.5 rounded-xl bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-200 text-[10px] font-black uppercase tracking-widest hover:border-grantify-green/30'
-                    }
-                    aria-pressed={partnerRegionFilter === opt.key}
-                  >
-                    {opt.label}
-                  </button>
+                  partnerRegionFilter === opt.key ? (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      onClick={() => setPartnerRegionFilter(opt.key)}
+                      className="px-3 py-1.5 rounded-xl bg-grantify-green text-white text-[10px] font-black uppercase tracking-widest"
+                      aria-pressed="true"
+                    >
+                      {opt.label}
+                    </button>
+                  ) : (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      onClick={() => setPartnerRegionFilter(opt.key)}
+                      className="px-3 py-1.5 rounded-xl bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-200 text-[10px] font-black uppercase tracking-widest hover:border-grantify-green/30"
+                      aria-pressed="false"
+                    >
+                      {opt.label}
+                    </button>
+                  )
                 ))}
               </div>
 
