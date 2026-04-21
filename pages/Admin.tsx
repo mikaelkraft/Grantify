@@ -1319,6 +1319,16 @@ export const Admin: React.FC = () => {
              <Flag size={18} /> Moderation
            </button>
 
+<<<<<<< issue-22-autoblog-author-admin-perf-profile
+           {/* Super Admin Only Tab */}
+           <button
+             onClick={() => setActiveTab('admins')}
+             className={`w-full text-left px-4 py-2 rounded mt-4 border-t border-gray-300 dark:border-gray-800 pt-4 flex items-center gap-2 transition ${activeTab === 'admins' ? 'bg-grantify-green text-white' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
+           >
+             <Shield size={16}/> {user.role === UserRole.SUPER_ADMIN ? 'Admins & Profile' : 'My Profile'}
+           </button>
+=======
+>>>>>>> main
         </div>
 
         {/* Content Area */}
@@ -2659,7 +2669,11 @@ export const Admin: React.FC = () => {
               {/* Admins & Profile Tab */}
               {activeTab === 'admins' && (
                 <div>
+<<<<<<< issue-22-autoblog-author-admin-perf-profile
+                    <h3 className="text-xl font-bold mb-4">My Profile</h3>
+=======
                     <h3 id="my-profile" className="text-xl font-bold mb-4">My Profile</h3>
+>>>>>>> main
 
                     <form onSubmit={handleSaveProfile} className="bg-gray-50 dark:bg-gray-900 p-4 rounded border border-gray-200 dark:border-gray-800 mb-8">
                       <div className="grid md:grid-cols-2 gap-3">
@@ -2735,7 +2749,11 @@ export const Admin: React.FC = () => {
 
                     {user.role === UserRole.SUPER_ADMIN && (
                       <>
+<<<<<<< issue-22-autoblog-author-admin-perf-profile
+                        <h3 className="text-xl font-bold mb-6">Manage Administrators</h3>
+=======
                         <h3 id="manage-admins" className="text-xl font-bold mb-6">Manage Administrators</h3>
+>>>>>>> main
                     
                     {/* Add New Admin */}
                     <div className="bg-gray-100 p-4 rounded mb-8 border">
