@@ -812,5 +812,41 @@ export const ApiService = {
     const res = await fetch(`${API_URL}/api/contact?limit=${encodeURIComponent(String(safeLimit))}`);
     if (!res.ok) throw new Error('Failed to fetch contact messages');
     return await res.json();
+  },
+
+  deleteContactMessage: async (id: string): Promise<void> => {
+    const adminHeader = getAdminSessionHeader();
+    if (!adminHeader) throw new Error('Admin session missing');
+
+    const res = await fetch(`${API_URL}/api/contact?id=${encodeURIComponent(String(id))}`, {
+      method: 'DELETE',
+      headers: {
+        'X-Admin-Session': adminHeader,
+      },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.error || 'Failed to delete contact message');
+    }
+  },
+
+  triggerDailyBlogCron: async (opts?: { force?: boolean }): Promise<{ success: boolean; id?: string; skipped?: boolean; reason?: string; title?: string }> => {
+    const adminHeader = getAdminSessionHeader();
+    if (!adminHeader) throw new Error('Admin session missing');
+
+    const res = await fetch(`${API_URL}/api/cron/daily-blog`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Session': adminHeader,
+      },
+      body: JSON.stringify({ force: Boolean(opts?.force) }),
+    });
+
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(String(payload?.error || 'Failed to trigger daily cron'));
+    }
+    return payload;
   }
 };

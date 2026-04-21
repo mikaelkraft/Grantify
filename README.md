@@ -69,6 +69,7 @@ How to generate `GDRIVE_CLIENT_ID` / `GDRIVE_CLIENT_SECRET`:
 	- Application type: **Web application**.
 	- Authorized redirect URIs: add the exact callback URL(s) you will use:
 	  - Production: `https://<your-domain>/api/uploads/gdrive/callback`
+	    - For this repo’s production domain: `https://grantify.help/api/uploads/gdrive/callback`
 	  - Local dev (optional): `http://localhost:3001/api/uploads/gdrive/callback`
 5. Copy the generated values into environment variables:
 	- `GDRIVE_CLIENT_ID` (Client ID)
