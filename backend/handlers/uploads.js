@@ -128,7 +128,11 @@ export default async function handler(req, res) {
         accessToken = await refreshGDriveAccessToken(req);
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Google Drive auth error';
-        if (String(e?.code || '') === 'GDRIVE_NOT_CONNECTED') {
+        const lower = String(msg || '').toLowerCase();
+        const isNotConnected = String(e?.code || '') === 'GDRIVE_NOT_CONNECTED';
+        const isInvalidGrant = lower.includes('invalid_grant') || lower.includes('token has been expired') || lower.includes('revoked');
+
+        if (isNotConnected || isInvalidGrant) {
           const token = crypto.randomBytes(16).toString('hex');
           await kvSet(`gdrive_connect_token_${token}`, '1');
           const connectUrl = `${origin}/api/uploads/gdrive/connect?token=${encodeURIComponent(token)}`;

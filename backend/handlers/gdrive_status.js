@@ -1,7 +1,7 @@
 // Handler: /api/uploads/gdrive/status
 // Returns whether Google Drive is configured/connected for uploads.
 
-import { ensureAdminFromQueryOrHeader, getGDriveRefreshToken, toStr } from './gdrive_shared.js';
+import { ensureAdminFromQueryOrHeader, getGDriveRefreshToken, refreshGDriveAccessToken, toStr } from './gdrive_shared.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -19,6 +19,17 @@ export default async function handler(req, res) {
   if (provider !== 'gdrive') return res.status(200).json({ enabled: true, provider, connected: false });
 
   const refreshToken = await getGDriveRefreshToken();
-  const connected = Boolean(toStr(refreshToken).trim());
-  return res.status(200).json({ enabled: true, provider, connected });
+  const hasToken = Boolean(toStr(refreshToken).trim());
+  if (!hasToken) return res.status(200).json({ enabled: true, provider, connected: false });
+
+  try {
+    // Validate the refresh token by performing a refresh.
+    await refreshGDriveAccessToken(req);
+    return res.status(200).json({ enabled: true, provider, connected: true });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Google Drive auth error';
+    const lower = String(msg || '').toLowerCase();
+    const needsReconnect = lower.includes('invalid_grant') || lower.includes('token has been expired') || lower.includes('revoked');
+    return res.status(200).json({ enabled: true, provider, connected: false, needsReconnect, error: msg });
+  }
 }

@@ -116,7 +116,7 @@ export const Admin: React.FC = () => {
   const [isEditingPost, setIsEditingPost] = useState(false);
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [autoLinkUrls, setAutoLinkUrls] = useState(true);
-  const [oneDriveStatus, setOneDriveStatus] = useState<{ enabled: boolean; provider: string; connected: boolean } | null>(null);
+  const [oneDriveStatus, setOneDriveStatus] = useState<{ enabled: boolean; provider: string; connected: boolean; needsReconnect?: boolean; error?: string } | null>(null);
   const oneDriveStatusRef = useRef<typeof oneDriveStatus>(null);
 
   const [isHydratingSelectedPost, setIsHydratingSelectedPost] = useState(false);
@@ -2473,8 +2473,16 @@ export const Admin: React.FC = () => {
                          />
 
                          {oneDriveStatus && oneDriveStatus.enabled && oneDriveStatus.provider === 'gdrive' && (
-                           <div className="md:col-span-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                             Google Drive: {oneDriveStatus.connected ? 'Connected' : 'Not connected'}
+                           <div
+                             className={
+                               "md:col-span-2 text-[10px] font-bold uppercase tracking-wider " +
+                               (oneDriveStatus.connected
+                                 ? 'text-green-700'
+                                 : (oneDriveStatus.needsReconnect ? 'text-amber-700' : 'text-gray-500'))
+                             }
+                             title={oneDriveStatus.error || ''}
+                           >
+                             Google Drive: {oneDriveStatus.connected ? 'Connected' : (oneDriveStatus.needsReconnect ? 'Needs reconnect' : 'Not connected')}
                            </div>
                          )}
                          

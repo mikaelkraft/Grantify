@@ -376,7 +376,7 @@ export const ApiService = {
     return publicUrl;
   },
 
-  getDriveStatus: async (): Promise<{ enabled: boolean; provider: string; connected: boolean }> => {
+  getDriveStatus: async (): Promise<{ enabled: boolean; provider: string; connected: boolean; needsReconnect?: boolean; error?: string }> => {
     const adminHeader = getAdminSessionHeader();
     if (!adminHeader) throw new Error('Admin session missing');
 
@@ -392,6 +392,8 @@ export const ApiService = {
       enabled: Boolean(data?.enabled),
       provider: String(data?.provider || ''),
       connected: Boolean(data?.connected),
+      needsReconnect: Boolean(data?.needsReconnect),
+      error: data?.error ? String(data.error) : undefined,
     };
   },
 
