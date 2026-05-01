@@ -325,6 +325,12 @@ export const Admin: React.FC = () => {
       return;
     }
 
+    const supportedTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+    if (!supportedTypes.has(file.type)) {
+      alert("Unsupported image type. Please use JPG, PNG, WEBP, or GIF. (HEIC/HEIF from iPhone galleries won't display.)");
+      return;
+    }
+
     try {
       const url = await ApiService.uploadImage(file, { folder: 'blog-images' });
       insertQuillEmbed('image', url);
@@ -957,6 +963,12 @@ export const Admin: React.FC = () => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
       alert('Please select an image file.');
+      return;
+    }
+
+    const supportedTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+    if (!supportedTypes.has(file.type)) {
+      alert("Unsupported image type. Please use JPG, PNG, WEBP, or GIF. (HEIC/HEIF from iPhone galleries won't display.)");
       return;
     }
 
@@ -2495,7 +2507,7 @@ export const Admin: React.FC = () => {
                            />
                            <input
                              type="file"
-                             accept="image/*"
+                             accept="image/jpeg,image/png,image/webp,image/gif"
                              className={inputClassSmall + " p-1 text-xs"}
                              onChange={(e) => handleFeaturedImageUpload(e.target.files?.[0])}
                              aria-label="Upload featured image"
@@ -2571,7 +2583,7 @@ export const Admin: React.FC = () => {
                             <input
                               ref={inlineImageInputRef}
                               type="file"
-                              accept="image/*"
+                              accept="image/jpeg,image/png,image/webp,image/gif"
                               className="hidden"
                               onChange={handleInlineImagePicked}
                               aria-label="Insert image into post"

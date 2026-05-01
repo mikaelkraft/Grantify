@@ -107,7 +107,7 @@ export default async function handler(req, res) {
     if (!filename) return res.status(400).json({ error: 'Missing filename' });
     if (!contentType.startsWith('image/')) return res.status(400).json({ error: 'Only image uploads are supported' });
     if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(contentType)) {
-      return res.status(400).json({ error: 'Unsupported image type' });
+      return res.status(400).json({ error: 'Unsupported image type. Please use JPG, PNG, WEBP, or GIF.' });
     }
 
     const extMatch = filename.toLowerCase().match(/\.([a-z0-9]{2,6})$/);
