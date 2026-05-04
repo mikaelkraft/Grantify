@@ -341,7 +341,7 @@ export const Admin: React.FC = () => {
 
       if (connectUrl) {
         try { window.open(connectUrl, '_blank', 'noopener,noreferrer'); } catch {}
-        alert('Google Drive is not connected yet. A Google consent page was opened; complete it, then retry the upload.');
+        alert('Cloud storage is not connected yet. A consent page was opened; complete it, then retry the upload.');
         return;
       }
 
@@ -982,7 +982,7 @@ export const Admin: React.FC = () => {
 
       if (connectUrl) {
         try { window.open(connectUrl, '_blank', 'noopener,noreferrer'); } catch {}
-        alert('Google Drive is not connected yet. A Google consent page was opened; complete it, then retry the upload.');
+        alert('Cloud storage is not connected yet. A consent page was opened; complete it, then retry the upload.');
         return;
       }
 
@@ -2484,7 +2484,7 @@ export const Admin: React.FC = () => {
                            title="Claps"
                          />
 
-                         {oneDriveStatus && oneDriveStatus.enabled && oneDriveStatus.provider === 'gdrive' && (
+                         {oneDriveStatus && oneDriveStatus.enabled && (
                            <div
                              className={
                                "md:col-span-2 text-[10px] font-bold uppercase tracking-wider " +
@@ -2494,7 +2494,7 @@ export const Admin: React.FC = () => {
                              }
                              title={oneDriveStatus.error || ''}
                            >
-                             Google Drive: {oneDriveStatus.connected ? 'Connected' : (oneDriveStatus.needsReconnect ? 'Needs reconnect' : 'Not connected')}
+                             Uploads ({String(oneDriveStatus.provider || 'unknown')}): {oneDriveStatus.connected ? 'Ready' : (oneDriveStatus.needsReconnect ? 'Needs reconnect' : 'Not ready')}
                            </div>
                          )}
                          

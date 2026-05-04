@@ -376,11 +376,11 @@ export const ApiService = {
     return publicUrl;
   },
 
-  getDriveStatus: async (): Promise<{ enabled: boolean; provider: string; connected: boolean; needsReconnect?: boolean; error?: string }> => {
+  getDriveStatus: async (): Promise<{ enabled: boolean; provider: string; connected: boolean; needsReconnect?: boolean; error?: string; configured?: boolean }> => {
     const adminHeader = getAdminSessionHeader();
     if (!adminHeader) throw new Error('Admin session missing');
 
-    const res = await fetch(`${API_URL}/api/uploads/gdrive/status`, {
+    const res = await fetch(`${API_URL}/api/uploads/status`, {
       method: 'GET',
       headers: {
         'X-Admin-Session': adminHeader,
@@ -394,6 +394,7 @@ export const ApiService = {
       connected: Boolean(data?.connected),
       needsReconnect: Boolean(data?.needsReconnect),
       error: data?.error ? String(data.error) : undefined,
+      configured: typeof data?.configured === 'boolean' ? Boolean(data.configured) : undefined,
     };
   },
 

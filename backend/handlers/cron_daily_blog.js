@@ -334,13 +334,73 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, skipped: true, reason: 'already posted today', id: existing.rows[0].id });
     }
 
-    const newsItems = await fetchNewsItems('funding grants loans opportunities technology health agriculture education energy manufacturing SMEs');
+    // Rotate angle/topic so we don't publish near-identical posts daily.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS autoblog_state (
+        id INTEGER PRIMARY KEY DEFAULT 1,
+        recent_angles TEXT[] NOT NULL DEFAULT ARRAY[]::text[],
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT single_row_autoblog_state CHECK (id = 1)
+      )
+    `);
+    await client.query('INSERT INTO autoblog_state (id) VALUES (1) ON CONFLICT (id) DO NOTHING');
+
+    const ANGLES = [
+      {
+        key: 'sme-cashflow',
+        label: 'SME cashflow and working capital without getting scammed',
+        newsQuery: 'Nigeria SME working capital funding microfinance BOI CBN intervention'
+      },
+      {
+        key: 'agri-value-chain',
+        label: 'Agribusiness value chain funding, equipment, and off-take contracts',
+        newsQuery: 'Nigeria agriculture funding grants loans equipment off-take contracts'
+      },
+      {
+        key: 'women-youth',
+        label: 'Women and youth founder opportunities plus practical application tactics',
+        newsQuery: 'Nigeria women youth entrepreneurship funding grants accelerators'
+      },
+      {
+        key: 'manufacturing',
+        label: 'Manufacturing scale-up: power costs, equipment financing, and export readiness',
+        newsQuery: 'Nigeria manufacturing funding equipment financing export incentives'
+      },
+      {
+        key: 'health-ed',
+        label: 'Healthcare and education operators: growth capital and compliance moves',
+        newsQuery: 'Nigeria healthcare education funding grants loans compliance'
+      },
+      {
+        key: 'clean-energy',
+        label: 'Clean energy and climate programs: solar, mini-grids, and impact capital',
+        newsQuery: 'Nigeria clean energy climate funding solar mini-grid impact capital'
+      },
+      {
+        key: 'creative-economy',
+        label: 'Creative economy: monetization, IP, distribution, and brand partnerships',
+        newsQuery: 'Nigeria creative economy funding film music fashion grants programs'
+      }
+    ];
+
+    const stateRes = await client.query('SELECT recent_angles FROM autoblog_state WHERE id=1');
+    const recentAngles = Array.isArray(stateRes.rows?.[0]?.recent_angles) ? stateRes.rows[0].recent_angles : [];
+    const recentSet = new Set(recentAngles.map((s) => String(s || '').trim()).filter(Boolean));
+
+    const candidates = ANGLES.filter(a => !recentSet.has(a.key));
+    const pickFrom = candidates.length > 0 ? candidates : ANGLES;
+    const angle = pickFrom[Math.floor(Math.random() * pickFrom.length)];
+
+    const nextRecent = [angle.key, ...recentAngles.filter((k) => String(k) !== String(angle.key))].slice(0, 7);
+    await client.query('UPDATE autoblog_state SET recent_angles = $1, updated_at = CURRENT_TIMESTAMP WHERE id=1', [nextRecent]);
+
+    const newsItems = await fetchNewsItems(`${angle.newsQuery} funding grants loans opportunities`);
     const newsContext = newsItems
       .map((i, idx) => `${idx + 1}. ${i.title}${i.pubDate ? ` (${i.pubDate})` : ''} - ${i.link}`)
       .join('\n');
 
     const systemInstruction = `You are a top-tier Nigerian business consultant and financial journalist.
-Write an authoritative, human-sounding 650-900 word article in HTML format.
+  Write an authoritative, human-sounding 850-1200 word article in HTML format.
 
   TITLE RULE:
   - The first <h2> is the title. Do NOT include any date in the title.
@@ -351,11 +411,22 @@ CRITICAL CONTENT RULES:
 2b. Do NOT include a "Conclusion" section or wrap-up paragraph. End with concrete next steps.
 3. FOCUS deeply on Nigeria: use Naira (₦), mention local states, or CBN/BOI policies.
 4. SOUND like a person, not a textbook. Be strategic and actionable.
-5. LINKS: Do NOT include raw URLs in the body. Do NOT add a Sources section or citations.
+5. LINKS: Do NOT include raw URLs in the body. Do NOT add a Sources section or citations. We will append Sources separately.
 6. AVOID too much use of Additionally
-7. FORMAT: Use <h2>, <h3>, <p>, <strong>, <ul>, <li>, and <a> tags only.`;
+7. FORMAT: Use <h2>, <h3>, <p>, <strong>, <ul>, <li>, and <a> tags only.
+8. PROFESSIONAL TONE: write like a newsroom + operator, not an ad.
+9. SPECIFICITY: include at least 1 short Nigeria-specific mini example (2-4 sentences) to ground the piece.`;
 
-    const userPrompt = `Write today's Nigeria Funding & Opportunities Briefing.\n\nCover a mix of sectors where funding is needed (examples: technology, healthcare, agriculture, education, manufacturing, clean energy, creative economy).\n\nInclude:\n- 3-5 practical moves readers can take today\n- A short section on avoiding scams\n- Clear next steps\n\nTopic direction: fresh opportunities (grants/loans/accelerators/market programs) and policy-related updates (if relevant).`;
+  const userPrompt = `Write a Nigeria Funding & Growth Briefing with this angle: ${angle.label}.
+
+Structure:
+- <h2> punchy title (no date)
+- 1 strong opening paragraph that sets the real problem Nigerian founders face
+- 3-5 <h3> sections with crisp subheads
+- A "Avoiding scams" section with concrete red flags
+- A "What to do this week" section with 5-7 bullet next steps
+
+Use the headlines context for timely specifics when possible, but do not invent facts.`;
 
     const messages = [
       { role: 'system', content: systemInstruction },

@@ -49,11 +49,20 @@ export const Home: React.FC = () => {
   const [referralData] = useState(ApiService.getMyReferralData());
 
   useEffect(() => {
+    let cancelled = false;
+
+    const withTimeout = async <T,>(p: Promise<T>, ms: number, label: string): Promise<T> => {
+      return await Promise.race([
+        p,
+        new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`${label} timed out`)), ms))
+      ]);
+    };
+
     // 1. Fetch Ads Immediately for speed
     const loadAds = async () => {
       try {
         const fetchedAds = await ApiService.getAds();
-        setAds(fetchedAds);
+        if (!cancelled) setAds(fetchedAds);
       } catch (e) {
         console.warn("Failed to load ads early", e);
       }
@@ -62,25 +71,47 @@ export const Home: React.FC = () => {
 
     // 2. Fetch other content
     const loadData = async () => {
+      // Don't block the entire page if one endpoint is slow/cold.
+      const hardStop = setTimeout(() => {
+        if (!cancelled) setIsLoading(false);
+      }, 1800);
+
       try {
-        const [fetchedTestimonials, fetchedRecentApplicants, fetchedBlog, fetchedAppStats] = await Promise.all([
-          ApiService.getTestimonials(),
-          ApiService.getRecentApplicantsTicker(),
-          ApiService.getBlogPosts(),
-          ApiService.getApplicationStats()
+        const results = await Promise.allSettled([
+          withTimeout(ApiService.getTestimonials(), 6500, 'Testimonials'),
+          withTimeout(ApiService.getRecentApplicantsTicker(), 6500, 'Recent applicants'),
+          withTimeout(ApiService.getBlogPosts(), 6500, 'Blog posts'),
+          withTimeout(ApiService.getApplicationStats(), 6500, 'Application stats'),
         ]);
-        setAllTestimonials(fetchedTestimonials);
-        setRecentApplicants(fetchedRecentApplicants);
-        setBlogPosts(fetchedBlog); // Take all for the slider and other sections
-        setApplicationStats(fetchedAppStats);
+
+        if (cancelled) return;
+
+        const [t, a, b, s] = results;
+        if (t.status === 'fulfilled') setAllTestimonials(t.value);
+        if (a.status === 'fulfilled') setRecentApplicants(a.value);
+        if (b.status === 'fulfilled') setBlogPosts(b.value);
+        if (s.status === 'fulfilled') setApplicationStats(s.value);
+
+        const anyRejected = results.some(r => r.status === 'rejected');
+        if (anyRejected) {
+          console.warn('Some home data failed to load', results);
+          setError(prev => prev || 'Some content failed to load. Please refresh.');
+        }
       } catch (e) {
-        console.error("Failed to load home data", e);
-        setError('Failed to load data. Please check your connection.');
+        if (!cancelled) {
+          console.error("Failed to load home data", e);
+          setError(prev => prev || 'Failed to load data. Please check your connection.');
+        }
       } finally {
-        setIsLoading(false);
+        clearTimeout(hardStop);
+        if (!cancelled) setIsLoading(false);
       }
     };
     loadData();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handlePurposeChange = (val: string) => {
