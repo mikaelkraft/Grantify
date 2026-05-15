@@ -383,15 +383,21 @@ export default async function handler(req, res) {
       }
     ];
 
+    // Keep the "recent" window smaller than the number of available angles,
+    // so we always have at least one non-recent candidate to choose from.
+    const RECENT_ANGLE_WINDOW = Math.max(0, Math.min(5, Math.max(0, ANGLES.length - 1)));
+
     const stateRes = await client.query('SELECT recent_angles FROM autoblog_state WHERE id=1');
-    const recentAngles = Array.isArray(stateRes.rows?.[0]?.recent_angles) ? stateRes.rows[0].recent_angles : [];
-    const recentSet = new Set(recentAngles.map((s) => String(s || '').trim()).filter(Boolean));
+    const recentAnglesRaw = Array.isArray(stateRes.rows?.[0]?.recent_angles) ? stateRes.rows[0].recent_angles : [];
+    const recentAnglesClean = recentAnglesRaw.map((s) => String(s || '').trim()).filter(Boolean);
+    const recentAngles = RECENT_ANGLE_WINDOW > 0 ? recentAnglesClean.slice(0, RECENT_ANGLE_WINDOW) : [];
+    const recentSet = new Set(recentAngles);
 
     const candidates = ANGLES.filter(a => !recentSet.has(a.key));
     const pickFrom = candidates.length > 0 ? candidates : ANGLES;
     const angle = pickFrom[Math.floor(Math.random() * pickFrom.length)];
 
-    const nextRecent = [angle.key, ...recentAngles.filter((k) => String(k) !== String(angle.key))].slice(0, 7);
+    const nextRecent = [angle.key, ...recentAngles.filter((k) => String(k) !== String(angle.key))].slice(0, RECENT_ANGLE_WINDOW);
     await client.query('UPDATE autoblog_state SET recent_angles = $1, updated_at = CURRENT_TIMESTAMP WHERE id=1', [nextRecent]);
 
     const newsItems = await fetchNewsItems(`${angle.newsQuery} funding grants loans opportunities`);

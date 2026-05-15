@@ -6,8 +6,6 @@ import { ensureAdminFromQueryOrHeader } from './gdrive_shared.js';
 import { getGDriveRefreshToken, refreshGDriveAccessToken, toStr as gToStr } from './gdrive_shared.js';
 import { getOneDriveRefreshToken, refreshOneDriveAccessToken, toStr as oToStr } from './onedrive_shared.js';
 
-const toStr = (v) => (typeof v === 'string' ? v : Array.isArray(v) ? v.join(',') : v === undefined || v === null ? '' : String(v));
-
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -58,10 +56,10 @@ export default async function handler(req, res) {
   }
 
   // Default: S3/R2-compatible configuration
-  const bucket = toStr(process.env.S3_BUCKET).trim();
-  const accessKeyId = toStr(process.env.S3_ACCESS_KEY_ID).trim();
-  const secretAccessKey = toStr(process.env.S3_SECRET_ACCESS_KEY).trim();
-  const publicBaseUrl = toStr(process.env.S3_PUBLIC_BASE_URL).trim();
+  const bucket = gToStr(process.env.S3_BUCKET).trim();
+  const accessKeyId = gToStr(process.env.S3_ACCESS_KEY_ID).trim();
+  const secretAccessKey = gToStr(process.env.S3_SECRET_ACCESS_KEY).trim();
+  const publicBaseUrl = gToStr(process.env.S3_PUBLIC_BASE_URL).trim();
   const configured = Boolean(bucket && accessKeyId && secretAccessKey && publicBaseUrl);
 
   return res.status(200).json({ enabled: true, provider, connected: configured, configured });
