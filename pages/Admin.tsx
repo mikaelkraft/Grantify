@@ -341,7 +341,7 @@ export const Admin: React.FC = () => {
 
       if (connectUrl) {
         try { window.open(connectUrl, '_blank', 'noopener,noreferrer'); } catch {}
-        alert('Google Drive is not connected yet. A Google consent page was opened; complete it, then retry the upload.');
+        alert('Cloud storage is not connected yet. A consent page was opened; complete it, then retry the upload.');
         return;
       }
 
@@ -982,7 +982,7 @@ export const Admin: React.FC = () => {
 
       if (connectUrl) {
         try { window.open(connectUrl, '_blank', 'noopener,noreferrer'); } catch {}
-        alert('Google Drive is not connected yet. A Google consent page was opened; complete it, then retry the upload.');
+        alert('Cloud storage is not connected yet. A consent page was opened; complete it, then retry the upload.');
         return;
       }
 
@@ -1331,6 +1331,13 @@ export const Admin: React.FC = () => {
              <Flag size={18} /> Moderation
            </button>
 
+           {/* Super Admin Only Tab */}
+           <button
+             onClick={() => setActiveTab('admins')}
+             className={`w-full text-left px-4 py-2 rounded mt-4 border-t border-gray-300 dark:border-gray-800 pt-4 flex items-center gap-2 transition ${activeTab === 'admins' ? 'bg-grantify-green text-white' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
+           >
+             <Shield size={16}/> {user.role === UserRole.SUPER_ADMIN ? 'Admins & Profile' : 'My Profile'}
+           </button>
         </div>
 
         {/* Content Area */}
@@ -2484,7 +2491,7 @@ export const Admin: React.FC = () => {
                            title="Claps"
                          />
 
-                         {oneDriveStatus && oneDriveStatus.enabled && oneDriveStatus.provider === 'gdrive' && (
+                         {oneDriveStatus && oneDriveStatus.enabled && (
                            <div
                              className={
                                "md:col-span-2 text-[10px] font-bold uppercase tracking-wider " +
@@ -2494,7 +2501,7 @@ export const Admin: React.FC = () => {
                              }
                              title={oneDriveStatus.error || ''}
                            >
-                             Google Drive: {oneDriveStatus.connected ? 'Connected' : (oneDriveStatus.needsReconnect ? 'Needs reconnect' : 'Not connected')}
+                             Uploads ({String(oneDriveStatus.provider || 'unknown')}): {oneDriveStatus.connected ? 'Ready' : (oneDriveStatus.needsReconnect ? 'Needs reconnect' : 'Not ready')}
                            </div>
                          )}
                          

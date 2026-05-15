@@ -22,6 +22,7 @@ import gDriveCallback from '../backend/handlers/gdrive_callback.js';
 import gDriveFinalize from '../backend/handlers/gdrive_finalize.js';
 import gDriveStatus from '../backend/handlers/gdrive_status.js';
 import gDriveImage from '../backend/handlers/gdrive_image.js';
+import uploadsStatus from '../backend/handlers/uploads_status.js';
 import oneDriveConnect from '../backend/handlers/onedrive_connect.js';
 import oneDriveCallback from '../backend/handlers/onedrive_callback.js';
 import oneDriveFinalize from '../backend/handlers/onedrive_finalize.js';
@@ -115,6 +116,7 @@ export default async function handler(req, res) {
 
     if (root === 'uploads') {
       if (rest.join('/') === 'image') return uploads(req, res);
+      if (rest.join('/') === 'status') return uploadsStatus(req, res);
       if (rest.join('/') === 'gdrive/connect') return gDriveConnect(req, res);
       if (rest.join('/') === 'gdrive/callback') return gDriveCallback(req, res);
       if (rest.join('/') === 'gdrive/finalize') return gDriveFinalize(req, res);
