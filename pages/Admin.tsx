@@ -1109,15 +1109,16 @@ export const Admin: React.FC = () => {
   }, [pendingEditPostId, blogPosts]);
 
   const handleEditBlogPost = (post: BlogPost) => {
-    // ReactQuill can be expensive to hydrate with large HTML. Stage the update
-    // so the UI can switch to "editing" immediately without a long main-thread stall.
+    // On some mobile Chrome builds, deferred/staged hydration can occasionally
+    // result in ReactQuill never receiving the final HTML (appearing "blank").
+    // Prefer setting content synchronously for reliability.
     setIsHydratingSelectedPost(true);
     setIsEditingPost(true);
 
     setNewPost({
       id: post.id,
       title: post.title,
-      content: '',
+      content: post.content || '',
       author: post.author,
       authorRole: post.authorRole,
       category: post.category,
@@ -1133,15 +1134,7 @@ export const Admin: React.FC = () => {
     });
 
     document.getElementById('new-post-form')?.scrollIntoView({ behavior: 'smooth' });
-
-    // Defer the heavy content set to the next frame.
-    window.requestAnimationFrame(() => {
-      startTransition(() => {
-        setNewPost(prev => ({ ...prev, content: post.content || '' }));
-      });
-      // Clear the loading indicator after the content is enqueued.
-      window.setTimeout(() => setIsHydratingSelectedPost(false), 0);
-    });
+    window.setTimeout(() => setIsHydratingSelectedPost(false), 0);
   };
 
   const handleAiSmartWrite = async () => {
@@ -2535,7 +2528,7 @@ export const Admin: React.FC = () => {
                            </div>
                          )}
                          
-                         <div className="md:col-span-2 bg-white dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-800 overflow-visible min-h-[300px] flex flex-col">
+                         <div className="md:col-span-2 bg-white dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-800 overflow-visible min-h-[300px] flex flex-col min-w-0 max-w-full">
                             <div className="p-2 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Article Content</div>
                             <div className="px-3 py-2 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between gap-3">
                               <label className="flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-gray-200">
@@ -2602,7 +2595,7 @@ export const Admin: React.FC = () => {
                               onChange={(content) => setNewPost(prev => ({ ...prev, content }))}
                               modules={quillModules}
                               formats={quillFormats}
-                              className="flex-grow admin-quill"
+                              className="flex-grow admin-quill min-w-0 max-w-full"
                               placeholder="Write your article here..."
                             />
                          </div>
