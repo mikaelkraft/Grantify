@@ -98,12 +98,20 @@ export const Blog: React.FC = () => {
               className="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col"
             >
               <div className="aspect-video bg-gray-100 dark:bg-gray-950 overflow-hidden relative">
+                {(() => {
+                  const derived = derivePostImage(post);
+                  const src = derived || getBlogPlaceholderImage(post.title);
+                  return (
                 <img
-                  src={derivePostImage(post) || getBlogPlaceholderImage(post.title)}
+                  src={src}
                   alt={post.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  className={derived
+                    ? 'w-full h-full object-cover group-hover:scale-105 transition-transform duration-500'
+                    : 'w-full h-full object-contain p-6'}
                   loading="lazy"
                 />
+                  );
+                })()}
                 <div className="absolute top-4 left-4 bg-grantify-gold text-grantify-green text-[10px] font-black px-2 py-1 rounded uppercase tracking-wider">
                   {post.category}
                 </div>

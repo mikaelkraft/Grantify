@@ -34,8 +34,8 @@ export const Home: React.FC = () => {
   const [matchedNetwork, setMatchedNetwork] = useState<GrantNetwork | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isLoadingBlogPosts, setIsLoadingBlogPosts] = useState(true);
 
   const [partnerRegionFilter, setPartnerRegionFilter] = useState<'all' | GrantNetwork['region']>('all');
   
@@ -69,27 +69,62 @@ export const Home: React.FC = () => {
     };
     loadAds();
 
-    // 2. Fetch other content
-    const loadData = async () => {
-      // Don't block the entire page if one endpoint is slow/cold.
-      const hardStop = setTimeout(() => {
-        if (!cancelled) setIsLoading(false);
-      }, 1800);
+    // 2. Load blog posts independently (so the main page renders immediately)
+    const BLOG_CACHE_KEY = 'grantify_home_blog_posts_v1';
+    try {
+      const raw = localStorage.getItem(BLOG_CACHE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) setBlogPosts(parsed);
+      }
+    } catch {
+      // no-op
+    }
 
+    let didRetryBlog = false;
+    const loadBlogPosts = async () => {
+      setIsLoadingBlogPosts(true);
+      try {
+        const posts = await withTimeout(ApiService.getBlogPosts(), 9000, 'Blog posts');
+        if (cancelled) return;
+        const safe = Array.isArray(posts) ? posts : [];
+        setBlogPosts(safe);
+        try {
+          localStorage.setItem(BLOG_CACHE_KEY, JSON.stringify(safe.slice(0, 20)));
+        } catch {
+          // no-op
+        }
+      } catch (e) {
+        if (cancelled) return;
+        console.warn('Failed to load blog posts', e);
+        if (!didRetryBlog) {
+          didRetryBlog = true;
+          window.setTimeout(() => {
+            if (!cancelled) void loadBlogPosts();
+          }, 1400);
+        } else {
+          setError(prev => prev || 'Some content failed to load. Please refresh.');
+        }
+      } finally {
+        if (!cancelled) setIsLoadingBlogPosts(false);
+      }
+    };
+    void loadBlogPosts();
+
+    // 3. Fetch other content
+    const loadData = async () => {
       try {
         const results = await Promise.allSettled([
           withTimeout(ApiService.getTestimonials(), 6500, 'Testimonials'),
           withTimeout(ApiService.getRecentApplicantsTicker(), 6500, 'Recent applicants'),
-          withTimeout(ApiService.getBlogPosts(), 6500, 'Blog posts'),
           withTimeout(ApiService.getApplicationStats(), 6500, 'Application stats'),
         ]);
 
         if (cancelled) return;
 
-        const [t, a, b, s] = results;
+        const [t, a, s] = results;
         if (t.status === 'fulfilled') setAllTestimonials(t.value);
         if (a.status === 'fulfilled') setRecentApplicants(a.value);
-        if (b.status === 'fulfilled') setBlogPosts(b.value);
         if (s.status === 'fulfilled') setApplicationStats(s.value);
 
         const anyRejected = results.some(r => r.status === 'rejected');
@@ -102,12 +137,9 @@ export const Home: React.FC = () => {
           console.error("Failed to load home data", e);
           setError(prev => prev || 'Failed to load data. Please check your connection.');
         }
-      } finally {
-        clearTimeout(hardStop);
-        if (!cancelled) setIsLoading(false);
       }
     };
-    loadData();
+    void loadData();
 
     return () => {
       cancelled = true;
@@ -193,15 +225,6 @@ export const Home: React.FC = () => {
       setIsSubmitting(false);
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-[500px] flex flex-col items-center justify-center text-grantify-green">
-        <Loader2 className="animate-spin w-12 h-12 mb-4" />
-        <p className="font-bold tracking-widest uppercase text-xs">Calibrating Grant Matcher...</p>
-      </div>
-    );
-  }
 
   if (submitted) {
     return (
@@ -528,35 +551,49 @@ export const Home: React.FC = () => {
             </Link>
           </div>
           
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 gap-4">
-            {blogPosts.slice(0, 4).map(post => (
-              <Link key={post.id} to={makeBlogPath(post)} className="group bg-white dark:bg-gray-900 rounded-3xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-xl transition-all duration-300">
-                <div className="h-48 bg-gray-200 dark:bg-gray-950 relative overflow-hidden">
-                  <img
-                    src={derivePostImage(post) || getBlogPlaceholderImage(post.title)}
-                    alt={post.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    loading="lazy"
-                  />
-                  <div className="absolute top-4 left-4 bg-white/20 backdrop-blur-md text-white text-[10px] font-black px-2 py-1 rounded uppercase">
-                    {post.category}
-                  </div>
-                </div>
-                <div className="p-6">
-                  <h3 className="font-bold text-gray-800 dark:text-gray-100 group-hover:text-grantify-green transition-colors line-clamp-2 min-h-[3rem]">
-                    {post.title}
-                  </h3>
-                  <div className="mt-4 flex items-center justify-between text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
-                    <span>{post.author}</span>
-                    <span className="flex items-center gap-3">
-                      <span className="flex items-center gap-1"><Eye size={12} /> {Number(post.views || 0).toLocaleString()}</span>
-                      <span className="flex items-center gap-1"><ThumbsUp size={12} /> {Number((post.likes || 0) + (post.loves || 0) + (post.claps || 0)).toLocaleString()}</span>
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
+          {blogPosts.length === 0 ? (
+            <div className="text-sm text-gray-500 dark:text-gray-400 font-bold flex items-center gap-2">
+              {isLoadingBlogPosts ? <Loader2 size={16} className="animate-spin" /> : null}
+              {isLoadingBlogPosts ? 'Loading publications…' : (error ? error : 'No publications yet.')}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 gap-4">
+              {blogPosts.slice(0, 4).map(post => {
+                const derived = derivePostImage(post);
+                const src = derived || getBlogPlaceholderImage(post.title);
+
+                return (
+                  <Link key={post.id} to={makeBlogPath(post)} className="group bg-white dark:bg-gray-900 rounded-3xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-xl transition-all duration-300">
+                    <div className="h-48 bg-gray-200 dark:bg-gray-950 relative overflow-hidden">
+                      <img
+                        src={src}
+                        alt={post.title}
+                        className={derived
+                          ? 'w-full h-full object-cover group-hover:scale-105 transition-transform duration-500'
+                          : 'w-full h-full object-contain p-6'}
+                        loading="lazy"
+                      />
+                      <div className="absolute top-4 left-4 bg-white/20 backdrop-blur-md text-white text-[10px] font-black px-2 py-1 rounded uppercase">
+                        {post.category}
+                      </div>
+                    </div>
+                    <div className="p-6">
+                      <h3 className="font-bold text-gray-800 dark:text-gray-100 group-hover:text-grantify-green transition-colors line-clamp-2 min-h-[3rem]">
+                        {post.title}
+                      </h3>
+                      <div className="mt-4 flex items-center justify-between text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+                        <span>{post.author}</span>
+                        <span className="flex items-center gap-3">
+                          <span className="flex items-center gap-1"><Eye size={12} /> {Number(post.views || 0).toLocaleString()}</span>
+                          <span className="flex items-center gap-1"><ThumbsUp size={12} /> {Number((post.likes || 0) + (post.loves || 0) + (post.claps || 0)).toLocaleString()}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
 
           {blogPosts.length > 4 && (
             <div className="mt-4 text-sm text-gray-500 dark:text-gray-400 font-bold">

@@ -61,8 +61,7 @@ export const BlogTicker: React.FC<Props> = ({ posts }) => {
         ) : (
           <div className="w-full overflow-hidden">
             <div
-              className="ticker-marquee flex items-center gap-10 w-max whitespace-nowrap"
-              style={{ animation: 'ticker-marquee 18s linear infinite' }}
+              className="ticker-marquee-fast flex items-center gap-10 w-max whitespace-nowrap"
             >
               {[...items, ...items].map((post, idx) => (
                 <Link

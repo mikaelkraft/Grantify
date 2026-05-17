@@ -149,8 +149,12 @@ export const BlogPostView: React.FC = () => {
   }, [post?.id]);
 
   const heroImage = useMemo(() => {
-    if (!post) return '';
-    return derivePostImage(post) || getBlogPlaceholderImage(post.title);
+    if (!post) return { src: '', isPlaceholder: true };
+    const derived = derivePostImage(post);
+    return {
+      src: derived || getBlogPlaceholderImage(post.title),
+      isPlaceholder: !derived,
+    };
   }, [post?.id, post?.image, post?.content, post?.title]);
 
   useEffect(() => {
@@ -425,9 +429,9 @@ export const BlogPostView: React.FC = () => {
       <article className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm mb-12">
         <div className="overflow-hidden rounded-t-3xl">
           <img
-            src={heroImage}
+            src={heroImage.src}
             alt={post.title}
-            className="w-full h-80 object-cover"
+            className={heroImage.isPlaceholder ? 'w-full h-80 object-contain p-8' : 'w-full h-80 object-cover'}
             loading="lazy"
           />
         </div>
@@ -571,12 +575,20 @@ export const BlogPostView: React.FC = () => {
             {recommendedPosts.slice(0, 4).map(rec => (
               <Link key={rec.id} to={`/blog/${makeBlogSlug(rec.title, rec.id)}`} className="group bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm hover:shadow-md transition-all">
                 <div className="h-32 bg-gray-100 dark:bg-gray-950 relative">
+                  {(() => {
+                    const derived = derivePostImage(rec);
+                    const src = derived || getBlogPlaceholderImage(rec.title);
+                    return (
                   <img
-                    src={derivePostImage(rec) || getBlogPlaceholderImage(rec.title)}
+                    src={src}
                     alt={rec.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    className={derived
+                      ? 'w-full h-full object-cover group-hover:scale-105 transition-transform duration-500'
+                      : 'w-full h-full object-contain p-4'}
                     loading="lazy"
                   />
+                    );
+                  })()}
                 </div>
                 <div className="p-4">
                   <span className="text-[10px] bg-grantify-gold/20 text-grantify-green px-2 py-0.5 rounded font-bold uppercase mb-2 inline-block">
