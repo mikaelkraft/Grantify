@@ -1,7 +1,7 @@
 // Handler: /api/uploads/gdrive/finalize
 // Returns a public URL for the uploaded file (served via our backend proxy).
 
-import { ensureAdminFromQueryOrHeader, getOriginFromReq, toStr } from './gdrive_shared.js';
+import { ensureAdminFromQueryOrHeader, toStr } from './gdrive_shared.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -17,7 +17,8 @@ export default async function handler(req, res) {
   if (!fileId) return res.status(400).json({ error: 'Missing fileId' });
   if (!/^[a-zA-Z0-9_-]{10,}$/.test(fileId)) return res.status(400).json({ error: 'Invalid fileId' });
 
-  const origin = getOriginFromReq(req);
-  const publicUrl = `${origin}/api/uploads/gdrive/image?id=${encodeURIComponent(fileId)}`;
+  // Use a same-origin relative URL so the embed works consistently across
+  // local dev (Vite proxy), preview deployments, and production.
+  const publicUrl = `/api/uploads/gdrive/image?id=${encodeURIComponent(fileId)}`;
   return res.status(200).json({ publicUrl, fileId });
 }
