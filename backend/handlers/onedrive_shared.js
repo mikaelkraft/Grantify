@@ -4,8 +4,26 @@ import pool from '../db.js';
 export const toStr = (v) => (typeof v === 'string' ? v : Array.isArray(v) ? v.join(',') : v === undefined || v === null ? '' : String(v));
 
 export const getOriginFromReq = (req) => {
-  const proto = toStr(req?.headers?.['x-forwarded-proto']) || 'https';
-  const host = toStr(req?.headers?.host) || 'localhost';
+  const host = toStr(req?.headers?.['x-forwarded-host']) || toStr(req?.headers?.host) || 'localhost';
+
+  let proto = toStr(req?.headers?.['x-forwarded-proto']).trim();
+  if (!proto) {
+    const hintUrl = toStr(req?.headers?.origin).trim() || toStr(req?.headers?.referer).trim();
+    if (hintUrl) {
+      try {
+        proto = new URL(hintUrl).protocol.replace(':', '');
+      } catch {
+        proto = '';
+      }
+    }
+  }
+
+  if (!proto) {
+    const lowerHost = String(host || '').toLowerCase();
+    const isLocalhost = lowerHost.startsWith('localhost') || lowerHost.startsWith('127.0.0.1') || lowerHost.startsWith('0.0.0.0');
+    proto = isLocalhost ? 'http' : 'https';
+  }
+
   return `${proto}://${host}`;
 };
 
