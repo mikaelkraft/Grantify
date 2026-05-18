@@ -28,3 +28,6 @@ dist-ssr
 # Copilot/agent scratch
 .agent/
 .agents/
+
+# Dry-run outputs
+.tmp-daily-blog-*.html

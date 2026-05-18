@@ -1,6 +1,123 @@
 // Handler: /api/cron/daily-blog
 
 import pool from '../db.js';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ANGLES = [
+  {
+    key: 'sme-cashflow',
+    label: 'SME cashflow and working capital without getting scammed',
+    newsQuery: 'Nigeria SME working capital funding microfinance BOI CBN intervention'
+  },
+  {
+    key: 'agri-value-chain',
+    label: 'Agribusiness value chain funding, equipment, and off-take contracts',
+    newsQuery: 'Nigeria agriculture funding grants loans equipment off-take contracts'
+  },
+  {
+    key: 'women-youth',
+    label: 'Women and youth founder opportunities plus practical application tactics',
+    newsQuery: 'Nigeria women youth entrepreneurship funding grants accelerators'
+  },
+  {
+    key: 'manufacturing',
+    label: 'Manufacturing scale-up: power costs, equipment financing, and export readiness',
+    newsQuery: 'Nigeria manufacturing funding equipment financing export incentives'
+  },
+  {
+    key: 'health-ed',
+    label: 'Healthcare and education operators: growth capital and compliance moves',
+    newsQuery: 'Nigeria healthcare education funding grants loans compliance'
+  },
+  {
+    key: 'clean-energy',
+    label: 'Clean energy and climate programs: solar, mini-grids, and impact capital',
+    newsQuery: 'Nigeria clean energy climate funding solar mini-grid impact capital'
+  },
+  {
+    key: 'creative-economy',
+    label: 'Creative economy: monetization, IP, distribution, and brand partnerships',
+    newsQuery: 'Nigeria creative economy funding film music fashion grants programs'
+  }
+];
+
+const STORY_SEEDS = [
+  'A fashion entrepreneur in Yaba trying to stabilize cashflow after a viral week',
+  'A rice mill operator in Kano balancing equipment repairs and working capital',
+  'A pharmacy owner in Enugu navigating compliance costs and restocking cycles',
+  'A small solar installer in Kaduna chasing large contracts with delayed payments',
+  'A furniture maker in Aba struggling with generator costs and bulk orders',
+  'A catering business in Ibadan trying to move from cash to invoices with SMEs',
+  'A fish farmer in Ogun scaling feed supply and cold-chain logistics'
+];
+
+// Keep the "recent" window smaller than the number of available angles,
+// so we always have at least one non-recent candidate to choose from.
+const RECENT_ANGLE_WINDOW = Math.max(0, Math.min(5, Math.max(0, ANGLES.length - 1)));
+const RECENT_SEED_WINDOW = Math.max(0, Math.min(4, Math.max(0, STORY_SEEDS.length - 1)));
+
+const buildGroqMessages = ({ angleLabel, storySeed, recentTitles, newsContext }) => {
+  const systemInstruction = `You are a top-tier Nigerian business consultant and financial journalist.
+  Write an authoritative, human-sounding 950-1400 word article in HTML format.
+
+  TITLE RULE:
+  - The first <h2> is the title. Do NOT include any date in the title.
+
+CRITICAL CONTENT RULES:
+1. NEVER use em dashes (—). Use commas, colons, or periods instead.
+2. AVOID generic AI openings or conclusions.
+2b. Do NOT include a "Conclusion" section or wrap-up paragraph. End with concrete next steps.
+3. FOCUS deeply on Nigeria: use Naira (₦), mention local states, or CBN/BOI policies.
+4. SOUND like a person, not a textbook. Be strategic and actionable.
+5. LINKS: Do NOT include raw external URLs in the body. Internal links are allowed only as relative links like /blog/<slug>.
+  Do NOT add a Sources section or citations. We will append Sources separately.
+6. AVOID too much use of Additionally
+7. FORMAT: Use <h2>, <h3>, <p>, <strong>, <ul>, <li>, and <a> tags only.
+8. PROFESSIONAL TONE: write like a newsroom + operator, not an ad.
+9. SPECIFICITY: include at least 1 short Nigeria-specific mini example (2-4 sentences) to ground the piece.
+10. STORYTELLING: Open with a 3-5 sentence narrative hook about a realistic operator (fictional, but plausible), then connect to the analysis.
+11. FRESHNESS: Do not repeat story setup, sections, or titles from recent daily posts.`;
+
+  const safeAngle = String(angleLabel || '').trim();
+  const safeSeed = String(storySeed || '').trim();
+
+  const titles = Array.isArray(recentTitles) ? recentTitles : [];
+  const recentBlock = titles.length
+    ? titles.map((t, i) => `${i + 1}. ${t}`).join('\n')
+    : '(none available)';
+
+  const userPrompt = `Write a Nigeria Funding & Growth Briefing with this angle: ${safeAngle}.
+
+Story seed (use this as the opening vignette, fictional but realistic): ${safeSeed}
+
+Avoid repeating these recent daily post titles:
+${recentBlock}
+
+Structure:
+- <h2> punchy title (no date)
+- 1 narrative hook paragraph that starts with a real moment, then zooms out to the problem
+- 4-6 <h3> sections with crisp subheads
+- Include at least 2 short "micro-scenes" (1-2 sentences each) that make the advice feel lived-in
+- A "Avoiding scams" section with concrete red flags
+- A "What to do this week" section with 5-7 bullet next steps
+
+Traffic + SEO:
+- Use 2-3 natural anchor phrases that could link to related articles, do not include the links yourself.
+
+Use the headlines context for timely specifics when possible, but do not invent facts.`;
+
+  const messages = [
+    { role: 'system', content: systemInstruction },
+    ...(newsContext
+      ? [{ role: 'user', content: `Use these recent headlines and links as context (do not invent facts beyond them):\n${newsContext}` }]
+      : []),
+    { role: 'user', content: userPrompt }
+  ];
+
+  return messages;
+};
 
 const parseAdminSession = (req) => {
   try {
@@ -140,6 +257,67 @@ const extractTitleFromHtml = (html) => {
   } catch {
     return null;
   }
+};
+
+const slugifyTitle = (title) => {
+  const input = String(title || '').trim();
+  if (!input) return 'post';
+
+  const ascii = input
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
+  const cleaned = ascii
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, '-');
+
+  return cleaned || 'post';
+};
+
+const makeBlogSlug = (title, id) => {
+  const slugPart = slugifyTitle(title);
+  const idPart = encodeURIComponent(String(id));
+  return `${slugPart}~${idPart}`;
+};
+
+const insertRelatedReads = (html, relatedPosts) => {
+  const base = String(html || '');
+  const posts = Array.isArray(relatedPosts) ? relatedPosts.filter(Boolean) : [];
+  if (!posts.length) return base;
+
+  const safeTitle = (value) => String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .trim();
+
+  const items = posts
+    .slice(0, 3)
+    .map((p) => {
+      const href = `/blog/${makeBlogSlug(String(p.title || ''), String(p.id || ''))}`;
+      return `<li><a href="${href}">${safeTitle(p.title)}</a></li>`;
+    })
+    .join('');
+
+  const block = `<h3>Related reads</h3><ul>${items}</ul>`;
+
+  // Prefer inserting before Sources, if present.
+  const sourcesIdx = base.toLowerCase().indexOf('<h3>sources</h3>');
+  if (sourcesIdx !== -1) {
+    return `${base.slice(0, sourcesIdx)}${block}\n${base.slice(sourcesIdx)}`;
+  }
+
+  // Otherwise insert after the 2nd </h3> (keeps it inside the body, not just appended).
+  const closingRe = /<\/h3>/gi;
+  const matches = Array.from(base.matchAll(closingRe));
+  if (matches.length >= 2) {
+    const insertAt = (matches[1].index ?? 0) + matches[1][0].length;
+    return `${base.slice(0, insertAt)}\n${block}\n${base.slice(insertAt)}`;
+  }
+
+  return `${base}\n${block}`;
 };
 
 const stripDatesFromTitle = (title) => {
@@ -343,104 +521,55 @@ export default async function handler(req, res) {
         CONSTRAINT single_row_autoblog_state CHECK (id = 1)
       )
     `);
+    try {
+      await client.query('ALTER TABLE autoblog_state ADD COLUMN IF NOT EXISTS recent_story_seeds TEXT[] NOT NULL DEFAULT ARRAY[]::text[]');
+    } catch {
+      // no-op
+    }
     await client.query('INSERT INTO autoblog_state (id) VALUES (1) ON CONFLICT (id) DO NOTHING');
 
-    const ANGLES = [
-      {
-        key: 'sme-cashflow',
-        label: 'SME cashflow and working capital without getting scammed',
-        newsQuery: 'Nigeria SME working capital funding microfinance BOI CBN intervention'
-      },
-      {
-        key: 'agri-value-chain',
-        label: 'Agribusiness value chain funding, equipment, and off-take contracts',
-        newsQuery: 'Nigeria agriculture funding grants loans equipment off-take contracts'
-      },
-      {
-        key: 'women-youth',
-        label: 'Women and youth founder opportunities plus practical application tactics',
-        newsQuery: 'Nigeria women youth entrepreneurship funding grants accelerators'
-      },
-      {
-        key: 'manufacturing',
-        label: 'Manufacturing scale-up: power costs, equipment financing, and export readiness',
-        newsQuery: 'Nigeria manufacturing funding equipment financing export incentives'
-      },
-      {
-        key: 'health-ed',
-        label: 'Healthcare and education operators: growth capital and compliance moves',
-        newsQuery: 'Nigeria healthcare education funding grants loans compliance'
-      },
-      {
-        key: 'clean-energy',
-        label: 'Clean energy and climate programs: solar, mini-grids, and impact capital',
-        newsQuery: 'Nigeria clean energy climate funding solar mini-grid impact capital'
-      },
-      {
-        key: 'creative-economy',
-        label: 'Creative economy: monetization, IP, distribution, and brand partnerships',
-        newsQuery: 'Nigeria creative economy funding film music fashion grants programs'
-      }
-    ];
-
-    // Keep the "recent" window smaller than the number of available angles,
-    // so we always have at least one non-recent candidate to choose from.
-    const RECENT_ANGLE_WINDOW = Math.max(0, Math.min(5, Math.max(0, ANGLES.length - 1)));
-
-    const stateRes = await client.query('SELECT recent_angles FROM autoblog_state WHERE id=1');
+    const stateRes = await client.query('SELECT recent_angles, recent_story_seeds FROM autoblog_state WHERE id=1');
     const recentAnglesRaw = Array.isArray(stateRes.rows?.[0]?.recent_angles) ? stateRes.rows[0].recent_angles : [];
     const recentAnglesClean = recentAnglesRaw.map((s) => String(s || '').trim()).filter(Boolean);
     const recentAngles = RECENT_ANGLE_WINDOW > 0 ? recentAnglesClean.slice(0, RECENT_ANGLE_WINDOW) : [];
     const recentSet = new Set(recentAngles);
+
+    const recentSeedsRaw = Array.isArray(stateRes.rows?.[0]?.recent_story_seeds) ? stateRes.rows[0].recent_story_seeds : [];
+    const recentSeedsClean = recentSeedsRaw.map((s) => String(s || '').trim()).filter(Boolean);
+    const recentSeeds = RECENT_SEED_WINDOW > 0 ? recentSeedsClean.slice(0, RECENT_SEED_WINDOW) : [];
+    const seedSet = new Set(recentSeeds);
+    const seedCandidates = STORY_SEEDS.filter((s) => !seedSet.has(s));
+    const seedPickFrom = seedCandidates.length > 0 ? seedCandidates : STORY_SEEDS;
+    const storySeed = seedPickFrom[Math.floor(Math.random() * seedPickFrom.length)];
+    const nextSeeds = [storySeed, ...recentSeeds.filter((s) => String(s) !== String(storySeed))].slice(0, RECENT_SEED_WINDOW);
 
     const candidates = ANGLES.filter(a => !recentSet.has(a.key));
     const pickFrom = candidates.length > 0 ? candidates : ANGLES;
     const angle = pickFrom[Math.floor(Math.random() * pickFrom.length)];
 
     const nextRecent = [angle.key, ...recentAngles.filter((k) => String(k) !== String(angle.key))].slice(0, RECENT_ANGLE_WINDOW);
-    await client.query('UPDATE autoblog_state SET recent_angles = $1, updated_at = CURRENT_TIMESTAMP WHERE id=1', [nextRecent]);
+    await client.query('UPDATE autoblog_state SET recent_angles = $1, recent_story_seeds = $2, updated_at = CURRENT_TIMESTAMP WHERE id=1', [nextRecent, nextSeeds]);
+
+    // Pull recent daily titles to discourage repetition.
+    const recentTitleRes = await client.query(
+      `SELECT title FROM blog_posts WHERE tags @> ARRAY['daily']::text[] ORDER BY created_at DESC LIMIT 10`
+    );
+    const recentTitles = (recentTitleRes.rows || [])
+      .map((r) => String(r?.title || '').replace(/\s+/g, ' ').trim())
+      .filter(Boolean)
+      .slice(0, 10);
 
     const newsItems = await fetchNewsItems(`${angle.newsQuery} funding grants loans opportunities`);
     const newsContext = newsItems
       .map((i, idx) => `${idx + 1}. ${i.title}${i.pubDate ? ` (${i.pubDate})` : ''} - ${i.link}`)
       .join('\n');
 
-    const systemInstruction = `You are a top-tier Nigerian business consultant and financial journalist.
-  Write an authoritative, human-sounding 850-1200 word article in HTML format.
-
-  TITLE RULE:
-  - The first <h2> is the title. Do NOT include any date in the title.
-
-CRITICAL CONTENT RULES:
-1. NEVER use em dashes (—). Use commas, colons, or periods instead.
-2. AVOID generic AI openings or conclusions.
-2b. Do NOT include a "Conclusion" section or wrap-up paragraph. End with concrete next steps.
-3. FOCUS deeply on Nigeria: use Naira (₦), mention local states, or CBN/BOI policies.
-4. SOUND like a person, not a textbook. Be strategic and actionable.
-5. LINKS: Do NOT include raw URLs in the body. Do NOT add a Sources section or citations. We will append Sources separately.
-6. AVOID too much use of Additionally
-7. FORMAT: Use <h2>, <h3>, <p>, <strong>, <ul>, <li>, and <a> tags only.
-8. PROFESSIONAL TONE: write like a newsroom + operator, not an ad.
-9. SPECIFICITY: include at least 1 short Nigeria-specific mini example (2-4 sentences) to ground the piece.`;
-
-  const userPrompt = `Write a Nigeria Funding & Growth Briefing with this angle: ${angle.label}.
-
-Structure:
-- <h2> punchy title (no date)
-- 1 strong opening paragraph that sets the real problem Nigerian founders face
-- 3-5 <h3> sections with crisp subheads
-- A "Avoiding scams" section with concrete red flags
-- A "What to do this week" section with 5-7 bullet next steps
-
-Use the headlines context for timely specifics when possible, but do not invent facts.`;
-
-    const messages = [
-      { role: 'system', content: systemInstruction },
-      ...(newsContext
-        ? [{ role: 'user', content: `Use these recent headlines and links as context (do not invent facts beyond them):\n${newsContext}` }]
-        : []),
-      { role: 'user', content: userPrompt }
-    ];
+    const messages = buildGroqMessages({
+      angleLabel: angle.label,
+      storySeed,
+      recentTitles,
+      newsContext,
+    });
 
     const groqUrl = 'https://api.groq.com/openai/v1/chat/completions';
     const aiRes = await fetch(groqUrl, {
@@ -466,15 +595,54 @@ Use the headlines context for timely specifics when possible, but do not invent 
     const extractedTitle = extractTitleFromHtml(html) || '';
     const title = stripDatesFromTitle(extractedTitle) || 'Nigeria Funding & Opportunities Briefing';
 
+    const id = Date.now().toString();
+
     const imageQuery = buildUnsplashQuery({ title, newsItems });
     const image = await fetchUnsplashImage(imageQuery);
 
-    const sourcesHtml = buildSourcesHtml(newsItems);
-    const finalHtml = sourcesHtml && !String(html).includes('<h3>Sources</h3>')
-      ? `${html}\n${sourcesHtml}`
-      : html;
+    // Add internal linking block to drive recirculation.
+    let related = [];
+    try {
+      const evergreenRes = await client.query(
+        `SELECT id, title, category, created_at
+         FROM blog_posts
+         WHERE id <> $1
+           AND NOT (tags @> ARRAY['daily']::text[])
+         ORDER BY created_at DESC
+         LIMIT 24`,
+        [id]
+      );
+      const evergreenPool = Array.isArray(evergreenRes.rows) ? evergreenRes.rows : [];
+      related = evergreenPool
+        .filter((p) => Boolean(String(p?.title || '').trim()))
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 3);
 
-    const id = Date.now().toString();
+      if (related.length < 2) {
+        const anyRes = await client.query(
+          `SELECT id, title, category, created_at
+           FROM blog_posts
+           WHERE id <> $1
+           ORDER BY created_at DESC
+           LIMIT 24`,
+          [id]
+        );
+        const anyPool = Array.isArray(anyRes.rows) ? anyRes.rows : [];
+        related = anyPool
+          .filter((p) => Boolean(String(p?.title || '').trim()))
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 3);
+      }
+    } catch {
+      related = [];
+    }
+
+    const sourcesHtml = buildSourcesHtml(newsItems);
+    const htmlWithRelated = insertRelatedReads(html, related);
+    const finalHtml = sourcesHtml && !String(htmlWithRelated).includes('<h3>Sources</h3>')
+      ? `${htmlWithRelated}\n${sourcesHtml}`
+      : htmlWithRelated;
+
     const author = 'Grantifier';
     const authorRole = 'Editor';
     const category = 'Grants';
@@ -521,5 +689,258 @@ Use the headlines context for timely specifics when possible, but do not invent 
     return res.status(500).json({ error: e instanceof Error ? e.message : 'Unknown error' });
   } finally {
     client.release();
+  }
+}
+
+const parseDryRunArgs = (argv) => {
+  const args = {
+    dryRun: false,
+    force: false,
+    outFile: null,
+    json: false,
+  };
+
+  for (let i = 2; i < argv.length; i += 1) {
+    const token = String(argv[i] || '').trim();
+    if (!token) continue;
+
+    if (token === '--dry-run' || token === '--dryrun') {
+      args.dryRun = true;
+      continue;
+    }
+    if (token === '--force') {
+      args.force = true;
+      continue;
+    }
+    if (token === '--json') {
+      args.json = true;
+      continue;
+    }
+    if (token === '--out') {
+      const next = argv[i + 1];
+      if (next) {
+        args.outFile = String(next);
+        i += 1;
+      }
+      continue;
+    }
+  }
+
+  return args;
+};
+
+const runDryRun = async ({ force, outFile, json }) => {
+  const groqKey = process.env.GROQ_API_KEY;
+  if (!groqKey) {
+    throw new Error('GROQ_API_KEY is not configured (needed for --dry-run).');
+  }
+
+  let client = null;
+  try {
+    client = await pool.connect();
+  } catch {
+    client = null;
+  }
+
+  try {
+    // Best-effort reads for freshness (no writes in dry run).
+    let recentTitles = [];
+    let recentAngles = [];
+    let recentSeeds = [];
+    let alreadyPostedTodayId = null;
+
+    if (client) {
+      try {
+        const existing = await client.query(
+          `SELECT id FROM blog_posts WHERE tags @> ARRAY['daily']::text[] AND created_at::date = CURRENT_DATE LIMIT 1`
+        );
+        alreadyPostedTodayId = existing.rows?.[0]?.id ? String(existing.rows[0].id) : null;
+      } catch {
+        alreadyPostedTodayId = null;
+      }
+
+      try {
+        const stateRes = await client.query('SELECT recent_angles, recent_story_seeds FROM autoblog_state WHERE id=1');
+        const recentAnglesRaw = Array.isArray(stateRes.rows?.[0]?.recent_angles) ? stateRes.rows[0].recent_angles : [];
+        const recentAnglesClean = recentAnglesRaw.map((s) => String(s || '').trim()).filter(Boolean);
+        recentAngles = RECENT_ANGLE_WINDOW > 0 ? recentAnglesClean.slice(0, RECENT_ANGLE_WINDOW) : [];
+
+        const recentSeedsRaw = Array.isArray(stateRes.rows?.[0]?.recent_story_seeds) ? stateRes.rows[0].recent_story_seeds : [];
+        const recentSeedsClean = recentSeedsRaw.map((s) => String(s || '').trim()).filter(Boolean);
+        recentSeeds = RECENT_SEED_WINDOW > 0 ? recentSeedsClean.slice(0, RECENT_SEED_WINDOW) : [];
+      } catch {
+        recentAngles = [];
+        recentSeeds = [];
+      }
+
+      try {
+        const recentTitleRes = await client.query(
+          `SELECT title FROM blog_posts WHERE tags @> ARRAY['daily']::text[] ORDER BY created_at DESC LIMIT 10`
+        );
+        recentTitles = (recentTitleRes.rows || [])
+          .map((r) => String(r?.title || '').replace(/\s+/g, ' ').trim())
+          .filter(Boolean)
+          .slice(0, 10);
+      } catch {
+        recentTitles = [];
+      }
+    }
+
+    const recentSet = new Set(recentAngles);
+    const candidates = ANGLES.filter(a => !recentSet.has(a.key));
+    const pickFrom = candidates.length > 0 ? candidates : ANGLES;
+    const angle = pickFrom[Math.floor(Math.random() * pickFrom.length)];
+
+    const seedSet = new Set(recentSeeds);
+    const seedCandidates = STORY_SEEDS.filter((s) => !seedSet.has(s));
+    const seedPickFrom = seedCandidates.length > 0 ? seedCandidates : STORY_SEEDS;
+    const storySeed = seedPickFrom[Math.floor(Math.random() * seedPickFrom.length)];
+
+    const newsItems = await fetchNewsItems(`${angle.newsQuery} funding grants loans opportunities`);
+    const newsContext = newsItems
+      .map((i, idx) => `${idx + 1}. ${i.title}${i.pubDate ? ` (${i.pubDate})` : ''} - ${i.link}`)
+      .join('\n');
+
+    const messages = buildGroqMessages({
+      angleLabel: angle.label,
+      storySeed,
+      recentTitles,
+      newsContext,
+    });
+
+    const groqUrl = 'https://api.groq.com/openai/v1/chat/completions';
+    const aiRes = await fetch(groqUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${groqKey}`
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages,
+        temperature: 0.75
+      })
+    });
+
+    if (!aiRes.ok) {
+      const msg = await aiRes.text().catch(() => '');
+      throw new Error(`Groq API error: ${aiRes.status} ${msg}`);
+    }
+
+    const data = await aiRes.json();
+    const html = data.choices?.[0]?.message?.content || '';
+    const extractedTitle = extractTitleFromHtml(html) || '';
+    const title = stripDatesFromTitle(extractedTitle) || 'Nigeria Funding & Opportunities Briefing';
+    const id = Date.now().toString();
+
+    const imageQuery = buildUnsplashQuery({ title, newsItems });
+    const image = await fetchUnsplashImage(imageQuery);
+
+    // Related reads selection (read-only).
+    let related = [];
+    if (client) {
+      try {
+        const evergreenRes = await client.query(
+          `SELECT id, title, category, created_at
+           FROM blog_posts
+           WHERE id <> $1
+             AND NOT (tags @> ARRAY['daily']::text[])
+           ORDER BY created_at DESC
+           LIMIT 24`,
+          [id]
+        );
+        const evergreenPool = Array.isArray(evergreenRes.rows) ? evergreenRes.rows : [];
+        related = evergreenPool
+          .filter((p) => Boolean(String(p?.title || '').trim()))
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 3);
+
+        if (related.length < 2) {
+          const anyRes = await client.query(
+            `SELECT id, title, category, created_at
+             FROM blog_posts
+             WHERE id <> $1
+             ORDER BY created_at DESC
+             LIMIT 24`,
+            [id]
+          );
+          const anyPool = Array.isArray(anyRes.rows) ? anyRes.rows : [];
+          related = anyPool
+            .filter((p) => Boolean(String(p?.title || '').trim()))
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 3);
+        }
+      } catch {
+        related = [];
+      }
+    }
+
+    const sourcesHtml = buildSourcesHtml(newsItems);
+    const htmlWithRelated = insertRelatedReads(html, related);
+    const finalHtml = sourcesHtml && !String(htmlWithRelated).includes('<h3>Sources</h3>')
+      ? `${htmlWithRelated}\n${sourcesHtml}`
+      : htmlWithRelated;
+
+    const payload = {
+      dryRun: true,
+      force: Boolean(force),
+      note: alreadyPostedTodayId && !force ? `A daily post already exists today: ${alreadyPostedTodayId}` : null,
+      id,
+      title,
+      slug: makeBlogSlug(title, id),
+      image: image || '',
+      sourcesCount: newsItems.length,
+      relatedCount: related.length,
+      hasRelatedBlock: String(finalHtml).toLowerCase().includes('related reads'),
+      htmlLength: String(finalHtml).length,
+      outFile: outFile ? String(outFile) : null,
+    };
+
+    if (outFile) {
+      const outPath = path.resolve(process.cwd(), outFile);
+      await fs.writeFile(outPath, finalHtml, 'utf8');
+      payload.outFile = outPath;
+    }
+
+    if (json) {
+      console.log(JSON.stringify(payload, null, 2));
+    } else {
+      console.log(`DRY RUN: ${payload.title}`);
+      if (payload.note) console.log(`Note: ${payload.note}`);
+      console.log(`Slug: ${payload.slug}`);
+      console.log(`Image: ${payload.image || '(none)'}`);
+      console.log(`Sources: ${payload.sourcesCount} | Related: ${payload.relatedCount} | HTML chars: ${payload.htmlLength}`);
+      if (payload.outFile) console.log(`Wrote HTML: ${payload.outFile}`);
+      const snippet = String(finalHtml).slice(0, 800);
+      console.log('\n--- HTML snippet (first 800 chars) ---\n');
+      console.log(snippet);
+      if (String(finalHtml).length > 800) console.log('\n... (truncated)');
+    }
+
+    return payload;
+  } finally {
+    if (client) client.release();
+  }
+};
+
+const isCliEntrypoint = (() => {
+  try {
+    const self = fileURLToPath(import.meta.url);
+    return process.argv[1] && path.resolve(process.argv[1]) === path.resolve(self);
+  } catch {
+    return false;
+  }
+})();
+
+if (isCliEntrypoint) {
+  const args = parseDryRunArgs(process.argv);
+  if (!args.dryRun) {
+    console.error('Usage: node --env-file=.env backend/handlers/cron_daily_blog.js --dry-run [--force] [--out <file>] [--json]');
+    process.exitCode = 1;
+  } else {
+    runDryRun(args).catch((e) => {
+      console.error(e);
+      process.exitCode = 1;
+    });
   }
 }
