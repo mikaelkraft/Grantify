@@ -65,14 +65,29 @@ const containsLinkLikeText = (value) => {
 const extractFirstImageSrcFromHtml = (html) => {
   const s = String(html ?? '');
   if (!s) return '';
-  const match = s.match(/<img\b[^>]*?\bsrc\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/i);
-  const src = (match && (match[1] || match[2] || match[3])) ? String(match[1] || match[2] || match[3]) : '';
-  return src.trim();
+
+  const isDisallowedSrc = (src) => {
+    const v = String(src || '').trim().toLowerCase();
+    return !v || v.startsWith('data:') || v.startsWith('blob:') || v.startsWith('javascript:') || v.startsWith('about:');
+  };
+
+  const re = /<img\b[^>]*?\bsrc\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/gi;
+  for (const m of s.matchAll(re)) {
+    const src = (m && (m[1] || m[2] || m[3])) ? String(m[1] || m[2] || m[3]).trim() : '';
+    if (!isDisallowedSrc(src)) return src;
+  }
+
+  return '';
 };
 
 const deriveFeaturedImage = (explicitImage, content) => {
   const direct = String(explicitImage ?? '').trim();
-  if (direct) return direct;
+  if (direct) {
+    const lower = direct.toLowerCase();
+    if (!lower.startsWith('data:') && !lower.startsWith('blob:') && !lower.startsWith('javascript:') && !lower.startsWith('about:')) {
+      return direct;
+    }
+  }
   return extractFirstImageSrcFromHtml(content) || '';
 };
 

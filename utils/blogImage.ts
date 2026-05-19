@@ -9,6 +9,14 @@ export const extractFirstImageSrcFromHtml = (html: string): string | null => {
 
 export const derivePostImage = (post: { image?: string | null; content?: string | null }): string | null => {
   const direct = String(post?.image || '').trim();
-  if (direct) return direct;
-  return extractFirstImageSrcFromHtml(post?.content || '') || null;
+  if (direct) {
+    const lower = direct.toLowerCase();
+    if (!lower.startsWith('data:') && !lower.startsWith('blob:')) return direct;
+  }
+
+  const extracted = extractFirstImageSrcFromHtml(post?.content || '') || null;
+  if (!extracted) return null;
+  const lower = extracted.toLowerCase();
+  if (lower.startsWith('data:') || lower.startsWith('blob:')) return null;
+  return extracted;
 };

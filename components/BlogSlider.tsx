@@ -60,7 +60,7 @@ export const BlogSlider: React.FC<Props> = ({ posts }) => {
                     );
                   })()}
                   <div className="absolute top-4 left-4">
-                    <span className="bg-white/90 backdrop-blur-sm text-grantify-green text-[9px] font-black px-2 py-1 rounded-full uppercase tracking-tighter">
+                    <span className="bg-white/90 backdrop-blur-sm text-grantify-green dark:bg-gray-950/80 dark:text-grantify-gold border border-white/40 dark:border-gray-800/70 text-[9px] font-black px-2 py-1 rounded-full uppercase tracking-tighter">
                       {post.category}
                     </span>
                   </div>

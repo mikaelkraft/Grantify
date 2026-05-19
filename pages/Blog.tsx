@@ -112,7 +112,7 @@ export const Blog: React.FC = () => {
                 />
                   );
                 })()}
-                <div className="absolute top-4 left-4 bg-grantify-gold text-grantify-green text-[10px] font-black px-2 py-1 rounded uppercase tracking-wider">
+                <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm text-grantify-green dark:bg-gray-950/80 dark:text-grantify-gold border border-white/40 dark:border-gray-800/70 text-[10px] font-black px-2 py-1 rounded uppercase tracking-wider">
                   {post.category}
                 </div>
               </div>

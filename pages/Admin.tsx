@@ -961,6 +961,14 @@ export const Admin: React.FC = () => {
     }
   }, []);
 
+  const normalizeFeaturedImageUrl = (value: unknown) => {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    const lower = raw.toLowerCase();
+    if (lower.startsWith('data:') || lower.startsWith('blob:')) return '';
+    return raw;
+  };
+
   const handleFeaturedImageUpload = async (file: File | null | undefined) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
@@ -1013,7 +1021,7 @@ export const Admin: React.FC = () => {
     try {
       const payload = {
         ...newPost,
-        image: (newPost.image || '').trim(),
+        image: normalizeFeaturedImageUrl(newPost.image),
         content: autoLinkUrls ? linkifyHtml(newPost.content) : newPost.content
       };
 
@@ -1091,6 +1099,10 @@ export const Admin: React.FC = () => {
         createdAt: undefined
       });
       setIsEditingPost(false);
+
+      // Bust Home page blog cache so newly-updated images/titles show up quickly.
+      try { localStorage.removeItem('grantify_home_blog_posts_v1'); } catch { /* no-op */ }
+
       // Refresh in the background to keep server-truth fields (commentsCount, updatedAt, etc.) in sync.
       void refreshData();
     } catch (e) {
@@ -1124,7 +1136,7 @@ export const Admin: React.FC = () => {
       author: post.author,
       authorRole: post.authorRole,
       category: post.category,
-      image: post.image || '',
+      image: normalizeFeaturedImageUrl(post.image),
       tags: post.tags || [],
       sourceName: post.sourceName || '',
       sourceUrl: post.sourceUrl || '',

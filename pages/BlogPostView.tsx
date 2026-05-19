@@ -607,7 +607,7 @@ export const BlogPostView: React.FC = () => {
                   })()}
                 </div>
                 <div className="p-4">
-                  <span className="text-[10px] bg-grantify-gold/20 text-grantify-green px-2 py-0.5 rounded font-bold uppercase mb-2 inline-block">
+                  <span className="text-[10px] bg-grantify-gold/20 text-grantify-green dark:bg-grantify-gold/10 dark:text-grantify-gold px-2 py-0.5 rounded font-bold uppercase mb-2 inline-block">
                     {rec.category}
                   </span>
                   <h4 className="font-bold text-gray-800 dark:text-gray-100 leading-tight group-hover:text-grantify-green transition-colors line-clamp-2">
