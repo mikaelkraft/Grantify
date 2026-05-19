@@ -6,7 +6,7 @@ import { Loader2, ThumbsUp, Heart, Hand, MessageSquare, ArrowLeft, Send, Calenda
 import { AdSlot } from '../components/AdSlot';
 import { FacebookShareButton, TwitterShareButton, WhatsappShareButton, LinkedinShareButton, FacebookIcon, WhatsappIcon, LinkedinIcon } from 'react-share';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
-import { derivePostImage } from '../utils/blogImage';
+import { derivePostImage, withImageCacheBuster } from '../utils/blogImage';
 import { makeBlogSlug, parseBlogParam } from '../utils/blogRouting';
 
 const XShareIcon: React.FC<{ size?: number; round?: boolean; iconFillColor?: string }> = ({
@@ -168,7 +168,9 @@ export const BlogPostView: React.FC = () => {
     if (!post) return { src: '', isPlaceholder: true };
     const derived = derivePostImage(post);
     return {
-      src: derived || getBlogPlaceholderImage(post.title),
+      src: derived
+        ? withImageCacheBuster(derived, post.updatedAt || post.id)
+        : getBlogPlaceholderImage(post.title),
       isPlaceholder: !derived,
     };
   }, [post?.id, post?.image, post?.content, post?.title]);
@@ -607,7 +609,7 @@ export const BlogPostView: React.FC = () => {
                   })()}
                 </div>
                 <div className="p-4">
-                  <span className="text-[10px] bg-grantify-gold/20 text-grantify-green dark:bg-grantify-gold/10 dark:text-grantify-gold px-2 py-0.5 rounded font-bold uppercase mb-2 inline-block">
+                  <span className="text-[10px] bg-grantify-gold/20 text-grantify-green px-2 py-0.5 rounded font-bold uppercase mb-2 inline-block">
                     {rec.category}
                   </span>
                   <h4 className="font-bold text-gray-800 dark:text-gray-100 leading-tight group-hover:text-grantify-green transition-colors line-clamp-2">

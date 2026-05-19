@@ -350,18 +350,10 @@ export const Admin: React.FC = () => {
         return;
       }
 
-      // Fallback: embed as base64 (keeps editor usable if storage is temporarily unavailable).
-      console.warn('Offsite image upload failed; falling back to base64', err);
+      console.warn('Offsite inline image upload failed', err);
+      alert(String(err?.message || 'Failed to upload image. Please try again.'));
+      return;
     }
-
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result || ''));
-      reader.onerror = () => reject(new Error('Failed to read image file'));
-      reader.readAsDataURL(file);
-    });
-
-    insertQuillEmbed('image', dataUrl);
   };
 
   const quillModules = {
@@ -961,14 +953,6 @@ export const Admin: React.FC = () => {
     }
   }, []);
 
-  const normalizeFeaturedImageUrl = (value: unknown) => {
-    const raw = String(value || '').trim();
-    if (!raw) return '';
-    const lower = raw.toLowerCase();
-    if (lower.startsWith('data:') || lower.startsWith('blob:')) return '';
-    return raw;
-  };
-
   const handleFeaturedImageUpload = async (file: File | null | undefined) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
@@ -1021,7 +1005,7 @@ export const Admin: React.FC = () => {
     try {
       const payload = {
         ...newPost,
-        image: normalizeFeaturedImageUrl(newPost.image),
+        image: (newPost.image || '').trim(),
         content: autoLinkUrls ? linkifyHtml(newPost.content) : newPost.content
       };
 
@@ -1099,10 +1083,6 @@ export const Admin: React.FC = () => {
         createdAt: undefined
       });
       setIsEditingPost(false);
-
-      // Bust Home page blog cache so newly-updated images/titles show up quickly.
-      try { localStorage.removeItem('grantify_home_blog_posts_v1'); } catch { /* no-op */ }
-
       // Refresh in the background to keep server-truth fields (commentsCount, updatedAt, etc.) in sync.
       void refreshData();
     } catch (e) {
@@ -1136,7 +1116,7 @@ export const Admin: React.FC = () => {
       author: post.author,
       authorRole: post.authorRole,
       category: post.category,
-      image: normalizeFeaturedImageUrl(post.image),
+      image: post.image || '',
       tags: post.tags || [],
       sourceName: post.sourceName || '',
       sourceUrl: post.sourceUrl || '',

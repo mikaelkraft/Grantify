@@ -65,30 +65,52 @@ const containsLinkLikeText = (value) => {
 const extractFirstImageSrcFromHtml = (html) => {
   const s = String(html ?? '');
   if (!s) return '';
+  const match = s.match(/<img\b[^>]*?\bsrc\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/i);
+  const src = (match && (match[1] || match[2] || match[3])) ? String(match[1] || match[2] || match[3]) : '';
+  return src.trim();
+};
 
-  const isDisallowedSrc = (src) => {
-    const v = String(src || '').trim().toLowerCase();
-    return !v || v.startsWith('data:') || v.startsWith('blob:') || v.startsWith('javascript:') || v.startsWith('about:');
-  };
+const stripDataImagesFromHtml = (html) => {
+  const s = String(html ?? '');
+  if (!s) return '';
+  // Remove <img> tags whose src is a data: URL (base64 embeds).
+  return s.replace(/<img\b[^>]*\bsrc\s*=\s*(?:"\s*data:[^"]*"|'\s*data:[^']*'|\s*data:[^\s>]+)[^>]*>/gi, '');
+};
 
-  const re = /<img\b[^>]*?\bsrc\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/gi;
-  for (const m of s.matchAll(re)) {
-    const src = (m && (m[1] || m[2] || m[3])) ? String(m[1] || m[2] || m[3]).trim() : '';
-    if (!isDisallowedSrc(src)) return src;
-  }
-
-  return '';
+const isBadImageUrl = (value) => {
+  const s = String(value ?? '').trim();
+  if (!s) return true;
+  if (s.startsWith('data:')) return true;
+  // Avoid pathological URLs that can bloat payloads or break rendering.
+  if (s.length > 2048) return true;
+  return false;
 };
 
 const deriveFeaturedImage = (explicitImage, content) => {
   const direct = String(explicitImage ?? '').trim();
-  if (direct) {
-    const lower = direct.toLowerCase();
-    if (!lower.startsWith('data:') && !lower.startsWith('blob:') && !lower.startsWith('javascript:') && !lower.startsWith('about:')) {
-      return direct;
+  if (direct && !isBadImageUrl(direct)) return direct;
+  const extracted = extractFirstImageSrcFromHtml(content) || '';
+  return extracted && !isBadImageUrl(extracted) ? extracted : '';
+};
+
+// Reduce write amplification for view counters under traffic.
+// (In-memory; best-effort in serverless, but still helps.)
+const VIEW_TTL_MS = 10 * 60 * 1000;
+const viewBucket = new Map();
+const shouldCountView = (req, postId) => {
+  const ip = getClientIp(req) || 'unknown';
+  const key = `${ip}:${String(postId)}`;
+  const now = Date.now();
+  const last = viewBucket.get(key);
+  if (last && (now - last) < VIEW_TTL_MS) return false;
+  viewBucket.set(key, now);
+  // Opportunistic cleanup.
+  if (viewBucket.size > 20000) {
+    for (const [k, t] of viewBucket.entries()) {
+      if (!t || (now - t) > (VIEW_TTL_MS * 2)) viewBucket.delete(k);
     }
   }
-  return extractFirstImageSrcFromHtml(content) || '';
+  return true;
 };
 
 export default async function handler(req, res) {
@@ -106,10 +128,16 @@ export default async function handler(req, res) {
       const { id, category } = req.query;
 
       if (id) {
-        const postRes = await client.query(
-          'UPDATE blog_posts SET views = COALESCE(views, 0) + 1 WHERE id = $1 RETURNING *',
-          [id]
-        );
+        const countView = shouldCountView(req, id);
+        const postRes = countView
+          ? await client.query(
+            'UPDATE blog_posts SET views = COALESCE(views, 0) + 1 WHERE id = $1 RETURNING *',
+            [id]
+          )
+          : await client.query(
+            'SELECT * FROM blog_posts WHERE id = $1',
+            [id]
+          );
         if (postRes.rows.length === 0) return res.status(404).json({ error: 'Not found' });
 
         const post = postRes.rows[0];
@@ -428,12 +456,13 @@ export default async function handler(req, res) {
       const seededClaps = typeof claps === 'number' ? claps : Math.floor(3 + Math.random() * 18);
       const seededViews = typeof views === 'number' ? views : Math.floor(120 + Math.random() * 900);
 
-      const featuredImage = deriveFeaturedImage(image, content);
+      const cleanedContent = stripDataImagesFromHtml(content);
+      const featuredImage = deriveFeaturedImage(image, cleanedContent);
 
       await client.query(
         `INSERT INTO blog_posts (id, title, content, author, author_role, category, image, tags, source_name, source_url, likes, loves, claps, views, created_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, COALESCE($15, CURRENT_TIMESTAMP))`,
-        [id, title, content, author, authorRole, category, featuredImage, tags || [], sourceName, sourceUrl, seededLikes, seededLoves, seededClaps, seededViews, createdAt || null]
+        [id, title, cleanedContent, author, authorRole, category, featuredImage, tags || [], sourceName, sourceUrl, seededLikes, seededLoves, seededClaps, seededViews, createdAt || null]
       );
 
       return res.status(200).json({ success: true, id });
@@ -442,7 +471,8 @@ export default async function handler(req, res) {
     if (req.method === 'PUT') {
       const { id, title, content, author, authorRole, category, image, tags, sourceName, sourceUrl, views, createdAt, likes, loves, claps } = req.body;
 
-      const featuredImage = deriveFeaturedImage(image, content);
+      const cleanedContent = stripDataImagesFromHtml(content);
+      const featuredImage = deriveFeaturedImage(image, cleanedContent);
       await client.query(
         `UPDATE blog_posts
          SET title = $1,
@@ -458,7 +488,7 @@ export default async function handler(req, res) {
              created_at = COALESCE($11, created_at),
              updated_at = CURRENT_TIMESTAMP
          WHERE id = $12`,
-        [title, content, author, authorRole, category, featuredImage, tags || [], sourceName, sourceUrl, typeof views === 'number' ? views : null, createdAt || null, id]
+        [title, cleanedContent, author, authorRole, category, featuredImage, tags || [], sourceName, sourceUrl, typeof views === 'number' ? views : null, createdAt || null, id]
       );
 
       if (typeof likes === 'number' || typeof loves === 'number' || typeof claps === 'number') {

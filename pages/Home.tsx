@@ -8,7 +8,7 @@ import { BlogTicker } from '../components/BlogTicker';
 import { BlogSlider } from '../components/BlogSlider';
 import { matchGrantNetwork, GRANT_NETWORKS } from '../utils/grantMatcher';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
-import { derivePostImage } from '../utils/blogImage';
+import { derivePostImage, withImageCacheBuster } from '../utils/blogImage';
 import { makeBlogPath } from '../utils/blogRouting';
 import { LoanType, ApplicationStatus, LoanApplication, Testimonial, AdConfig, BlogPost, GrantNetwork } from '../types';
 import { 
@@ -560,7 +560,9 @@ export const Home: React.FC = () => {
             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 gap-4">
               {blogPosts.slice(0, 4).map(post => {
                 const derived = derivePostImage(post);
-                const src = derived || getBlogPlaceholderImage(post.title);
+                const src = derived
+                  ? withImageCacheBuster(derived, post.updatedAt || post.id)
+                  : getBlogPlaceholderImage(post.title);
 
                 return (
                   <Link key={post.id} to={makeBlogPath(post)} className="group bg-white dark:bg-gray-900 rounded-3xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-xl transition-all duration-300">

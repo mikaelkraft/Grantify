@@ -4,19 +4,23 @@ export const extractFirstImageSrcFromHtml = (html: string): string | null => {
   const match = s.match(/<img\b[^>]*?\bsrc\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/i);
   const src = (match && (match[1] || match[2] || match[3])) ? String(match[1] || match[2] || match[3]) : '';
   const trimmed = src.trim();
-  return trimmed ? trimmed : null;
+  if (!trimmed) return null;
+  if (trimmed.startsWith('data:')) return null;
+  return trimmed;
 };
 
 export const derivePostImage = (post: { image?: string | null; content?: string | null }): string | null => {
   const direct = String(post?.image || '').trim();
-  if (direct) {
-    const lower = direct.toLowerCase();
-    if (!lower.startsWith('data:') && !lower.startsWith('blob:')) return direct;
-  }
+  if (direct && !direct.startsWith('data:')) return direct;
+  return extractFirstImageSrcFromHtml(post?.content || '') || null;
+};
 
-  const extracted = extractFirstImageSrcFromHtml(post?.content || '') || null;
-  if (!extracted) return null;
-  const lower = extracted.toLowerCase();
-  if (lower.startsWith('data:') || lower.startsWith('blob:')) return null;
-  return extracted;
+export const withImageCacheBuster = (url: string | null | undefined, version?: string | number | null): string => {
+  const raw = String(url || '').trim();
+  if (!raw) return '';
+  if (raw.startsWith('data:')) return raw;
+  const v = version === undefined || version === null ? '' : String(version).trim();
+  if (!v) return raw;
+  const join = raw.includes('?') ? '&' : '?';
+  return `${raw}${join}v=${encodeURIComponent(v)}`;
 };

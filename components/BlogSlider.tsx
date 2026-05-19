@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { BlogPost } from '../types';
 import { ThumbsUp, ChevronRight, Eye } from 'lucide-react';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
-import { derivePostImage } from '../utils/blogImage';
+import { derivePostImage, withImageCacheBuster } from '../utils/blogImage';
 import { makeBlogPath } from '../utils/blogRouting';
 
 interface Props {
@@ -47,7 +47,9 @@ export const BlogSlider: React.FC<Props> = ({ posts }) => {
                 <div className="h-40 relative overflow-hidden">
                   {(() => {
                     const derived = derivePostImage(post);
-                    const src = derived || getBlogPlaceholderImage(post.title);
+                    const src = derived
+                      ? withImageCacheBuster(derived, post.updatedAt || post.id)
+                      : getBlogPlaceholderImage(post.title);
                     return (
                   <img
                     src={src}
@@ -60,7 +62,7 @@ export const BlogSlider: React.FC<Props> = ({ posts }) => {
                     );
                   })()}
                   <div className="absolute top-4 left-4">
-                    <span className="bg-white/90 backdrop-blur-sm text-grantify-green dark:bg-gray-950/80 dark:text-grantify-gold border border-white/40 dark:border-gray-800/70 text-[9px] font-black px-2 py-1 rounded-full uppercase tracking-tighter">
+                    <span className="bg-gray-50/90 dark:bg-gray-950/80 backdrop-blur-sm border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-200 text-[9px] font-black px-2 py-1 rounded-full uppercase tracking-tighter">
                       {post.category}
                     </span>
                   </div>

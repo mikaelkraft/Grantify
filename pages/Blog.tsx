@@ -4,7 +4,7 @@ import { ApiService } from '../services/storage';
 import { BlogPost } from '../types';
 import { Loader2, MessageSquare, ThumbsUp, Heart, Hand, Calendar, ChevronRight, Eye } from 'lucide-react';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
-import { derivePostImage } from '../utils/blogImage';
+import { derivePostImage, withImageCacheBuster } from '../utils/blogImage';
 import { makeBlogPath } from '../utils/blogRouting';
 
 export const Blog: React.FC = () => {
@@ -100,7 +100,9 @@ export const Blog: React.FC = () => {
               <div className="aspect-video bg-gray-100 dark:bg-gray-950 overflow-hidden relative">
                 {(() => {
                   const derived = derivePostImage(post);
-                  const src = derived || getBlogPlaceholderImage(post.title);
+                  const src = derived
+                    ? withImageCacheBuster(derived, post.updatedAt || post.id)
+                    : getBlogPlaceholderImage(post.title);
                   return (
                 <img
                   src={src}
@@ -112,8 +114,10 @@ export const Blog: React.FC = () => {
                 />
                   );
                 })()}
-                <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm text-grantify-green dark:bg-gray-950/80 dark:text-grantify-gold border border-white/40 dark:border-gray-800/70 text-[10px] font-black px-2 py-1 rounded uppercase tracking-wider">
-                  {post.category}
+                <div className="absolute top-4 left-4">
+                  <span className="bg-gray-50/90 dark:bg-gray-950/80 backdrop-blur-sm border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-200 text-[10px] font-black px-2 py-1 rounded uppercase tracking-wider">
+                    {post.category}
+                  </span>
                 </div>
               </div>
               
