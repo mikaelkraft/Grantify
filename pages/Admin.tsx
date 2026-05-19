@@ -929,6 +929,8 @@ export const Admin: React.FC = () => {
   };
 
   const [pendingEditPostId, setPendingEditPostId] = useState<string | null>(null);
+  const [featuredImageUploadKey, setFeaturedImageUploadKey] = useState(0);
+  const [featuredImagePreviewNonce, setFeaturedImagePreviewNonce] = useState(0);
 
   useEffect(() => {
     try {
@@ -975,6 +977,10 @@ export const Admin: React.FC = () => {
     try {
       const url = await ApiService.uploadImage(file, { folder: 'blog-images' });
       setNewPost(prev => ({ ...prev, image: url }));
+      // Ensure the preview refreshes even on aggressive mobile caches.
+      setFeaturedImagePreviewNonce((n) => n + 1);
+      // Reset file input so selecting the same file again re-triggers onChange.
+      setFeaturedImageUploadKey((k) => k + 1);
       return;
     } catch (err: any) {
       const connectUrl = String(err?.connectUrl || '').trim();
@@ -991,17 +997,13 @@ export const Admin: React.FC = () => {
         return;
       }
 
-      console.warn('Offsite featured image upload failed; falling back to base64', err);
+      console.warn('Offsite featured image upload failed', err);
+      alert(String(err?.message || 'Failed to upload image. Please try again.'));
+      // Keep the current URL unchanged. Avoid base64 fallback because it produces huge data: URLs
+      // that are unreliable on mobile and can break saving/rendering.
+      setFeaturedImageUploadKey((k) => k + 1);
+      return;
     }
-
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result || ''));
-      reader.onerror = () => reject(new Error('Failed to read image file'));
-      reader.readAsDataURL(file);
-    });
-
-    setNewPost(prev => ({ ...prev, image: dataUrl }));
   };
 
   const handleAddBlogPost = async (e: React.FormEvent) => {
@@ -2506,6 +2508,7 @@ export const Admin: React.FC = () => {
                              onChange={e => setNewPost({ ...newPost, image: e.target.value })}
                            />
                            <input
+                             key={featuredImageUploadKey}
                              type="file"
                              accept="image/jpeg,image/png,image/webp,image/gif"
                              className={inputClassSmall + " p-1 text-xs"}
@@ -2519,7 +2522,13 @@ export const Admin: React.FC = () => {
                              <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Featured Image Preview</div>
                              <div className="bg-white rounded border overflow-hidden">
                                <img
-                                 src={newPost.image}
+                                 src={(() => {
+                                   const raw = String(newPost.image || '').trim();
+                                   if (!raw) return raw;
+                                   if (raw.startsWith('data:')) return raw;
+                                   const join = raw.includes('?') ? '&' : '?';
+                                   return `${raw}${join}v=${featuredImagePreviewNonce}`;
+                                 })()}
                                  alt={newPost.title || 'Featured'}
                                  className="w-full h-48 object-cover"
                                  loading="lazy"

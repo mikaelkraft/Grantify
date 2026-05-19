@@ -40,6 +40,16 @@ const ANGLES = [
     key: 'creative-economy',
     label: 'Creative economy: monetization, IP, distribution, and brand partnerships',
     newsQuery: 'Nigeria creative economy funding film music fashion grants programs'
+  },
+  {
+    key: 'tech-startups',
+    label: 'Tech operators: B2B SaaS, product traction, and runway in a tight funding market',
+    newsQuery: 'Nigeria startups technology funding venture capital accelerator seed'
+  },
+  {
+    key: 'fintech-credit',
+    label: 'Fintech, credit products, and merchant lending under Nigerian regulation',
+    newsQuery: 'Nigeria fintech credit regulation CBN lending MSME'
   }
 ];
 
@@ -231,22 +241,52 @@ const fetchNewsItems = async (query) => {
   return items;
 };
 
-const buildSourcesHtml = (items) => {
+const resolveFinalUrl = async (url, { timeoutMs = 3000 } = {}) => {
+  const s = String(url || '').trim();
+  if (!s) return '';
+
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(s, {
+      method: 'GET',
+      redirect: 'follow',
+      signal: controller.signal,
+      headers: { 'User-Agent': 'GrantifyAutoblog/1.0 (+https://grantify.app)' },
+    });
+    return String(res?.url || s);
+  } catch {
+    return s;
+  } finally {
+    clearTimeout(t);
+  }
+};
+
+const buildSourcesHtml = async (items) => {
   if (!Array.isArray(items) || items.length === 0) return '';
   const safeItems = items
     .filter((i) => i && typeof i.title === 'string' && typeof i.link === 'string')
-    .slice(0, 3);
+    .slice(0, 2);
   if (safeItems.length === 0) return '';
 
-  const listItems = safeItems
-    .map((i) => {
-      const title = i.title.replace(/</g, '&lt;').replace(/>/g, '&gt;').trim();
-      const href = String(i.link).replace(/"/g, '&quot;').trim();
-      return `<li><a href="${href}" target="_blank" rel="noopener noreferrer">${title}</a></li>`;
-    })
+  const resolvedItems = [];
+  for (const i of safeItems) {
+    const title = i.title.replace(/</g, '&lt;').replace(/>/g, '&gt;').trim();
+    const rawHref = String(i.link).replace(/"/g, '&quot;').trim();
+    const href = /news\.google\.com/i.test(rawHref) ? await resolveFinalUrl(rawHref) : rawHref;
+    resolvedItems.push({ title, href });
+  }
+
+  const listItems = resolvedItems
+    .map((i) => `<li><a href="${i.href}" target="_blank" rel="noopener noreferrer">${i.title}</a></li>`)
     .join('');
 
   return `<h3>Sources</h3><ul>${listItems}</ul>`;
+};
+
+const stripLeadingH2 = (html) => {
+  const s = String(html || '');
+  return s.replace(/^\s*<h2\b[^>]*>[\s\S]*?<\/h2>\s*/i, '');
 };
 
 const extractTitleFromHtml = (html) => {
@@ -282,10 +322,12 @@ const makeBlogSlug = (title, id) => {
   return `${slugPart}~${idPart}`;
 };
 
-const insertRelatedReads = (html, relatedPosts) => {
-  const base = String(html || '');
+const injectAlsoReadInline = (html, relatedPosts) => {
+  const raw = String(html || '');
   const posts = Array.isArray(relatedPosts) ? relatedPosts.filter(Boolean) : [];
-  if (!posts.length) return base;
+  if (!posts.length) return raw;
+
+  const base = raw.replace(/<h3\b[^>]*>\s*(Related reads|Also read|Also reads)\s*<\/h3>\s*<ul>[\s\S]*?<\/ul>/i, '');
 
   const safeTitle = (value) => String(value || '')
     .replace(/&/g, '&amp;')
@@ -293,31 +335,145 @@ const insertRelatedReads = (html, relatedPosts) => {
     .replace(/>/g, '&gt;')
     .trim();
 
-  const items = posts
+  const links = posts
     .slice(0, 3)
-    .map((p) => {
-      const href = `/blog/${makeBlogSlug(String(p.title || ''), String(p.id || ''))}`;
-      return `<li><a href="${href}">${safeTitle(p.title)}</a></li>`;
-    })
-    .join('');
+    .map((p) => ({
+      href: `/blog/${makeBlogSlug(String(p.title || ''), String(p.id || ''))}`,
+      title: safeTitle(p.title),
+    }))
+    .filter((l) => l.title && l.href);
 
-  const block = `<h3>Related reads</h3><ul>${items}</ul>`;
+  if (!links.length) return base;
 
-  // Prefer inserting before Sources, if present.
-  const sourcesIdx = base.toLowerCase().indexOf('<h3>sources</h3>');
-  if (sourcesIdx !== -1) {
-    return `${base.slice(0, sourcesIdx)}${block}\n${base.slice(sourcesIdx)}`;
+  const paraRe = /<p\b[^>]*>[\s\S]*?<\/p>/gi;
+  const paras = Array.from(base.matchAll(paraRe));
+  if (paras.length === 0) {
+    const tail = links
+      .map((l) => `<p>&nbsp;&nbsp;<strong>Also read:</strong> <a href="${l.href}">${l.title}</a></p>`)
+      .join('\n');
+    return `${base}\n${tail}`;
   }
 
-  // Otherwise insert after the 2nd </h3> (keeps it inside the body, not just appended).
-  const closingRe = /<\/h3>/gi;
-  const matches = Array.from(base.matchAll(closingRe));
-  if (matches.length >= 2) {
-    const insertAt = (matches[1].index ?? 0) + matches[1][0].length;
-    return `${base.slice(0, insertAt)}\n${block}\n${base.slice(insertAt)}`;
+  // One link per paragraph, up to 3 placements.
+  const maxPlacements = Math.min(3, links.length);
+  const insertAfter = [];
+  if (paras.length >= 6) {
+    insertAfter.push(1, 3, 5);
+  } else {
+    for (let i = 0; i < Math.min(maxPlacements, paras.length); i += 1) insertAfter.push(i);
   }
 
-  return `${base}\n${block}`;
+  const insertSet = new Set(insertAfter.slice(0, maxPlacements));
+  let out = '';
+  let last = 0;
+  let used = 0;
+
+  for (let i = 0; i < paras.length; i += 1) {
+    const m = paras[i];
+    const start = m.index ?? 0;
+    const end = start + String(m[0] || '').length;
+    out += base.slice(last, end);
+    last = end;
+
+    if (insertSet.has(i) && used < maxPlacements) {
+      const l = links[used];
+      out += `\n<p>&nbsp;&nbsp;<strong>Also read:</strong> <a href="${l.href}">${l.title}</a></p>\n`;
+      used += 1;
+    }
+  }
+
+  out += base.slice(last);
+  return out;
+};
+
+const deriveCategory = ({ angleKey, title }) => {
+  const k = String(angleKey || '').trim();
+  if (k === 'clean-energy') return 'Energy';
+  if (k === 'agri-value-chain') return 'Agriculture';
+  if (k === 'women-youth') return 'Women & Youth';
+  if (k === 'manufacturing') return 'Manufacturing';
+  if (k === 'health-ed') return 'Health & Education';
+  if (k === 'creative-economy') return 'Creative Economy';
+  if (k === 'tech-startups') return 'Technology';
+  if (k === 'fintech-credit') return 'Finance';
+
+  const t = String(title || '').toLowerCase();
+  if (/(solar|mini-?grid|energy|power)/.test(t)) return 'Energy';
+  if (/(agric|farm|rice|maize|cassava|livestock|fish)/.test(t)) return 'Agriculture';
+  if (/(health|hospital|clinic|pharma|medical)/.test(t)) return 'Health';
+  if (/(school|education|university|students)/.test(t)) return 'Education';
+  if (/(fintech|bank|credit|loan|lending|microfinance)/.test(t)) return 'Finance';
+  if (/(startup|tech|software|saas|ai|digital)/.test(t)) return 'Technology';
+  if (/(factory|manufactur|export|industrial)/.test(t)) return 'Manufacturing';
+  if (/(film|music|fashion|creative|media|brand)/.test(t)) return 'Creative Economy';
+  return 'Funding';
+};
+
+const deriveTags = ({ angleKey, title, html, newsItems }) => {
+  const tags = new Set();
+  const t = String(title || '').toLowerCase();
+  const body = String(html || '').replace(/<[^>]+>/g, ' ').toLowerCase();
+  const news = Array.isArray(newsItems) ? newsItems.map((i) => String(i?.title || '')).join(' ').toLowerCase() : '';
+  const text = `${t} ${body} ${news}`;
+
+  // Always keep 1-2 stable anchors, but avoid the same 3 boring tags every time.
+  tags.add('Nigeria');
+  if (/(grant|grants|funding|opportunit)/.test(text)) tags.add('Funding');
+  if (/(loan|credit|lending|facility)/.test(text)) tags.add('Loans');
+
+  const addIf = (re, value) => { if (re.test(text)) tags.add(value); };
+  addIf(/\b(sme|small business|msme|micro|enterprise)\b/, 'SME');
+  addIf(/\b(cb n|cbn|boi|government|policy|regulation)\b/, 'Policy');
+  addIf(/\b(scam|fraud|ponzi|fee)\b/, 'Scam Alerts');
+  addIf(/\b(export|afcfta)\b/, 'Exports');
+  addIf(/\b(impact|climate|esg)\b/, 'Impact');
+
+  // Sectoral flavor.
+  if (String(angleKey || '') === 'clean-energy') {
+    tags.add('Energy');
+    tags.add('Solar');
+  }
+  if (String(angleKey || '') === 'agri-value-chain') {
+    tags.add('Agribusiness');
+  }
+  if (String(angleKey || '') === 'tech-startups') {
+    tags.add('Technology');
+    tags.add('Startups');
+  }
+  if (String(angleKey || '') === 'fintech-credit') {
+    tags.add('Fintech');
+  }
+  if (String(angleKey || '') === 'women-youth') {
+    tags.add('Women');
+    tags.add('Youth');
+  }
+  if (String(angleKey || '') === 'manufacturing') {
+    tags.add('Manufacturing');
+  }
+  if (String(angleKey || '') === 'health-ed') {
+    tags.add('Healthcare');
+    tags.add('Education');
+  }
+  if (String(angleKey || '') === 'creative-economy') {
+    tags.add('Creative Economy');
+  }
+
+  // Keyword-based tags from the title (keeps it feeling different per day).
+  const titleWords = String(title || '')
+    .replace(/[^a-zA-Z0-9\s]/g, ' ')
+    .split(/\s+/g)
+    .map((w) => w.trim())
+    .filter(Boolean)
+    .slice(0, 8);
+  for (const w of titleWords) {
+    if (w.length < 5) continue;
+    if (/^(nigeria|funding|opportunit|briefing|today|daily|growth|clean|energy)$/.test(w.toLowerCase())) continue;
+    // Keep case nicer.
+    tags.add(w.charAt(0).toUpperCase() + w.slice(1));
+    if (tags.size >= 9) break;
+  }
+
+  return Array.from(tags).slice(0, 9);
 };
 
 const stripDatesFromTitle = (title) => {
@@ -637,16 +793,17 @@ export default async function handler(req, res) {
       related = [];
     }
 
-    const sourcesHtml = buildSourcesHtml(newsItems);
-    const htmlWithRelated = insertRelatedReads(html, related);
-    const finalHtml = sourcesHtml && !String(htmlWithRelated).includes('<h3>Sources</h3>')
-      ? `${htmlWithRelated}\n${sourcesHtml}`
-      : htmlWithRelated;
+    const sourcesHtml = await buildSourcesHtml(newsItems);
+    const htmlWithAlsoRead = injectAlsoReadInline(html, related);
+    const cleanedHtml = stripLeadingH2(htmlWithAlsoRead);
+    const finalHtml = sourcesHtml && !String(cleanedHtml).includes('<h3>Sources</h3>')
+      ? `${cleanedHtml}\n${sourcesHtml}`
+      : cleanedHtml;
 
     const author = 'Grantifier';
     const authorRole = 'Editor';
-    const category = 'Grants';
-    const tags = ['daily', 'nigeria', 'funding'];
+    const category = deriveCategory({ angleKey: angle.key, title });
+    const tags = Array.from(new Set(['daily', ...deriveTags({ angleKey: angle.key, title, html: finalHtml, newsItems })]));
 
     await client.query(
       `INSERT INTO blog_posts (id, title, content, author, author_role, category, image, tags, source_name, source_url, likes, loves, claps, views, created_at)
@@ -660,10 +817,8 @@ export default async function handler(req, res) {
         category,
         image || '',
         tags,
-        newsItems.length ? 'Google News (RSS)' : '',
-        newsItems.length
-          ? 'https://news.google.com/rss/search?q=funding%20grants%20loans%20opportunities%20technology%20health%20agriculture%20education%20energy%20manufacturing%20SMEs%20Nigeria&hl=en-NG&gl=NG&ceid=NG:en'
-          : '',
+        '',
+        '',
         Math.floor(12 + Math.random() * 64),
         Math.floor(6 + Math.random() * 28),
         Math.floor(3 + Math.random() * 18),
@@ -875,11 +1030,12 @@ const runDryRun = async ({ force, outFile, json }) => {
       }
     }
 
-    const sourcesHtml = buildSourcesHtml(newsItems);
-    const htmlWithRelated = insertRelatedReads(html, related);
-    const finalHtml = sourcesHtml && !String(htmlWithRelated).includes('<h3>Sources</h3>')
-      ? `${htmlWithRelated}\n${sourcesHtml}`
-      : htmlWithRelated;
+    const sourcesHtml = await buildSourcesHtml(newsItems);
+    const htmlWithAlsoRead = injectAlsoReadInline(html, related);
+    const cleanedHtml = stripLeadingH2(htmlWithAlsoRead);
+    const finalHtml = sourcesHtml && !String(cleanedHtml).includes('<h3>Sources</h3>')
+      ? `${cleanedHtml}\n${sourcesHtml}`
+      : cleanedHtml;
 
     const payload = {
       dryRun: true,
@@ -891,7 +1047,7 @@ const runDryRun = async ({ force, outFile, json }) => {
       image: image || '',
       sourcesCount: newsItems.length,
       relatedCount: related.length,
-      hasRelatedBlock: String(finalHtml).toLowerCase().includes('related reads'),
+      hasAlsoReadInline: String(finalHtml).toLowerCase().includes('also read'),
       htmlLength: String(finalHtml).length,
       outFile: outFile ? String(outFile) : null,
     };

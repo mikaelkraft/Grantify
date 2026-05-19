@@ -6,8 +6,19 @@ const CACHE_TTL_MS = 15 * 60 * 1000;
 const RATE_LIMIT_WINDOW_MS = 2 * 60 * 1000;
 const RATE_LIMIT_MAX_EXTERNAL_FETCHES = 6;
 
+const REQ_RATE_WINDOW_MS = 60 * 1000;
+const REQ_RATE_MAX = (() => {
+  const n = Number.parseInt(String(process.env.AI_RATE_LIMIT_MAX || '').trim(), 10);
+  return Number.isFinite(n) && n > 0 ? n : 30;
+})();
+const REQ_RATE_MAX_BLOG = (() => {
+  const n = Number.parseInt(String(process.env.AI_RATE_LIMIT_MAX_BLOG || '').trim(), 10);
+  return Number.isFinite(n) && n > 0 ? n : 10;
+})();
+
 const cache = new Map();
 const ipBucket = new Map();
+const reqBucket = new Map();
 
 const getClientIp = (req) => {
   const xf = String(req?.headers?.['x-forwarded-for'] || '').trim();
@@ -40,6 +51,32 @@ const canFetchExternal = (req) => {
   if (b.count >= RATE_LIMIT_MAX_EXTERNAL_FETCHES) return false;
   b.count += 1;
   return true;
+};
+
+const takeRequestToken = (req, { max }) => {
+  const ip = getClientIp(req);
+  const now = Date.now();
+  const b = reqBucket.get(ip);
+
+  // Opportunistic cleanup to avoid unbounded growth.
+  if (reqBucket.size > 5000) {
+    for (const [k, v] of reqBucket.entries()) {
+      if (!v || (now - v.start) > (REQ_RATE_WINDOW_MS * 3)) reqBucket.delete(k);
+    }
+  }
+
+  if (!b || now - b.start > REQ_RATE_WINDOW_MS) {
+    reqBucket.set(ip, { start: now, count: 1 });
+    return { allowed: true, remaining: Math.max(0, max - 1), retryAfterSec: 0 };
+  }
+
+  if (b.count >= max) {
+    const retryAfterMs = Math.max(0, REQ_RATE_WINDOW_MS - (now - b.start));
+    return { allowed: false, remaining: 0, retryAfterSec: Math.ceil(retryAfterMs / 1000) };
+  }
+
+  b.count += 1;
+  return { allowed: true, remaining: Math.max(0, max - b.count), retryAfterSec: 0 };
 };
 
 const normalizeSources = (items) => {
@@ -242,6 +279,16 @@ export default async function handler(req, res) {
   const groqKey = process.env.GROQ_API_KEY;
 
   if (!prompt || typeof prompt !== 'string') return res.status(400).json({ error: 'Missing prompt' });
+
+  // Basic per-IP rate limit to prevent abuse/cost spikes.
+  const max = String(type || '').toLowerCase() === 'blog' ? REQ_RATE_MAX_BLOG : REQ_RATE_MAX;
+  const rl = takeRequestToken(req, { max });
+  res.setHeader('X-RateLimit-Limit', String(max));
+  res.setHeader('X-RateLimit-Remaining', String(rl.remaining));
+  if (!rl.allowed) {
+    res.setHeader('Retry-After', String(rl.retryAfterSec || 1));
+    return res.status(429).json({ error: 'Too many requests. Please try again shortly.' });
+  }
 
   if (!groqKey) {
     if (type === 'blog') {

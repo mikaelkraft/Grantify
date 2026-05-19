@@ -12,7 +12,25 @@ if (process.env.VERCEL) {
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
-  max: 1
+  max: (() => {
+    const raw = process.env.PGPOOL_MAX || process.env.DB_POOL_MAX;
+    const n = Number.parseInt(String(raw || '').trim(), 10);
+    if (Number.isFinite(n) && n > 0) return Math.min(n, 50);
+    // Serverless-safe default: allow some concurrency without stampeding the DB.
+    return process.env.VERCEL ? 3 : 10;
+  })(),
+  connectionTimeoutMillis: (() => {
+    const raw = process.env.PGPOOL_CONN_TIMEOUT_MS;
+    const n = Number.parseInt(String(raw || '').trim(), 10);
+    return Number.isFinite(n) && n > 0 ? n : 5000;
+  })(),
+  idleTimeoutMillis: (() => {
+    const raw = process.env.PGPOOL_IDLE_TIMEOUT_MS;
+    const n = Number.parseInt(String(raw || '').trim(), 10);
+    if (Number.isFinite(n) && n >= 0) return n;
+    return process.env.VERCEL ? 10000 : 30000;
+  })(),
+  allowExitOnIdle: true,
 });
 
 export const toCamelCase = (row) => {

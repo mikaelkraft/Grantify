@@ -64,6 +64,22 @@ const plainTextToHtml = (value: string) => {
     .join('\n');
 };
 
+const stripLeadingDuplicateH2 = (html: string, title: string) => {
+  const input = String(html || '').trim();
+  if (!input) return '';
+
+  const m = input.match(/^<h2\b[^>]*>([\s\S]*?)<\/h2>\s*/i);
+  if (!m) return input;
+
+  const h2Text = String(m[1] || '').replace(/<[^>]+>/g, ' ').replace(/&nbsp;|\u00A0/g, ' ').replace(/\s+/g, ' ').trim();
+  const tText = String(title || '').replace(/&nbsp;|\u00A0/g, ' ').replace(/\s+/g, ' ').trim();
+
+  // If it looks like the title (or it’s at least non-empty), remove it because the page already renders <h1>.
+  if (!h2Text) return input.replace(m[0], '');
+  if (tText && h2Text.toLowerCase() === tText.toLowerCase()) return input.replace(m[0], '');
+  return input.replace(m[0], '');
+};
+
 export const BlogPostView: React.FC = () => {
   const { slugOrId } = useParams<{ slugOrId: string }>();
   const navigate = useNavigate();
@@ -117,8 +133,8 @@ export const BlogPostView: React.FC = () => {
     const raw = String(post?.content || '').replace(/\u00ad/g, '');
     if (!raw.trim()) return '';
     const normalized = looksLikeHtml(raw) ? raw : plainTextToHtml(raw);
-    return normalized;
-  }, [post?.content]);
+    return stripLeadingDuplicateH2(normalized, String(post?.title || ''));
+  }, [post?.content, post?.title]);
 
   useEffect(() => {
     if (!post) return;
@@ -438,7 +454,7 @@ export const BlogPostView: React.FC = () => {
         
         <div className="p-6 sm:p-8 md:p-12">
           <div className="flex flex-wrap items-center gap-2 text-gray-500 dark:text-gray-400 text-xs mb-6 font-bold">
-            <span className="bg-grantify-gold/20 text-grantify-green px-3 py-1 rounded-full uppercase tracking-widest">{post.category}</span>
+            <span className="inline-flex items-center bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-200 px-3 py-1 rounded-full uppercase tracking-widest">{post.category}</span>
             <span className="inline-flex items-center gap-1 bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 px-3 py-1 rounded-full">
               <Calendar size={14} /> {new Date(post.createdAt).toLocaleDateString()}
             </span>
