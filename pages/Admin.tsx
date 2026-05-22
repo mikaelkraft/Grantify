@@ -119,6 +119,9 @@ export const Admin: React.FC = () => {
   const [oneDriveStatus, setOneDriveStatus] = useState<{ enabled: boolean; provider: string; connected: boolean; needsReconnect?: boolean; error?: string } | null>(null);
   const oneDriveStatusRef = useRef<typeof oneDriveStatus>(null);
 
+  const [isUploadingFeaturedImage, setIsUploadingFeaturedImage] = useState(false);
+  const [featuredImageLocalPreview, setFeaturedImageLocalPreview] = useState<string>('');
+
   const [isHydratingSelectedPost, setIsHydratingSelectedPost] = useState(false);
   const [, startTransition] = useTransition();
 
@@ -966,9 +969,31 @@ export const Admin: React.FC = () => {
       return;
     }
 
+    const localPreviewUrl = (() => {
+      try {
+        return URL.createObjectURL(file);
+      } catch {
+        return '';
+      }
+    })();
+
+    if (localPreviewUrl) {
+      setFeaturedImageLocalPreview((prev) => {
+        try { if (prev) URL.revokeObjectURL(prev); } catch {}
+        return localPreviewUrl;
+      });
+      setFeaturedImagePreviewNonce((n) => n + 1);
+    }
+
+    setIsUploadingFeaturedImage(true);
+
     try {
       const url = await ApiService.uploadImage(file, { folder: 'blog-images' });
       setNewPost(prev => ({ ...prev, image: url }));
+      setFeaturedImageLocalPreview((prev) => {
+        try { if (prev) URL.revokeObjectURL(prev); } catch {}
+        return '';
+      });
       // Ensure the preview refreshes even on aggressive mobile caches.
       setFeaturedImagePreviewNonce((n) => n + 1);
       // Reset file input so selecting the same file again re-triggers onChange.
@@ -993,8 +1018,17 @@ export const Admin: React.FC = () => {
       alert(String(err?.message || 'Failed to upload image. Please try again.'));
       // Keep the current URL unchanged. Avoid base64 fallback because it produces huge data: URLs
       // that are unreliable on mobile and can break saving/rendering.
+      // Keep the local preview if the post previously had no image, so the user still sees what they picked.
+      if (String(newPost.image || '').trim()) {
+        setFeaturedImageLocalPreview((prev) => {
+          try { if (prev) URL.revokeObjectURL(prev); } catch {}
+          return '';
+        });
+      }
       setFeaturedImageUploadKey((k) => k + 1);
       return;
+    } finally {
+      setIsUploadingFeaturedImage(false);
     }
   };
 
@@ -1446,7 +1480,7 @@ export const Admin: React.FC = () => {
                               <p className="text-[10px] text-gray-400 line-clamp-1">{app.purpose}</p>
                             </td>
                             <td className="p-3">
-                              <span className="text-xs bg-grantify-gold/20 text-grantify-green font-black px-2 py-0.5 rounded uppercase">
+                              <span className="text-xs bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-200 font-black px-2 py-0.5 rounded uppercase">
                                 {app.matchedNetwork || 'General'}
                               </span>
                             </td>
@@ -2402,9 +2436,20 @@ export const Admin: React.FC = () => {
                            onChange={e => setNewPost({...newPost, category: e.target.value})}
                            aria-label="Article Category"
                          >
+                           <option value="Funding">Funding</option>
                            <option value="Grants">Grants</option>
+                           <option value="Loans">Loans</option>
+                           <option value="Technology">Technology</option>
+                           <option value="Finance">Finance</option>
+                           <option value="Agriculture">Agriculture</option>
+                           <option value="Energy">Energy</option>
+                           <option value="Manufacturing">Manufacturing</option>
+                           <option value="Health">Health</option>
+                           <option value="Education">Education</option>
+                           <option value="Creative Economy">Creative Economy</option>
+                           <option value="Women & Youth">Women & Youth</option>
+                           <option value="Policy">Policy</option>
                            <option value="Strategy">Strategy</option>
-                           <option value="Financial Growth">Financial Growth</option>
                          </select>
                          
                          <input 
@@ -2509,12 +2554,13 @@ export const Admin: React.FC = () => {
                            />
                          </div>
 
-                         {newPost.image && (
+                         {(newPost.image || featuredImageLocalPreview) && (
                            <div className="md:col-span-2">
                              <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Featured Image Preview</div>
-                             <div className="bg-white rounded border overflow-hidden">
+                             <div className="bg-white dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-800 overflow-hidden">
                                <img
                                  src={(() => {
+                                   if (featuredImageLocalPreview) return featuredImageLocalPreview;
                                    const raw = String(newPost.image || '').trim();
                                    if (!raw) return raw;
                                    if (raw.startsWith('data:')) return raw;
@@ -2525,6 +2571,11 @@ export const Admin: React.FC = () => {
                                  className="w-full h-48 object-cover"
                                  loading="lazy"
                                />
+                               {isUploadingFeaturedImage && (
+                                 <div className="p-2 text-xs text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
+                                   Uploading image…
+                                 </div>
+                               )}
                              </div>
                            </div>
                          )}
@@ -2635,7 +2686,7 @@ export const Admin: React.FC = () => {
                                 <span className="block text-gray-400 italic">{post.authorRole}</span>
                               </td>
                               <td className="p-3">
-                                <span className="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-black uppercase">{post.category}</span>
+                                <span className="text-[10px] bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-200 px-2 py-0.5 rounded font-black uppercase">{post.category}</span>
                                 <div className="flex flex-wrap gap-1 mt-1">
                                   {post.tags?.map((tag, i) => (
                                     <span key={i} className="text-[9px] text-gray-400 bg-gray-100 px-1 rounded">#{tag}</span>
