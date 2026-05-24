@@ -1,4 +1,6 @@
 import pg from 'pg';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 const { Pool } = pg;
 
 const connectionString = process.env.DATABASE_URL;
@@ -94,13 +96,26 @@ const removeRelatedReadsBlock = (html) => {
   return s;
 };
 
+const removeInlineAlsoRead = (html) => {
+  let s = String(html || '');
+
+  // Remove inline "Also read" injections so the script is idempotent.
+  // Example: " <strong>Also read:</strong> <a href=\"/blog/...\">Title</a>."
+  s = s.replace(
+    /\s*<strong[^>]*>\s*Also\s+read\s*:?\s*<\/strong>\s*<a\s+href="\/blog\/[^"]+"[^>]*>[\s\S]*?<\/a>\s*\.?/gi,
+    ''
+  );
+
+  return s;
+};
+
 const extractParagraphs = (html) => {
   const matches = String(html || '').match(/<p[^>]*>[\s\S]*?<\/p>/gi);
   return matches || [];
 };
 
 const injectAlsoReadInline = (html, relatedPosts) => {
-  const cleaned = removeRelatedReadsBlock(html);
+  const cleaned = removeInlineAlsoRead(removeRelatedReadsBlock(html));
   const paragraphs = extractParagraphs(cleaned);
 
   if (paragraphs.length === 0) return cleaned;
@@ -270,23 +285,35 @@ const shouldClearSourceFields = ({ sourceName, sourceUrl }) => {
   return false;
 };
 
-const sampleRelatedPosts = (poolRows, excludeId, count) => {
+const stableHash = (s) => {
+  const str = String(s || '');
+  // FNV-1a 32-bit
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+};
+
+const sampleRelatedPosts = (poolRows, excludeId, count, seed) => {
   const candidates = poolRows.filter((p) => String(p.id) !== String(excludeId));
   if (candidates.length <= count) return candidates.slice(0, count);
 
+  // Deterministic pick so re-runs don't keep changing content.
+  const start = stableHash(seed) % candidates.length;
   const picked = [];
-  const used = new Set();
-  while (picked.length < count && used.size < candidates.length) {
-    const idx = Math.floor(Math.random() * candidates.length);
-    const c = candidates[idx];
+  for (let i = 0; i < candidates.length && picked.length < count; i++) {
+    const c = candidates[(start + i) % candidates.length];
     if (!c) continue;
-    const key = String(c.id);
-    if (used.has(key)) continue;
-    used.add(key);
     picked.push(c);
   }
-
   return picked;
+};
+
+const backupFileNameForRun = ({ offset, limit, scope }) => {
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  return `.tmp-blog-posts-backup-${scope}-${stamp}-offset${offset}-limit${limit}.json`;
 };
 
 async function migrate() {
@@ -350,6 +377,7 @@ async function migrate() {
 
     let changed = 0;
     let updated = 0;
+    const backups = [];
 
     if (args.apply) {
       await client.query('BEGIN');
@@ -357,7 +385,7 @@ async function migrate() {
 
     for (const post of posts) {
       const beforeContent = String(post.content || '');
-      const related = sampleRelatedPosts(poolRows, post.id, 3);
+      const related = sampleRelatedPosts(poolRows, post.id, 3, `${post.id}|${post.title}`);
 
       const isDaily = hasDailyTag(post.tags);
 
@@ -403,6 +431,19 @@ async function migrate() {
       }
 
       if (args.apply) {
+        backups.push({
+          id: post.id,
+          title: post.title,
+          before: {
+            content: beforeContent,
+            category: String(post.category || ''),
+            tags: Array.isArray(post.tags) ? post.tags : [],
+            sourceName: String(post.sourceName || ''),
+            sourceUrl: String(post.sourceUrl || ''),
+            image: beforeImage,
+          }
+        });
+
         await client.query(
           `UPDATE blog_posts
            SET content = $1,
@@ -420,6 +461,29 @@ async function migrate() {
     }
 
     if (args.apply) {
+      const scope = args.all ? 'all' : 'daily';
+      const backupName = backupFileNameForRun({ offset: args.offset, limit: args.limit, scope });
+      const backupPath = path.join(process.cwd(), backupName);
+
+      // Write the backup BEFORE committing, so we can safely rollback if disk write fails.
+      await fs.writeFile(
+        backupPath,
+        JSON.stringify(
+          {
+            createdAt: new Date().toISOString(),
+            scope,
+            limit: args.limit,
+            offset: args.offset,
+            updated,
+            backups,
+          },
+          null,
+          2
+        ),
+        'utf8'
+      );
+      console.log(`Backup written: ${backupPath}`);
+
       await client.query('COMMIT');
     }
 
