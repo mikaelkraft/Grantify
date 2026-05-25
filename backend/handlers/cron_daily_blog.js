@@ -763,7 +763,8 @@ export default async function handler(req, res) {
     const author = 'Grantifier';
     const authorRole = 'Editor';
     const category = deriveCategory({ angleKey: angle.key, title });
-    const tags = Array.from(new Set(['daily', ...deriveTags({ angleKey: angle.key, title, html: finalHtml, newsItems })]));
+    // Mark generated posts as autodraft by default so editors can review before public publish
+    const tags = Array.from(new Set(['daily', 'autodraft', ...deriveTags({ angleKey: angle.key, title, html: finalHtml, newsItems })]));
 
     await client.query(
       `INSERT INTO blog_posts (id, title, content, author, author_role, category, image, tags, source_name, source_url, likes, loves, claps, views, created_at)

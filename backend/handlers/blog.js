@@ -164,6 +164,8 @@ export default async function handler(req, res) {
       if (cached) {
         return res.status(200).json(cached);
       }
+        // Determine whether requester is an admin (X-Admin-Session header present).
+        const isAdminRequest = Boolean(String(req.headers['x-admin-session'] || '').trim());
 
       const { id, category } = req.query;
 
@@ -245,6 +247,11 @@ export default async function handler(req, res) {
           params.push(category);
           where += `${where ? ' AND' : ' WHERE'} category = $${params.length}`;
         }
+        // Exclude autodraft posts from public summaries unless admin request
+        if (!isAdminRequest) {
+          params.push('autodraft');
+          where += `${where ? ' AND' : ' WHERE'} NOT (tags @> ARRAY[$${params.length}]::text[])`;
+        }
         if (excludeId) {
           params.push(excludeId);
           where += `${where ? ' AND' : ' WHERE'} id <> $${params.length}`;
@@ -290,6 +297,20 @@ export default async function handler(req, res) {
       if (category) {
         query += ' WHERE category = $1';
         params.push(category);
+      }
+      // Exclude autodraft posts from public lists unless admin request
+      if (!category) {
+        // no category filter yet
+      }
+      if (!isAdminRequest) {
+        // add exclusion into WHERE clause gracefully
+        if (params.length === 0) {
+          query += ' WHERE NOT (tags @> ARRAY[$1]::text[])';
+          params.push('autodraft');
+        } else {
+          query = query.replace(/ORDER BY/, ` AND NOT (tags @> ARRAY[$${params.length + 1}]::text[]) ORDER BY`);
+          params.push('autodraft');
+        }
       }
       query += ' ORDER BY created_at DESC';
 

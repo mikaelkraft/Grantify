@@ -10,6 +10,8 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+# Migration backup files
+.tmp-blog-posts-backup-*.json
 *.local
 .env
 .env-*.example

@@ -644,7 +644,9 @@ export const ApiService = {
   // -- Blog --
   getBlogPosts: async (category?: string): Promise<BlogPost[]> => {
     const url = category ? `${API_URL}/api/blog?category=${category}` : `${API_URL}/api/blog`;
-    const res = await fetch(url);
+    const adminHeader = getAdminSessionHeader();
+    const headers: Record<string,string> | undefined = adminHeader ? { 'X-Admin-Session': adminHeader } : undefined;
+    const res = await fetch(url, { headers });
     if (!res.ok) throw new Error('Failed to fetch blog posts');
     return await res.json();
   },
