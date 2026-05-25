@@ -207,9 +207,14 @@ const sanitizeBlogText = (html) => {
       const text = p.textContent || '';
       const sentences = String(text).split(/(?<=[.!?])\s+/);
       const filtered = sentences.filter((sent) => {
-        const low = String(sent || '').toLowerCase();
-        if (/\b(i (was|met|visited|spent|joined|accompanied)|we (visited|met|were|spent)|today i|yesterday i|this morning i|this afternoon i)\b/.test(low)) return false;
-        if (/\b(i was with|i met with|we met with|we were with|i spent the day|i visited)\b/.test(low)) return false;
+        const s = String(sent || '').trim();
+        const low = s.toLowerCase();
+        // Remove obvious first-person anecdotal phrases or narrative hooks.
+        if (/^as\s+(i|we|she|he|they|you)\b/i.test(s)) return false;
+        if (/\b(i\s+(was|met|visited|spent|joined|accompanied)\b|we\s+(visited|met|were|spent)\b)/i.test(s)) return false;
+        if (/\b(today i|yesterday i|this morning i|this afternoon i|i was with|i met with|we met with|we were with|i spent the day|i visited)\b/i.test(low)) return false;
+        // Remove sentences that start with a narratorial clause like "As she navigated..."
+        if (/^as\s+[a-z][a-z]+/i.test(s)) return false;
         return true;
       });
       let out = filtered.join(' ');

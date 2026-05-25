@@ -297,9 +297,12 @@ export const Admin: React.FC = () => {
           const text = p.textContent || '';
           const sentences = String(text).split(/(?<=[.!?])\s+/);
           const filtered = sentences.filter((sent) => {
-            const low = String(sent || '').toLowerCase();
-            if (/\b(i (was|met|visited|spent|joined|accompanied)|we (visited|met|were|spent)|today i|yesterday i|this morning i|this afternoon i)\b/.test(low)) return false;
-            if (/\b(i was with|i met with|we met with|we were with|i spent the day|i visited)\b/.test(low)) return false;
+            const s = String(sent || '').trim();
+            const low = s.toLowerCase();
+            if (/^as\s+(i|we|she|he|they|you)\b/i.test(s)) return false;
+            if (/\b(i\s+(was|met|visited|spent|joined|accompanied)\b|we\s+(visited|met|were|spent)\b)/i.test(s)) return false;
+            if (/\b(today i|yesterday i|this morning i|this afternoon i|i was with|i met with|we met with|we were with|i spent the day|i visited)\b/i.test(low)) return false;
+            if (/^as\s+[A-Za-z]+/i.test(s)) return false;
             return true;
           });
           let out = filtered.join(' ');
@@ -2723,9 +2726,41 @@ export const Admin: React.FC = () => {
                             />
                          </div>
  
-                         <button type="submit" disabled={isSavingPost} className={`${isEditingPost ? 'bg-blue-600 hover:bg-blue-800' : 'bg-grantify-green hover:bg-green-800'} text-white font-bold py-3 rounded md:col-span-2 transition shadow-lg mt-4 relative z-10`}>
-                           {isSavingPost ? "Saving..." : (isEditingPost ? "Update Publication" : "Publish Article to Community")}
-                         </button>
+                         <div className="flex gap-3 mt-4">
+                           <button type="submit" disabled={isSavingPost} className={`${isEditingPost ? 'bg-blue-600 hover:bg-blue-800' : 'bg-grantify-green hover:bg-green-800'} text-white font-bold py-3 rounded md:col-span-2 transition shadow-lg relative z-10 px-4`}>
+                             {isSavingPost ? "Saving..." : (isEditingPost ? "Update Publication" : "Publish Article to Community")}
+                           </button>
+                           {isEditingPost && (
+                             <button
+                               type="button"
+                               disabled={isSavingPost}
+                               onClick={async () => {
+                                 if (!newPost.id) return;
+                                 if (!window.confirm('Approve and publish this post? This will remove the "autodraft" tag and publish.')) return;
+                                 setIsSavingPost(true);
+                                 try {
+                                   const payload = {
+                                     ...newPost,
+                                     tags: (Array.isArray(newPost.tags) ? newPost.tags.filter(t => String(t).toLowerCase() !== 'autodraft') : []),
+                                     content: autoLinkUrls ? linkifyHtml(newPost.content) : newPost.content
+                                   };
+                                   const updated = await ApiService.submitBlogAction({ ...payload, id: String(newPost.id), action: 'update' });
+                                   // update local list
+                                   setBlogPosts(prev => prev.map(p => (String(p.id) === String(newPost.id) ? { ...p, ...payload } : p)));
+                                   alert('Post approved and published.');
+                                   void refreshData();
+                                 } catch (e: any) {
+                                   alert(e?.message || 'Failed to approve and publish');
+                                 } finally {
+                                   setIsSavingPost(false);
+                                 }
+                               }}
+                               className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded transition shadow-md"
+                             >
+                               Approve & Publish
+                             </button>
+                           )}
+                         </div>
                       </form>
                     </div>
  

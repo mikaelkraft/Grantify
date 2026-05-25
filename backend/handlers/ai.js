@@ -488,9 +488,12 @@ export default async function handler(req, res) {
       // Remove sentences that read like "I was with...", "We visited...", "Today I met..."
       const sentences = text.split(/(?<=[.!?])\s+/);
       const filtered = sentences.filter(s => {
-        const low = s.trim().toLowerCase();
-        if (/\b(i (was|met|visited|spent|joined|accompanied)|we (visited|met|were|spent)|today i|yesterday i|this morning i|this afternoon i)\b/.test(low)) return false;
-        if (/\b(i was with|i met with|we met with|we were with|i spent the day|i visited)\b/.test(low)) return false;
+        const str = String(s || '').trim();
+        const low = str.toLowerCase();
+        if (/^as\s+(i|we|she|he|they|you)\b/i.test(str)) return false;
+        if (/\b(i\s+(was|met|visited|spent|joined|accompanied)\b|we\s+(visited|met|were|spent)\b)/i.test(str)) return false;
+        if (/\b(today i|yesterday i|this morning i|this afternoon i|i was with|i met with|we met with|we were with|i spent the day|i visited)\b/i.test(low)) return false;
+        if (/^as\s+[A-Za-z]+/i.test(str)) return false;
         return true;
       });
       let out = filtered.join(' ');
