@@ -21,9 +21,13 @@ import {
 
 // --- CONFIGURATION ---
 // For Vercel deployment: API routes are automatically available at /api/* (same origin)
-// For local development: set VITE_API_URL to your local server (e.g., http://localhost:3000)
-// When deployed to Vercel, leave VITE_API_URL empty to use same-origin API routes
-const API_URL = import.meta.env.VITE_API_URL || ''; 
+// For local development on localhost, use the local API server directly.
+// In production, fall back to VITE_API_URL or same-origin API routes.
+const IS_LOCALHOST = typeof window !== 'undefined' && /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
+// Prefer an explicit VITE_API_URL when provided (useful for local verification against production API).
+const API_URL = (import.meta.env.VITE_API_URL && String(import.meta.env.VITE_API_URL).trim())
+  ? String(import.meta.env.VITE_API_URL).trim()
+  : (IS_LOCALHOST ? 'http://localhost:3001' : '');
 
 const getAdminSessionHeader = (): string | null => {
   try {
@@ -662,7 +666,72 @@ export const ApiService = {
 
     const res = await fetch(`${API_URL}/api/blog?${qs.toString()}`);
     if (!res.ok) throw new Error('Failed to fetch recommended posts');
-    return await res.json();
+    const data = await res.json();
+
+    // Post-process recommendations: prefer same-category and recent posts,
+    // and add a deterministic rotation to diversify picks slightly.
+    const postProcess = (items: any[]) => {
+      const list = Array.isArray(items) ? items.slice() : [];
+      // Remove excluded id
+      const filtered = list.filter(p => String(p.id) !== String(opts?.excludeId));
+
+      // Score: category match first, then createdAt recency.
+      const score = (p: any) => {
+        let s = 0;
+        try {
+          if (opts?.category && p?.category && String(p.category).toLowerCase() === String(opts.category).toLowerCase()) s += 1000;
+        } catch {}
+        // Tag overlap bonus: count shared tags between opts.tags and post.tags
+        try {
+          const optTags = (opts as any)?.tags;
+          if (Array.isArray(optTags) && Array.isArray(p?.tags)) {
+            const mine = optTags.map((t: any) => String(t || '').toLowerCase());
+            const theirs = p.tags.map((t: any) => String(t || '').toLowerCase());
+            const overlap = mine.filter((t: string) => theirs.includes(t)).length;
+            if (overlap > 0) s += overlap * 500; // each shared tag is valuable but less than category match
+          }
+        } catch {}
+        try {
+          const t = Date.parse(p?.createdAt || p?.created_at || p?.updatedAt || p?.updated_at || '');
+          if (!Number.isNaN(t)) {
+            // newer posts get higher score (unix ms)
+            s += Math.floor(t / 1000);
+          }
+        } catch {}
+        return s;
+      };
+
+      filtered.sort((a, b) => score(b) - score(a));
+
+      // Deterministic rotation based on excludeId to diversify when many matches
+      if (filtered.length > 1 && opts?.excludeId) {
+        const seed = 0;
+        const hash = String(opts.excludeId).split('').reduce((h, ch) => ((h * 31) + ch.charCodeAt(0)) >>> 0, seed);
+        const start = hash % filtered.length;
+        const rotated = filtered.slice(start).concat(filtered.slice(0, start));
+        return rotated.slice(0, opts?.limit || 4);
+      }
+
+      return filtered.slice(0, opts?.limit || 4);
+    };
+
+    if (!Array.isArray(data) || data.length === 0) {
+      try {
+        // Try a broader recent posts fetch (summary) without filters.
+        const fallbackQs = new URLSearchParams({ summary: '1' });
+        const fallbackRes = await fetch(`${API_URL}/api/blog?${fallbackQs.toString()}`);
+        if (fallbackRes.ok) {
+          const fallbackData = await fallbackRes.json();
+          return postProcess(Array.isArray(fallbackData) ? fallbackData : []);
+        }
+      } catch {
+        // ignore and fall through to empty list
+      }
+
+      return [];
+    }
+
+    return postProcess(Array.isArray(data) ? data : []);
   },
 
   submitBlogAction: async (data: any): Promise<any> => {

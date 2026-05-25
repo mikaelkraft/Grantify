@@ -113,6 +113,40 @@ const shouldCountView = (req, postId) => {
   return true;
 };
 
+const BLOG_CACHE_TTL_MS = 30 * 1000;
+const blogCache = new Map();
+
+const getCacheEntry = (key) => {
+  const entry = blogCache.get(key);
+  if (!entry) return null;
+  if ((Date.now() - entry.at) > BLOG_CACHE_TTL_MS) {
+    blogCache.delete(key);
+    return null;
+  }
+  return entry.value;
+};
+
+const setCacheEntry = (key, value) => {
+  blogCache.set(key, { at: Date.now(), value });
+};
+
+const clearBlogCache = () => {
+  blogCache.clear();
+};
+
+const buildCacheKey = (req) => {
+  const id = toStr(req?.query?.id).trim();
+  const category = toStr(req?.query?.category).trim();
+  const summary = toStr(req?.query?.summary).trim();
+  const excludeId = toStr(req?.query?.excludeId).trim();
+  const limit = toStr(req?.query?.limit).trim();
+  const commentsSort = toStr(req?.query?.commentsSort).trim();
+  const includeHidden = toStr(req?.query?.includeHidden).trim();
+  if (id) return `id:${id}:sort:${commentsSort}:hidden:${includeHidden}`;
+  if (summary === '1') return `summary:${category || 'all'}:exclude:${excludeId || ''}:limit:${limit || ''}`;
+  return `list:${category || 'all'}`;
+};
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, PUT, OPTIONS');
@@ -125,6 +159,12 @@ export default async function handler(req, res) {
     await ensureBlogCommentSchema(client);
 
     if (req.method === 'GET') {
+      const cacheKey = buildCacheKey(req);
+      const cached = getCacheEntry(cacheKey);
+      if (cached) {
+        return res.status(200).json(cached);
+      }
+
       const { id, category } = req.query;
 
       if (id) {
@@ -162,7 +202,7 @@ export default async function handler(req, res) {
           [id]
         );
 
-        return res.status(200).json({
+        const payload = {
           ...post,
           id: post.id,
           title: post.title,
@@ -188,7 +228,9 @@ export default async function handler(req, res) {
             userId: c.user_id || undefined,
             createdAt: c.created_at
           }))
-        });
+        };
+        setCacheEntry(cacheKey, payload);
+        return res.status(200).json(payload);
       }
 
       const isSummary = toStr(req.query?.summary).trim() === '1';
@@ -220,7 +262,7 @@ export default async function handler(req, res) {
           params
         );
 
-        return res.status(200).json(result.rows.map(row => ({
+        const payload = result.rows.map(row => ({
           id: row.id,
           title: row.title,
           content: '',
@@ -238,7 +280,9 @@ export default async function handler(req, res) {
           commentsCount: parseInt(row.comments_count),
           createdAt: row.created_at,
           updatedAt: row.updated_at
-        })));
+        }));
+        setCacheEntry(cacheKey, payload);
+        return res.status(200).json(payload);
       }
 
       let query = 'SELECT *, (SELECT COUNT(*) FROM blog_comments WHERE post_id = blog_posts.id) as comments_count FROM blog_posts';
@@ -250,7 +294,7 @@ export default async function handler(req, res) {
       query += ' ORDER BY created_at DESC';
 
       const result = await client.query(query, params);
-      return res.status(200).json(result.rows.map(row => ({
+      const payload = result.rows.map(row => ({
         id: row.id,
         title: row.title,
         content: row.content,
@@ -268,7 +312,9 @@ export default async function handler(req, res) {
         commentsCount: parseInt(row.comments_count),
         createdAt: row.created_at,
         updatedAt: row.updated_at
-      })));
+      }));
+      setCacheEntry(cacheKey, payload);
+      return res.status(200).json(payload);
     }
 
     if (req.method === 'POST') {
@@ -465,6 +511,8 @@ export default async function handler(req, res) {
         [id, title, cleanedContent, author, authorRole, category, featuredImage, tags || [], sourceName, sourceUrl, seededLikes, seededLoves, seededClaps, seededViews, createdAt || null]
       );
 
+      clearBlogCache();
+
       return res.status(200).json({ success: true, id });
     }
 
@@ -491,6 +539,8 @@ export default async function handler(req, res) {
         [title, cleanedContent, author, authorRole, category, featuredImage, tags || [], sourceName, sourceUrl, typeof views === 'number' ? views : null, createdAt || null, id]
       );
 
+      clearBlogCache();
+
       if (typeof likes === 'number' || typeof loves === 'number' || typeof claps === 'number') {
         await client.query(
           `UPDATE blog_posts
@@ -508,6 +558,7 @@ export default async function handler(req, res) {
     if (req.method === 'DELETE') {
       const { id } = req.query;
       await client.query('DELETE FROM blog_posts WHERE id = $1', [id]);
+      clearBlogCache();
       return res.status(200).json({ success: true });
     }
 

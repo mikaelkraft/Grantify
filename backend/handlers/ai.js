@@ -167,25 +167,6 @@ const fetchDuckDuckGoContext = async (query) => {
   }
 };
 
-const buildSourcesHtml = (items) => {
-  if (!Array.isArray(items) || items.length === 0) return '';
-  const safeItems = items
-    .filter((i) => i && typeof i.title === 'string' && typeof i.link === 'string')
-    .slice(0, 3);
-
-  if (safeItems.length === 0) return '';
-
-  const listItems = safeItems
-    .map((i) => {
-      const title = i.title.replace(/</g, '&lt;').replace(/>/g, '&gt;').trim();
-      const href = String(i.link).replace(/"/g, '&quot;').trim();
-      return `<li><a href="${href}" target="_blank" rel="noopener noreferrer">${title}</a></li>`;
-    })
-    .join('');
-
-  return `<h3>Sources</h3><ul>${listItems}</ul>`;
-};
-
 const slugifyTitle = (title) => {
   const input = String(title || '').trim();
   if (!input) return 'post';
@@ -331,7 +312,8 @@ export default async function handler(req, res) {
       5. LINKS: Do NOT include raw URLs. Only include links if the editor explicitly requested them. If you must link, use named anchors (descriptive link text).
       6. AVOID too much use of Additionally
       7. Do NOT add a "Sources" section or citations in the article body.
-      8. FORMAT: Use <h2>, <h3>, <h4>, <small>, <preformatted>, <p>, <strong>, <ul>, <li>, and <a> tags only.`;
+      8. Do NOT frame the narration as the writer personally touring shops or offices across multiple states.
+      9. FORMAT: Use <h2>, <h3>, <h4>, <small>, <preformatted>, <p>, <strong>, <ul>, <li>, and <a> tags only.`;
 
       userPrompt = `Topic: "${prompt}". Write a deep-dive strategy article for a Nigerian audience.
 
@@ -501,14 +483,7 @@ export default async function handler(req, res) {
     const aiText = postProcessAnchors(data.choices?.[0]?.message?.content || 'No response generated.');
 
     if (type === 'blog') {
-      if (includeSourcesEffective) {
-        const sourcesHtml = buildSourcesHtml(sources);
-        const finalHtml = sourcesHtml && !String(aiText).includes('<h3>Sources</h3>')
-          ? `${aiText}\n${sourcesHtml}`
-          : aiText;
-        return res.status(200).json({ content: finalHtml, sources });
-      }
-      return res.status(200).json({ content: aiText, sources });
+      return res.status(200).json({ content: aiText, sources: [] });
     }
 
     return res.status(200).json({ text: aiText, sources });

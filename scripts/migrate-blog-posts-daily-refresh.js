@@ -96,6 +96,15 @@ const removeRelatedReadsBlock = (html) => {
   return s;
 };
 
+const removeSourcesBlock = (html) => {
+  let s = String(html || '');
+
+  s = s.replace(/<h3[^>]*>\s*Sources\s*<\/h3>\s*<ul>[\s\S]*?<\/ul>/gi, '');
+  s = s.replace(/<p[^>]*>\s*<strong[^>]*>\s*Sources\s*:?.*?<\/p>/gi, '');
+
+  return s;
+};
+
 const removeInlineAlsoRead = (html) => {
   let s = String(html || '');
 
@@ -115,7 +124,7 @@ const extractParagraphs = (html) => {
 };
 
 const injectAlsoReadInline = (html, relatedPosts) => {
-  const cleaned = removeInlineAlsoRead(removeRelatedReadsBlock(html));
+  const cleaned = removeSourcesBlock(removeInlineAlsoRead(removeRelatedReadsBlock(html)));
   const paragraphs = extractParagraphs(cleaned);
 
   if (paragraphs.length === 0) return cleaned;

@@ -80,6 +80,101 @@ const stripLeadingDuplicateH2 = (html: string, title: string) => {
   return input.replace(m[0], '');
 };
 
+const stripTrailingAlsoReadBlocks = (html: string) => {
+  let input = String(html || '');
+  input = input.replace(/<h3\b[^>]*>\s*(Also read|Also reads|Related reads|Related posts|Sources)\s*<\/h3>\s*(<ul[\s\S]*?<\/ul>)?/gi, '');
+  input = input.replace(/<p[^>]*>\s*<strong[^>]*>\s*(Also read|Also reads|Related reads|Related posts|Sources)\s*:?.*?<\/p>/gi, '');
+
+  const parts = input.split(/(?=<p\b|<h[1-6]\b|<ul\b|<ol\b|<blockquote\b)/i);
+  if (parts.length === 0) return input;
+
+  const isTailLabel = (fragment: string) => {
+    const text = fragment
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;|&#160;|\u00A0/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+
+    return text.startsWith('also read:') || text.startsWith('sources:');
+  };
+
+  let end = parts.length;
+  while (end > 0) {
+    const current = parts[end - 1].trim();
+    if (!isTailLabel(current)) break;
+    end -= 1;
+  }
+
+  input = parts.slice(0, end).join('');
+  return input;
+};
+
+const extractParagraphHtml = (html: string) => {
+  const matches = String(html || '').match(/<p\b[^>]*>[\s\S]*?<\/p>/gi);
+  return matches || [];
+};
+
+const buildInlineAlsoReadHtml = (rec: BlogPost) => {
+  const title = String(rec.title || '').trim();
+  const href = `/blog/${makeBlogSlug(title, rec.id)}`;
+  const category = String(rec.category || '').trim();
+  return `
+    <div class="my-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 px-4 py-4 shadow-sm">
+      <p class="m-0 text-[10px] font-black uppercase tracking-[0.28em] text-gray-400 dark:text-gray-500">Also read</p>
+      <a href="${href}" class="mt-2 block text-base font-bold text-gray-900 dark:text-gray-100 hover:text-grantify-green transition-colors">
+        ${escapeHtml(title)}
+      </a>
+      ${category ? `<p class="m-0 mt-1 text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">${escapeHtml(category)}</p>` : ''}
+    </div>
+  `;
+};
+
+const injectInlineRecommendations = (html: string, recs: BlogPost[], title: string) => {
+  const cleaned = stripTrailingAlsoReadBlocks(String(html || ''));
+  let paragraphs = extractParagraphHtml(cleaned);
+
+  // If there are no <p> elements (content may be plain text with headings),
+  // split on heading boundaries and wrap text fragments as paragraphs so
+  // we can reliably inject inline callouts.
+  if (!paragraphs || paragraphs.length === 0) {
+    const parts = String(cleaned || '').split(/(?=<h[1-6]\b)/i).filter(Boolean);
+    paragraphs = parts.map(part => part.trim().startsWith('<h') ? part : `<p>${part}</p>`);
+  }
+  const links = (Array.isArray(recs) ? recs : [])
+    .filter((rec) => String(rec?.id || '') && String(rec?.title || '').trim())
+    .filter((rec) => String(rec.title || '').trim().toLowerCase() !== String(title || '').trim().toLowerCase())
+    .slice(0, 4);
+
+  if (paragraphs.length === 0 || links.length === 0) return cleaned;
+
+  const slotCount = Math.min(3, links.length, paragraphs.length);
+  const slots = new Set<number>();
+  for (let i = 0; i < slotCount; i += 1) {
+    const idx = Math.floor(((i + 1) * paragraphs.length) / (slotCount + 1));
+    slots.add(Math.min(Math.max(idx, 0), paragraphs.length - 1));
+  }
+
+  let output = '';
+  let used = 0;
+
+  for (let i = 0; i < paragraphs.length; i += 1) {
+    output += paragraphs[i];
+    if (slots.has(i) && used < links.length) {
+      output += buildInlineAlsoReadHtml(links[used]);
+      used += 1;
+    }
+  }
+
+  // If for some reason the slotting didn't insert anything but we have links,
+  // ensure at least one inline card appears after the first paragraph.
+  if (output === cleaned && links.length > 0 && paragraphs.length > 0) {
+    return paragraphs[0] + buildInlineAlsoReadHtml(links[0]) + paragraphs.slice(1).join('');
+  }
+
+  return output;
+};
+
 export const BlogPostView: React.FC = () => {
   const { slugOrId } = useParams<{ slugOrId: string }>();
   const navigate = useNavigate();
@@ -136,6 +231,11 @@ export const BlogPostView: React.FC = () => {
     return stripLeadingDuplicateH2(normalized, String(post?.title || ''));
   }, [post?.content, post?.title]);
 
+  const articleHtml = useMemo(() => {
+    if (!post) return '';
+    return injectInlineRecommendations(postHtml, recommendedPosts, String(post.title || ''));
+  }, [post, postHtml, recommendedPosts]);
+
   useEffect(() => {
     if (!post) return;
     try {
@@ -190,6 +290,7 @@ export const BlogPostView: React.FC = () => {
       excludeId: String(post.id),
       limit: 4,
       category: post.category || undefined,
+      tags: Array.isArray(post.tags) ? post.tags : undefined,
     })
       .then((recs) => {
         if (canceled) return;
@@ -498,7 +599,7 @@ export const BlogPostView: React.FC = () => {
               (() => {
                 // Since content is now HTML from ReactQuill
                 // We'll try to split by the first paragraph ending
-                const content = postHtml;
+                const content = articleHtml;
                 const splitIndex = content.indexOf('</p>');
                 
                 if (splitIndex !== -1) {
@@ -522,7 +623,7 @@ export const BlogPostView: React.FC = () => {
                 return <div dangerouslySetInnerHTML={{ __html: content }} />;
               })()
             ) : (
-              <div dangerouslySetInnerHTML={{ __html: postHtml }} />
+              <div dangerouslySetInnerHTML={{ __html: articleHtml }} />
             )}
           </div>
 
@@ -588,10 +689,11 @@ export const BlogPostView: React.FC = () => {
       {/* Recommended Posts */}
       {recommendedPosts.length > 0 && (
         <section className="mb-16">
-          <h3 className="text-2xl font-black font-heading text-gray-900 dark:text-gray-100 mb-6">You Might Also Like</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 gap-4">
+          <h3 className="text-2xl font-black font-heading text-gray-900 dark:text-gray-100 mb-2">You May Also Like</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">More posts that connect to this story.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {recommendedPosts.slice(0, 4).map(rec => (
-              <Link key={rec.id} to={`/blog/${makeBlogSlug(rec.title, rec.id)}`} className="group bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm hover:shadow-md transition-all">
+              <Link key={rec.id} to={`/blog/${makeBlogSlug(rec.title, rec.id)}`} className="group bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm hover:shadow-md transition-all min-w-0">
                 <div className="h-32 bg-gray-100 dark:bg-gray-950 relative">
                   {(() => {
                     const derived = derivePostImage(rec);
@@ -612,7 +714,7 @@ export const BlogPostView: React.FC = () => {
                   <span className="text-[10px] bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-200 px-2 py-0.5 rounded font-bold uppercase mb-2 inline-block">
                     {rec.category}
                   </span>
-                  <h4 className="font-bold text-gray-800 dark:text-gray-100 leading-tight group-hover:text-grantify-green transition-colors line-clamp-2">
+                  <h4 className="font-bold text-gray-800 dark:text-gray-100 leading-tight group-hover:text-grantify-green transition-colors line-clamp-2 text-pretty">
                     {normalizeNbsp(rec.title).replace(/\s+/g, ' ').trim()}
                   </h4>
                 </div>

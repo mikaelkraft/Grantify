@@ -48,6 +48,13 @@ const stripLeadingH2 = (html) => {
   return s.replace(/^\s*<h2\b[^>]*>[\s\S]*?<\/h2>\s*/i, '');
 };
 
+const stripSourcesBlock = (html) => {
+  let s = String(html || '');
+  s = s.replace(/<h3\b[^>]*>\s*Sources\s*<\/h3>\s*<ul>[\s\S]*?<\/ul>/gi, '');
+  s = s.replace(/<p[^>]*>\s*<strong[^>]*>\s*Sources\s*:?.*?<\/p>/gi, '');
+  return s;
+};
+
 const injectAlsoReadInline = (html, relatedPosts) => {
   const raw = String(html || '');
   const posts = Array.isArray(relatedPosts) ? relatedPosts.filter(Boolean) : [];
@@ -240,7 +247,7 @@ async function migrate() {
       }
 
       const withInline = injectAlsoReadInline(oldHtml, related);
-      const cleaned = stripLeadingH2(withInline);
+      const cleaned = stripSourcesBlock(stripLeadingH2(withInline));
 
       const nextCategory = updateTaxonomy
         ? deriveCategory({ angleKey: guessAngleKeyFromTitle(p.title), title: p.title })

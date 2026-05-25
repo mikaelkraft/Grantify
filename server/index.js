@@ -16,10 +16,14 @@ app.get('/healthz', (_req, res) => res.status(200).json({ ok: true }));
 // Vercel rewrites: /api/* -> /api/index?path=*
 // For local dev, emulate that by populating req.query.path.
 app.all(/^\/api\/(.*)/, async (req, res) => {
-  if (req.query && typeof req.query === 'object') {
-    req.query.path = req.params[0];
-  }
-  return apiRouter(req, res);
+  const proxiedReq = Object.create(req);
+  Object.defineProperty(proxiedReq, 'query', {
+    value: { ...(req.query || {}), path: req.params[0] },
+    writable: true,
+    configurable: true,
+    enumerable: true,
+  });
+  return apiRouter(proxiedReq, res);
 });
 
 app.listen(port, () => {

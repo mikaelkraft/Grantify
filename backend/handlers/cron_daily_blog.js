@@ -60,7 +60,12 @@ const STORY_SEEDS = [
   'A small solar installer in Kaduna chasing large contracts with delayed payments',
   'A furniture maker in Aba struggling with generator costs and bulk orders',
   'A catering business in Ibadan trying to move from cash to invoices with SMEs',
-  'A fish farmer in Ogun scaling feed supply and cold-chain logistics'
+  'A fish farmer in Ogun scaling feed supply and cold-chain logistics',
+  'A printing shop owner in Port Harcourt trying to keep two big contracts on schedule',
+  'A fashion wholesaler in Onitsha balancing import timing with customer deposits',
+  'A small manufacturer in Lagos Mainland trying to buy time between power cuts and payroll',
+  'A training center operator in Abuja weighing tuition discounts against rent and staffing',
+  'A tomato trader in Jos dealing with spoilage, transport, and weekly price swings'
 ];
 
 // Keep the "recent" window smaller than the number of available angles,
@@ -87,8 +92,9 @@ CRITICAL CONTENT RULES:
 7. FORMAT: Use <h2>, <h3>, <p>, <strong>, <ul>, <li>, and <a> tags only.
 8. PROFESSIONAL TONE: write like a newsroom + operator, not an ad.
 9. SPECIFICITY: include at least 1 short Nigeria-specific mini example (2-4 sentences) to ground the piece.
-10. STORYTELLING: Open with a 3-5 sentence narrative hook about a realistic operator (fictional, but plausible), then connect to the analysis.
-11. FRESHNESS: Do not repeat story setup, sections, or titles from recent daily posts.`;
+10. STORYTELLING: Open with a 3-5 sentence narrative hook about one realistic operator in one location. Do not present the narrator as personally visiting shops or offices across multiple states.
+11. FRESHNESS: Do not repeat story setup, sections, or titles from recent daily posts.
+12. SOURCES: Do not add a Sources section, references, citations, or raw URLs anywhere in the article.`;
 
   const safeAngle = String(angleLabel || '').trim();
   const safeSeed = String(storySeed || '').trim();
@@ -239,49 +245,6 @@ const fetchNewsItems = async (query) => {
     });
   }
   return items;
-};
-
-const resolveFinalUrl = async (url, { timeoutMs = 3000 } = {}) => {
-  const s = String(url || '').trim();
-  if (!s) return '';
-
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(s, {
-      method: 'GET',
-      redirect: 'follow',
-      signal: controller.signal,
-      headers: { 'User-Agent': 'GrantifyAutoblog/1.0 (+https://grantify.app)' },
-    });
-    return String(res?.url || s);
-  } catch {
-    return s;
-  } finally {
-    clearTimeout(t);
-  }
-};
-
-const buildSourcesHtml = async (items) => {
-  if (!Array.isArray(items) || items.length === 0) return '';
-  const safeItems = items
-    .filter((i) => i && typeof i.title === 'string' && typeof i.link === 'string')
-    .slice(0, 2);
-  if (safeItems.length === 0) return '';
-
-  const resolvedItems = [];
-  for (const i of safeItems) {
-    const title = i.title.replace(/</g, '&lt;').replace(/>/g, '&gt;').trim();
-    const rawHref = String(i.link).replace(/"/g, '&quot;').trim();
-    const href = /news\.google\.com/i.test(rawHref) ? await resolveFinalUrl(rawHref) : rawHref;
-    resolvedItems.push({ title, href });
-  }
-
-  const listItems = resolvedItems
-    .map((i) => `<li><a href="${i.href}" target="_blank" rel="noopener noreferrer">${i.title}</a></li>`)
-    .join('');
-
-  return `<h3>Sources</h3><ul>${listItems}</ul>`;
 };
 
 const stripLeadingH2 = (html) => {
@@ -793,12 +756,9 @@ export default async function handler(req, res) {
       related = [];
     }
 
-    const sourcesHtml = await buildSourcesHtml(newsItems);
     const htmlWithAlsoRead = injectAlsoReadInline(html, related);
     const cleanedHtml = stripLeadingH2(htmlWithAlsoRead);
-    const finalHtml = sourcesHtml && !String(cleanedHtml).includes('<h3>Sources</h3>')
-      ? `${cleanedHtml}\n${sourcesHtml}`
-      : cleanedHtml;
+    const finalHtml = cleanedHtml;
 
     const author = 'Grantifier';
     const authorRole = 'Editor';

@@ -259,11 +259,11 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   };
 
   const navLinks = [
-    { to: "/", label: "Home" },
-    { to: "/blog", label: "Blog Intel" },
-    { to: "/loan-providers", label: "Instant Loans" },
-    { to: "/contact", label: "Contact Us" },
-    { to: "/admin", label: "Admin Login" },
+    { to: "/", label: "Home", shortLabel: "Home" },
+    { to: "/blog", label: "Blog Intel", shortLabel: "Blog" },
+    { to: "/loan-providers", label: "Instant Loans", shortLabel: "Loans" },
+    { to: "/contact", label: "Contact Us", shortLabel: "Contact" },
+    { to: "/admin", label: "Admin Login", shortLabel: "Admin" },
   ];
 
   return (
@@ -480,7 +480,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 to={link.to} 
                 className={`hover:text-grantify-gold transition-colors font-medium ${location.pathname === link.to ? 'text-grantify-gold border-b-2 border-grantify-gold' : ''}`}
               >
-                {link.label}
+                <span className="sm:hidden">{link.shortLabel}</span>
+                <span className="hidden sm:inline">{link.label}</span>
               </Link>
             ))}
 
