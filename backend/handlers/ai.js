@@ -300,19 +300,19 @@ export default async function handler(req, res) {
     const nowIso = new Date().toISOString();
 
     if (type === 'blog') {
-      systemInstruction = `You are a top-tier Nigerian business consultant and financial journalist.
-      Write an authoritative, human-sounding 600-word article in HTML format.
+      systemInstruction = `You are a top-tier business consultant and practical financial journalist writing for Grantify.
+      Write an authoritative, human-sounding ~600-word article in HTML format.
 
       CRITICAL CONTENT RULES:
       1. NEVER use em dashes (—). Use commas, colons, or periods instead.
       2. AVOID generic AI openings or conclusions.
       2b. Do NOT include a "Conclusion" section or wrap-up paragraph. End with concrete next steps.
-      3. FOCUS deeply on Nigeria: use Naira (₦), mention local states, or CBN/BOI policies.
-      4. SOUND like a person, not a textbook. Be strategic and actionable.
+      3. Use local context sparingly and only when directly relevant; avoid repetitive geographic mentions.
+      4. SOUND like a human journalist: strategic, practical, and actionable.
       5. LINKS: Do NOT include raw URLs. Only include links if the editor explicitly requested them. If you must link, use named anchors (descriptive link text).
-      6. AVOID too much use of Additionally
+      6. AVOID overusing transitional phrases like "Additionally".
       7. Do NOT add a "Sources" section or citations in the article body.
-      8. Do NOT frame the narration as the writer personally touring shops or offices across multiple states.
+      8. Do NOT frame the narration as the writer personally touring shops or offices across multiple states or days.
       9. FORMAT: Use <h2>, <h3>, <h4>, <small>, <preformatted>, <p>, <strong>, <ul>, <li>, and <a> tags only.`;
 
       userPrompt = `Topic: "${prompt}". Write a deep-dive strategy article for a Nigerian audience.
@@ -480,9 +480,42 @@ export default async function handler(req, res) {
 
     if (!response.ok) throw new Error('Groq API Error');
     const data = await response.json();
-    const aiText = postProcessAnchors(data.choices?.[0]?.message?.content || 'No response generated.');
+    let aiText = postProcessAnchors(data.choices?.[0]?.message?.content || 'No response generated.');
+
+    // Post-process blog outputs to remove first-person travel/anecdote sentences
+    const sanitizeBlogText = (text) => {
+      if (!text || typeof text !== 'string') return text;
+      // Remove sentences that read like "I was with...", "We visited...", "Today I met..."
+      const sentences = text.split(/(?<=[.!?])\s+/);
+      const filtered = sentences.filter(s => {
+        const low = s.trim().toLowerCase();
+        if (/\b(i (was|met|visited|spent|joined|accompanied)|we (visited|met|were|spent)|today i|yesterday i|this morning i|this afternoon i)\b/.test(low)) return false;
+        if (/\b(i was with|i met with|we met with|we were with|i spent the day|i visited)\b/.test(low)) return false;
+        return true;
+      });
+      let out = filtered.join(' ');
+
+      // Limit repetitive country mentions (e.g., multiple 'Nigeria' occurrences)
+      const maxCountryMentions = 1;
+      const country = 'Nigeria';
+      const parts = out.split(new RegExp(`(${country})`, 'gi'));
+      if (parts.length > (maxCountryMentions * 2 + 1)) {
+        // rebuild keeping only first occurrence, replace later ones with 'the country'
+        let seen = 0;
+        out = parts.map(p => {
+          if (p.toLowerCase() === country.toLowerCase()) {
+            seen += 1;
+            return seen === 1 ? p : 'the country';
+          }
+          return p;
+        }).join('');
+      }
+
+      return out;
+    };
 
     if (type === 'blog') {
+      aiText = sanitizeBlogText(aiText);
       return res.status(200).json({ content: aiText, sources: [] });
     }
 

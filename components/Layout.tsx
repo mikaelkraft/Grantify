@@ -396,7 +396,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             <img
               src="/logo.svg"
               alt="Grantify"
-              className="w-8 h-8"
+              className="w-7 h-7"
               loading="eager"
               decoding="async"
             />
@@ -419,7 +419,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                     void ensureSearchIndex();
                   }}
                   placeholder="Search blog, loans, grants…"
-                  className="w-[280px] lg:w-[360px] bg-transparent outline-none text-sm placeholder:text-white/70"
+                  className="w-[160px] md:w-[220px] lg:w-[300px] bg-transparent outline-none text-sm placeholder:text-white/70"
                   aria-label="Search"
                 />
                 {Boolean(searchQuery.trim()) && (

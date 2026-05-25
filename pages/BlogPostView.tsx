@@ -703,7 +703,7 @@ export const BlogPostView: React.FC = () => {
         <section className="mb-16">
           <h3 className="text-2xl font-black font-heading text-gray-900 dark:text-gray-100 mb-2">You May Also Like</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">More posts that connect to this story.</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {recommendedPosts.slice(0, 4).map(rec => (
               <Link key={rec.id} to={`/blog/${makeBlogSlug(rec.title, rec.id)}`} className="group bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm hover:shadow-md transition-all min-w-0">
                 <div className="h-32 bg-gray-100 dark:bg-gray-950 relative">
