@@ -166,6 +166,97 @@ const injectAlsoReadInline = (html, relatedPosts) => {
   return out;
 };
 
+// Sanitize blog text similar to backend AI sanitizer: remove first-person
+// anecdotal sentences and limit repetitive country mentions.
+const sanitizeBlogText = (html) => {
+  const s = String(html || '');
+  if (!s) return s;
+
+  // Work on text content while preserving basic HTML structure per-paragraph.
+  try {
+    const doc = new (require('node-html-parser')).parse(s);
+    const paragraphs = doc.querySelectorAll('p');
+
+    if (!paragraphs || paragraphs.length === 0) {
+      // Fallback: operate on whole text
+      const txt = stripHtmlToText(s);
+      const sentences = txt.split(/(?<=[.!?])\s+/);
+      const filtered = sentences.filter((sent) => {
+        const low = String(sent || '').toLowerCase();
+        if (/\b(i (was|met|visited|spent|joined|accompanied)|we (visited|met|were|spent)|today i|yesterday i|this morning i|this afternoon i)\b/.test(low)) return false;
+        if (/\b(i was with|i met with|we met with|we were with|i spent the day|i visited)\b/.test(low)) return false;
+        return true;
+      });
+      let out = filtered.join(' ');
+      const country = 'Nigeria';
+      const parts = out.split(new RegExp(`(${country})`, 'gi'));
+      if (parts.length > 3) {
+        let seen = 0;
+        out = parts.map(p => {
+          if (p.toLowerCase() === country.toLowerCase()) {
+            seen += 1;
+            return seen === 1 ? p : 'the country';
+          }
+          return p;
+        }).join('');
+      }
+      return `<p>${out}</p>`;
+    }
+
+    for (const p of paragraphs) {
+      const text = p.textContent || '';
+      const sentences = String(text).split(/(?<=[.!?])\s+/);
+      const filtered = sentences.filter((sent) => {
+        const low = String(sent || '').toLowerCase();
+        if (/\b(i (was|met|visited|spent|joined|accompanied)|we (visited|met|were|spent)|today i|yesterday i|this morning i|this afternoon i)\b/.test(low)) return false;
+        if (/\b(i was with|i met with|we met with|we were with|i spent the day|i visited)\b/.test(low)) return false;
+        return true;
+      });
+      let out = filtered.join(' ');
+      const country = 'Nigeria';
+      const parts = out.split(new RegExp(`(${country})`, 'gi'));
+      if (parts.length > 3) {
+        let seen = 0;
+        out = parts.map(p => {
+          if (p.toLowerCase() === country.toLowerCase()) {
+            seen += 1;
+            return seen === 1 ? p : 'the country';
+          }
+          return p;
+        }).join('');
+      }
+      // Replace inner text while preserving simple tags inside the paragraph
+      p.set_content(out);
+    }
+
+    return doc.toString();
+  } catch (err) {
+    // On any parser error, fallback to simple text sanitizer above.
+    const txt = stripHtmlToText(s);
+    const sentences = txt.split(/(?<=[.!?])\s+/);
+    const filtered = sentences.filter((sent) => {
+      const low = String(sent || '').toLowerCase();
+      if (/\b(i (was|met|visited|spent|joined|accompanied)|we (visited|met|were|spent)|today i|yesterday i|this morning i|this afternoon i)\b/.test(low)) return false;
+      if (/\b(i was with|i met with|we met with|we were with|i spent the day|i visited)\b/.test(low)) return false;
+      return true;
+    });
+    let out = filtered.join(' ');
+    const country = 'Nigeria';
+    const parts = out.split(new RegExp(`(${country})`, 'gi'));
+    if (parts.length > 3) {
+      let seen = 0;
+      out = parts.map(p => {
+        if (p.toLowerCase() === country.toLowerCase()) {
+          seen += 1;
+          return seen === 1 ? p : 'the country';
+        }
+        return p;
+      }).join('');
+    }
+    return `<p>${out}</p>`;
+  }
+};
+
 const deriveCategoryFromText = (title, html) => {
   const t = normalizeNbsp(title).toLowerCase();
   const text = `${t} ${stripHtmlToText(html).toLowerCase()}`;
@@ -401,6 +492,12 @@ async function migrate() {
       let nextContent = beforeContent;
       nextContent = stripLeadingH2(nextContent);
       nextContent = injectAlsoReadInline(nextContent, related);
+      // Sanitize anecdotal first-person lines and repetitive country mentions
+      try {
+        nextContent = sanitizeBlogText(nextContent);
+      } catch (e) {
+        // ignore sanitization errors and proceed with previous content
+      }
 
       const derivedCategory = deriveCategoryFromText(post.title, nextContent);
       const nextCategory = (args.recat || !String(post.category || '').trim())

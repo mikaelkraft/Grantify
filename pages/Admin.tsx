@@ -266,6 +266,65 @@ export const Admin: React.FC = () => {
     }
   };
 
+    // Client-side sanitizer to mirror backend: remove Sources/Related reads
+    // blocks and strip anecdotal first-person sentences from paragraphs.
+    const sanitizeEditorHtml = (html: string): string => {
+      if (!html || typeof html !== 'string') return html;
+      try {
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+
+        // Remove <h3>Sources</h3> + following <ul>
+        const h3s = Array.from(doc.querySelectorAll('h3'));
+        for (const h of h3s) {
+          const txt = (h.textContent || '').trim().toLowerCase();
+          if (txt === 'sources' || txt.startsWith('related')) {
+            const next = h.nextElementSibling;
+            if (next && (next.tagName === 'UL' || next.tagName === 'P')) next.remove();
+            h.remove();
+          }
+        }
+
+        // Remove inline "Also read" strong anchors
+        const strongs = Array.from(doc.querySelectorAll('strong'));
+        for (const s of strongs) {
+          if ((s.textContent || '').toLowerCase().includes('also read')) {
+            s.remove();
+          }
+        }
+
+        const paras = Array.from(doc.querySelectorAll('p'));
+        for (const p of paras) {
+          const text = p.textContent || '';
+          const sentences = String(text).split(/(?<=[.!?])\s+/);
+          const filtered = sentences.filter((sent) => {
+            const low = String(sent || '').toLowerCase();
+            if (/\b(i (was|met|visited|spent|joined|accompanied)|we (visited|met|were|spent)|today i|yesterday i|this morning i|this afternoon i)\b/.test(low)) return false;
+            if (/\b(i was with|i met with|we met with|we were with|i spent the day|i visited)\b/.test(low)) return false;
+            return true;
+          });
+          let out = filtered.join(' ');
+          // Limit repeated 'Nigeria' mentions
+          const country = 'Nigeria';
+          const parts = out.split(new RegExp(`(${country})`, 'gi'));
+          if (parts.length > 3) {
+            let seen = 0;
+            out = parts.map(p => {
+              if (p.toLowerCase() === country.toLowerCase()) {
+                seen += 1;
+                return seen === 1 ? p : 'the country';
+              }
+              return p;
+            }).join('');
+          }
+          p.textContent = out;
+        }
+
+        return doc.body.innerHTML;
+      } catch {
+        return html;
+      }
+    };
+
   const quillRef = React.useRef<any>(null);
   const inlineImageInputRef = React.useRef<HTMLInputElement | null>(null);
 
@@ -1056,10 +1115,14 @@ export const Admin: React.FC = () => {
     setIsSavingPost(true);
     setPostSaveNotice(null);
     try {
+      let content = autoLinkUrls ? linkifyHtml(newPost.content) : newPost.content;
+      // sanitize AI output / pasted HTML before submit (defense in depth)
+      content = sanitizeEditorHtml(content);
+
       const payload = {
         ...newPost,
         image: (newPost.image || '').trim(),
-        content: autoLinkUrls ? linkifyHtml(newPost.content) : newPost.content
+        content
       };
 
       if (isEditingPost && newPost.id) {
