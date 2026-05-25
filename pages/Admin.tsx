@@ -72,6 +72,7 @@ export const Admin: React.FC = () => {
   const [allReviews, setAllReviews] = useState<ProviderReview[]>([]);
   const [includeHiddenReviews, setIncludeHiddenReviews] = useState(false);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [selectedBlogPostIds, setSelectedBlogPostIds] = useState<Set<string>>(new Set());
 
   const categoryOptions = React.useMemo(() => {
     const base = [
@@ -1001,6 +1002,50 @@ export const Admin: React.FC = () => {
       setBlogPosts(prev => prev.filter(p => p.id !== id));
     } catch (e) {
       alert('Failed to delete post');
+    }
+  };
+
+  const isAutodraftPost = (post: BlogPost) => Array.isArray(post.tags) && post.tags.map(String).some(t => t.toLowerCase() === 'autodraft');
+
+  const handleBulkApproveBlogPosts = async () => {
+    const ids = Array.from(selectedBlogPostIds);
+    if (ids.length === 0) return;
+    const ok = window.confirm(`Approve and publish ${ids.length} post(s)? This removes the autodraft tag.`);
+    if (!ok) return;
+
+    setIsSavingPost(true);
+    try {
+      for (const id of ids) {
+        const post = blogPosts.find(p => String(p.id) === String(id));
+        if (!post) continue;
+        const nextTags = (Array.isArray(post.tags) ? post.tags.filter(t => String(t).toLowerCase() !== 'autodraft') : []);
+        await ApiService.submitBlogAction({
+          action: 'update',
+          id: String(post.id),
+          title: post.title,
+          content: post.content,
+          author: post.author,
+          authorRole: post.authorRole,
+          category: post.category,
+          image: post.image || '',
+          tags: nextTags,
+          sourceName: post.sourceName || '',
+          sourceUrl: post.sourceUrl || '',
+          views: post.views,
+          likes: post.likes,
+          loves: post.loves,
+          claps: post.claps,
+          createdAt: post.createdAt
+        });
+      }
+
+      setSelectedBlogPostIds(new Set());
+      await refreshData();
+      alert('Selected posts approved and published.');
+    } catch (e: any) {
+      alert(e?.message || 'Failed to approve selected posts');
+    } finally {
+      setIsSavingPost(false);
     }
   };
 
@@ -2765,9 +2810,55 @@ export const Admin: React.FC = () => {
                     </div>
  
                     <div className="bg-white dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-800 overflow-x-auto">
+                      <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 sticky top-0 z-10">
+                        <div className="text-xs text-gray-500">
+                          {selectedBlogPostIds.size > 0 ? `${selectedBlogPostIds.size} selected` : 'Select drafts to approve in bulk'}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const draftIds = blogPosts.filter(isAutodraftPost).map(p => String(p.id));
+                              setSelectedBlogPostIds(new Set(draftIds));
+                            }}
+                            className="text-xs font-bold px-3 py-2 rounded border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
+                          >
+                            Select drafts
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedBlogPostIds(new Set())}
+                            className="text-xs font-bold px-3 py-2 rounded border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
+                          >
+                            Clear
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleBulkApproveBlogPosts}
+                            disabled={selectedBlogPostIds.size === 0 || isSavingPost}
+                            className="text-xs font-bold px-3 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
+                          >
+                            Approve selected
+                          </button>
+                        </div>
+                      </div>
                       <table className="w-full text-sm min-w-[800px]">
                         <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
                           <tr>
+                            <th className="p-3 text-left w-10">
+                              <input
+                                type="checkbox"
+                                aria-label="Select all drafts"
+                                checked={blogPosts.filter(isAutodraftPost).length > 0 && blogPosts.filter(isAutodraftPost).every(p => selectedBlogPostIds.has(String(p.id)))}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedBlogPostIds(new Set(blogPosts.filter(isAutodraftPost).map(p => String(p.id))));
+                                  } else {
+                                    setSelectedBlogPostIds(new Set());
+                                  }
+                                }}
+                              />
+                            </th>
                             <th className="p-3 text-left">Article</th>
                             <th className="p-3 text-left">Author</th>
                             <th className="p-3 text-left">Category & Tags</th>
@@ -2778,9 +2869,31 @@ export const Admin: React.FC = () => {
                         <tbody className="divide-y">
                           {blogPosts.map(post => (
                             <tr key={post.id} className={newPost.id === post.id ? 'bg-blue-50' : ''}>
+                              <td className="p-3 align-top">
+                                {isAutodraftPost(post) && (
+                                  <input
+                                    type="checkbox"
+                                    aria-label={`Select ${post.title}`}
+                                    checked={selectedBlogPostIds.has(String(post.id))}
+                                    onChange={(e) => {
+                                      setSelectedBlogPostIds(prev => {
+                                        const next = new Set(prev);
+                                        if (e.target.checked) next.add(String(post.id));
+                                        else next.delete(String(post.id));
+                                        return next;
+                                      });
+                                    }}
+                                  />
+                                )}
+                              </td>
                               <td className="p-3">
                                 <span className="font-bold block truncate max-w-[200px]" title={post.title}>{post.title}</span>
                                 <span className="text-[10px] text-gray-400">{new Date(post.createdAt).toLocaleDateString()}</span>
+                                {isAutodraftPost(post) && (
+                                  <div className="mt-1 inline-flex items-center rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest">
+                                    Draft
+                                  </div>
+                                )}
                                 {post.sourceName && (
                                   <div className="flex items-center gap-1 text-[10px] text-blue-500 font-bold mt-1">
                                     <LinkIcon size={10} /> {post.sourceName}

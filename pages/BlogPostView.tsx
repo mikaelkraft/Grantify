@@ -132,14 +132,14 @@ const buildInlineAlsoReadHtml = (rec: BlogPost) => {
 
 const injectInlineRecommendations = (html: string, recs: BlogPost[], title: string) => {
   const cleaned = stripTrailingAlsoReadBlocks(String(html || ''));
-  let paragraphs = extractParagraphHtml(cleaned);
+  let paragraphs: string[] = extractParagraphHtml(cleaned);
 
   // If there are no <p> elements (content may be plain text with headings),
   // split on heading boundaries and wrap text fragments as paragraphs so
   // we can reliably inject inline callouts.
   if (!paragraphs || paragraphs.length === 0) {
     const parts = String(cleaned || '').split(/(?=<h[1-6]\b)/i).filter(Boolean);
-    paragraphs = parts.map(part => part.trim().startsWith('<h') ? part : `<p>${part}</p>`);
+    paragraphs = parts.map((part) => (part.trim().startsWith('<h') ? part : `<p>${part}</p>`));
   }
   const links = (Array.isArray(recs) ? recs : [])
     .filter((rec) => String(rec?.id || '') && String(rec?.title || '').trim())
@@ -259,6 +259,44 @@ export const BlogPostView: React.FC = () => {
       setMeta('meta[name="twitter:title"]', 'content', safeTitle);
       setMeta('meta[name="twitter:description"]', 'content', description);
       setMeta('meta[name="twitter:image"]', 'content', image);
+
+      const schemaId = 'grantify-article-schema';
+      const prev = document.getElementById(schemaId);
+      if (prev) prev.remove();
+
+      const schema = {
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: safeTitle,
+        description,
+        datePublished: String(post.createdAt || post.updatedAt || new Date().toISOString()),
+        dateModified: String(post.updatedAt || post.createdAt || new Date().toISOString()),
+        author: {
+          '@type': 'Person',
+          name: normalizeNbsp(post.author || 'Grantify')
+        },
+        publisher: {
+          '@type': 'Organization',
+          name: 'Grantify',
+          logo: {
+            '@type': 'ImageObject',
+            url: '/logo.png'
+          }
+        },
+        mainEntityOfPage: `${window.location.origin}${window.location.pathname}`,
+        image: image ? [image] : undefined,
+      };
+
+      const script = document.createElement('script');
+      script.id = schemaId;
+      script.type = 'application/ld+json';
+      script.textContent = JSON.stringify(schema);
+      document.head.appendChild(script);
+
+      return () => {
+        const current = document.getElementById(schemaId);
+        if (current) current.remove();
+      };
     } catch {
       // no-op
     }
@@ -290,7 +328,6 @@ export const BlogPostView: React.FC = () => {
       excludeId: String(post.id),
       limit: 4,
       category: post.category || undefined,
-      tags: Array.isArray(post.tags) ? post.tags : undefined,
     })
       .then((recs) => {
         if (canceled) return;

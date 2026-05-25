@@ -142,9 +142,11 @@ const buildCacheKey = (req) => {
   const limit = toStr(req?.query?.limit).trim();
   const commentsSort = toStr(req?.query?.commentsSort).trim();
   const includeHidden = toStr(req?.query?.includeHidden).trim();
-  if (id) return `id:${id}:sort:${commentsSort}:hidden:${includeHidden}`;
-  if (summary === '1') return `summary:${category || 'all'}:exclude:${excludeId || ''}:limit:${limit || ''}`;
-  return `list:${category || 'all'}`;
+  const isAdminRequest = Boolean(String(req?.headers?.['x-admin-session'] || '').trim());
+  const adminKey = isAdminRequest ? 'admin:1' : 'admin:0';
+  if (id) return `id:${id}:sort:${commentsSort}:hidden:${includeHidden}:${adminKey}`;
+  if (summary === '1') return `summary:${category || 'all'}:exclude:${excludeId || ''}:limit:${limit || ''}:${adminKey}`;
+  return `list:${category || 'all'}:${adminKey}`;
 };
 
 export default async function handler(req, res) {
@@ -292,25 +294,20 @@ export default async function handler(req, res) {
         return res.status(200).json(payload);
       }
 
-      let query = 'SELECT *, (SELECT COUNT(*) FROM blog_comments WHERE post_id = blog_posts.id) as comments_count FROM blog_posts';
+      const whereParts = [];
       const params = [];
       if (category) {
-        query += ' WHERE category = $1';
         params.push(category);
-      }
-      // Exclude autodraft posts from public lists unless admin request
-      if (!category) {
-        // no category filter yet
+        whereParts.push(`category = $${params.length}`);
       }
       if (!isAdminRequest) {
-        // add exclusion into WHERE clause gracefully
-        if (params.length === 0) {
-          query += ' WHERE NOT (tags @> ARRAY[$1]::text[])';
-          params.push('autodraft');
-        } else {
-          query = query.replace(/ORDER BY/, ` AND NOT (tags @> ARRAY[$${params.length + 1}]::text[]) ORDER BY`);
-          params.push('autodraft');
-        }
+        params.push('autodraft');
+        whereParts.push(`NOT (tags @> ARRAY[$${params.length}]::text[])`);
+      }
+
+      let query = 'SELECT *, (SELECT COUNT(*) FROM blog_comments WHERE post_id = blog_posts.id) as comments_count FROM blog_posts';
+      if (whereParts.length > 0) {
+        query += ` WHERE ${whereParts.join(' AND ')}`;
       }
       query += ' ORDER BY created_at DESC';
 
