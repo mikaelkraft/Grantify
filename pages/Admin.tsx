@@ -72,6 +72,25 @@ export const Admin: React.FC = () => {
   const [allReviews, setAllReviews] = useState<ProviderReview[]>([]);
   const [includeHiddenReviews, setIncludeHiddenReviews] = useState(false);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+
+  const categoryOptions = React.useMemo(() => {
+    const base = [
+      'Funding','Grants','Loans','Technology','Finance','Agriculture','Energy','Manufacturing','Health','Education','Creative Economy','Women & Youth','Policy','Strategy'
+    ];
+    const seen = new Set<string>(base.map(s => s.trim()));
+    const extras: string[] = [];
+    for (const p of blogPosts) {
+      const c = String(p.category || '').trim();
+      if (!c) continue;
+      if (!seen.has(c)) {
+        seen.add(c);
+        extras.push(c);
+      }
+    }
+    // Keep base first, then extras alphabetically
+    extras.sort((a,b) => a.localeCompare(b));
+    return base.concat(extras);
+  }, [blogPosts]);
   const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
 
   // Smart Writer helpers
@@ -2436,20 +2455,9 @@ export const Admin: React.FC = () => {
                            onChange={e => setNewPost({...newPost, category: e.target.value})}
                            aria-label="Article Category"
                          >
-                           <option value="Funding">Funding</option>
-                           <option value="Grants">Grants</option>
-                           <option value="Loans">Loans</option>
-                           <option value="Technology">Technology</option>
-                           <option value="Finance">Finance</option>
-                           <option value="Agriculture">Agriculture</option>
-                           <option value="Energy">Energy</option>
-                           <option value="Manufacturing">Manufacturing</option>
-                           <option value="Health">Health</option>
-                           <option value="Education">Education</option>
-                           <option value="Creative Economy">Creative Economy</option>
-                           <option value="Women & Youth">Women & Youth</option>
-                           <option value="Policy">Policy</option>
-                           <option value="Strategy">Strategy</option>
+                           {categoryOptions.map(opt => (
+                             <option key={opt} value={opt}>{opt}</option>
+                           ))}
                          </select>
                          
                          <input 

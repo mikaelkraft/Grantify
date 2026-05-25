@@ -473,12 +473,12 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               )}
             </div>
 
-            <nav className="flex gap-6 items-center">
+            <nav className="flex gap-4 md:gap-6 items-center text-sm">
             {navLinks.map(link => (
               <Link 
                 key={link.to} 
                 to={link.to} 
-                className={`hover:text-grantify-gold transition-colors font-medium ${location.pathname === link.to ? 'text-grantify-gold border-b-2 border-grantify-gold' : ''}`}
+                className={`hover:text-grantify-gold transition-colors font-medium px-2 py-1 rounded-sm ${location.pathname === link.to ? 'text-grantify-gold border-b-2 border-grantify-gold' : ''}`}
               >
                 <span className="sm:hidden">{link.shortLabel}</span>
                 <span className="hidden sm:inline">{link.label}</span>
@@ -499,7 +499,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           </div>
 
           {/* Mobile actions */}
-          <div className="md:hidden flex items-center gap-2">
+          <div className="md:hidden flex items-center gap-2 text-sm">
             <button
               type="button"
               onClick={() => {
@@ -523,7 +523,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             </button>
 
             <button 
-              className="text-white p-2"
+              className="text-white p-1"
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();

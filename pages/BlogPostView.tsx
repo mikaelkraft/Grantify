@@ -122,7 +122,7 @@ const buildInlineAlsoReadHtml = (rec: BlogPost) => {
   return `
     <div class="my-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 px-4 py-4 shadow-sm">
       <p class="m-0 text-[10px] font-black uppercase tracking-[0.28em] text-gray-400 dark:text-gray-500">Also read</p>
-      <a href="${href}" class="mt-2 block text-base font-bold text-gray-900 dark:text-gray-100 hover:text-grantify-green transition-colors">
+      <a href="${href}" class="mt-2 block text-base font-bold text-grantify-green hover:underline transition-colors">
         ${escapeHtml(title)}
       </a>
       ${category ? `<p class="m-0 mt-1 text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">${escapeHtml(category)}</p>` : ''}
@@ -623,7 +623,19 @@ export const BlogPostView: React.FC = () => {
                 return <div dangerouslySetInnerHTML={{ __html: content }} />;
               })()
             ) : (
-              <div dangerouslySetInnerHTML={{ __html: articleHtml }} />
+              <div>
+                <div dangerouslySetInnerHTML={{ __html: articleHtml }} />
+
+                {post?.tags && Array.isArray(post.tags) && post.tags.length > 0 && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {post.tags.map((t) => (
+                      <span key={t} className="text-sm font-bold text-grantify-green bg-grantify-green/10 px-2 py-1 rounded-full">
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
