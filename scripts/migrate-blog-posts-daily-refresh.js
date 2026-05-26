@@ -21,6 +21,7 @@ const parseArgs = (argv) => {
     verbose: false,
     recat: false,
     count: false,
+    uploadImages: false,
   };
 
   for (let i = 0; i < argv.length; i++) {
@@ -30,6 +31,7 @@ const parseArgs = (argv) => {
     else if (a === '--verbose') args.verbose = true;
     else if (a === '--recat') args.recat = true;
     else if (a === '--count') args.count = true;
+    else if (a === '--upload-images') args.uploadImages = true;
     else if (a === '--offset') {
       const n = Number.parseInt(String(argv[i + 1] || ''), 10);
       if (Number.isFinite(n) && n >= 0) args.offset = n;
@@ -357,6 +359,28 @@ const deriveTagsFromText = (title, html, { forceDaily = false } = {}) => {
 
   if (forceDaily) add('daily');
 
+  // Content-first keyword extraction
+  const stopwords = new Set(['about','after','again','against','also','among','around','before','being','between','which','their','there','these','those','could','would','should','through','during','without','within','under','about','above','below','from','that','this','have','has','had','will','your','yourself','they','them','then','than','when','where','what','with','were','been','but','for','they','are','was','not','you','our','we','who','whom','how','why','its','it\'s','the','a','an','and','or','in','on','of','to','by']);
+  const tokens = {};
+  const combined = text;
+  for (const part of combined.split(/[^a-zA-Z0-9]+/)) {
+    const w = String(part || '').trim();
+    if (!w || w.length < 5) continue;
+    const lw = w.toLowerCase();
+    if (stopwords.has(lw)) continue;
+    if (/^\d+$/.test(lw)) continue;
+    tokens[lw] = (tokens[lw] || 0) + 1;
+  }
+  const tokenCandidates = Object.keys(tokens).sort((a, b) => tokens[b] - tokens[a]);
+  let added = 0;
+  for (const tk of tokenCandidates) {
+    if (added >= 4) break;
+    if (/^(nigeria|nigerian|funding|opportunit|grant|grants|daily|briefing)$/.test(tk)) continue;
+    add(tk);
+    added += 1;
+  }
+
+  // Add domain tags conservatively
   if (/(grant|accelerator|incubator|bootcamp)/.test(text)) add('grants');
   if (/(loan|credit|lending|interest rate|facility|working capital)/.test(text)) add('loans');
   if (/(cash ?flow|working capital)/.test(text)) add('cashflow');
@@ -399,6 +423,107 @@ const stableHash = (s) => {
     h = Math.imul(h, 0x01000193);
   }
   return h >>> 0;
+};
+
+// API endpoint used by migration for uploading images (when --upload-images)
+const API_URL = String(process.env.API_URL || 'http://localhost:3001').replace(/\/$/, '');
+
+const makeAdminSessionHeader = async (client) => {
+  try {
+    const res = await client.query("SELECT id, password_hash FROM admin_users ORDER BY role DESC NULLS_LAST, id LIMIT 1");
+    const row = res.rows?.[0];
+    if (!row || !row.id || !row.password_hash) return null;
+    const sess = { id: String(row.id), passwordHash: String(row.password_hash) };
+    const raw = JSON.stringify(sess);
+    return Buffer.from(raw, 'utf8').toString('base64');
+  } catch (e) {
+    return null;
+  }
+};
+
+const uploadDataUriImage = async (dataUri, filename, adminHeader) => {
+  // dataUri: data:<mime>;base64,<data>
+  const m = String(dataUri || '').match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.*)$/);
+  if (!m) throw new Error('Invalid data URI');
+  const mime = m[1];
+  const b64 = m[2];
+  const buf = Buffer.from(b64, 'base64');
+
+  // helper: fetch with retry/backoff
+  const fetchWithRetry = async (url, opts = {}, attempts = 3, delay = 500) => {
+    let lastErr = null;
+    for (let i = 0; i < attempts; i++) {
+      try {
+        const res = await fetch(url, opts);
+        if (!res.ok) {
+          const txt = await res.text().catch(() => '');
+          const err = new Error(`HTTP ${res.status} ${res.statusText}: ${txt}`);
+          err.status = res.status;
+          throw err;
+        }
+        return res;
+      } catch (e) {
+        lastErr = e;
+        const backoff = delay * Math.pow(2, i);
+        await new Promise((r) => setTimeout(r, backoff));
+      }
+    }
+    throw lastErr;
+  };
+
+  // Request presign (with retries)
+  const presignRes = await fetchWithRetry(`${API_URL}/api/uploads/image`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Admin-Session': adminHeader,
+    },
+    body: JSON.stringify({ filename: filename || 'image.png', contentType: mime, folder: 'blog-images' }),
+  }, 4, 300);
+  if (!presignRes.ok) {
+    // defensive: try to get detailed body
+    let data = null;
+    try { data = await presignRes.json(); } catch { data = null; }
+    const bodyText = data ? JSON.stringify(data) : (await presignRes.text().catch(() => ''));
+    const msg = data?.error || presignRes.statusText || `Presign failed: ${bodyText}`;
+    throw new Error(String(msg));
+  }
+  const presign = await presignRes.json();
+  const uploadUrl = String(presign.uploadUrl || '');
+  const provider = String(presign.provider || 's3');
+  if (!uploadUrl) throw new Error('Invalid presign response');
+
+  if (provider === 'gdrive') {
+    // PUT bytes to uploadUrl (with retries)
+    const putRes = await fetchWithRetry(uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': mime },
+      body: buf,
+    }, 4, 500);
+    const putText = await putRes.text().catch(() => '');
+    let data = null;
+    try { data = putText ? JSON.parse(putText) : null; } catch { data = null; }
+    const fileId = String(data?.id || '').trim();
+    if (!fileId) throw new Error(`Missing file id from drive upload; response: ${putText}`);
+
+    // Finalize to get publicUrl (with retries)
+    const finalizeRes = await fetchWithRetry(`${API_URL}/api/uploads/gdrive/finalize`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Session': adminHeader },
+      body: JSON.stringify({ fileId }),
+    }, 4, 300);
+    const finText = await finalizeRes.text().catch(() => '');
+    let fin = null;
+    try { fin = finText ? JSON.parse(finText) : null; } catch { fin = null; }
+    const finUrl = String((fin && fin.publicUrl) || '').trim();
+    if (!finUrl) throw new Error(`Missing publicUrl from finalize; response: ${finText}`);
+    return finUrl;
+  }
+
+  // Fallback S3-style PUT
+  const putRes = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': mime }, body: buf });
+  if (!putRes.ok) throw new Error('Upload failed');
+  return String(presign.publicUrl || '');
 };
 
 const sampleRelatedPosts = (poolRows, excludeId, count, seed) => {
@@ -484,6 +609,13 @@ async function migrate() {
     let updated = 0;
     const backups = [];
 
+    let adminSessionHeader = null;
+    if (args.uploadImages && args.apply) {
+      // Compute admin session header once (avoid querying inside transaction)
+      adminSessionHeader = await makeAdminSessionHeader(client);
+      if (!adminSessionHeader && args.verbose) console.log('Upload-images step skipped: No admin session available for uploads');
+    }
+
     if (args.apply) {
       await client.query('BEGIN');
     }
@@ -497,11 +629,13 @@ async function migrate() {
       let nextContent = beforeContent;
       nextContent = stripLeadingH2(nextContent);
       nextContent = injectAlsoReadInline(nextContent, related);
-      // Sanitize anecdotal first-person lines and repetitive country mentions
-      try {
-        nextContent = sanitizeBlogText(nextContent);
-      } catch (e) {
-        // ignore sanitization errors and proceed with previous content
+      // Sanitize only generated daily posts (preserve human-made author formatting)
+      if (isDaily) {
+        try {
+          nextContent = sanitizeBlogText(nextContent);
+        } catch (e) {
+          // ignore sanitization errors and proceed with previous content
+        }
       }
 
       const derivedCategory = deriveCategoryFromText(post.title, nextContent);
@@ -518,7 +652,42 @@ async function migrate() {
       const nextSourceUrl = clearSources ? '' : String(post.sourceUrl || '');
 
       const beforeImage = String(post.image || '').trim();
-      const nextImage = beforeImage.startsWith('data:') ? '' : beforeImage;
+      // Preserve image field (including data: URIs) so pasted/inline images preview correctly.
+      let nextImage = beforeImage;
+
+      // Optionally upload embedded data-URI images to configured offsite storage (gdrive)
+      if (args.uploadImages && args.apply && adminSessionHeader) {
+        try {
+          // Replace first-level post.image if it's a data URI
+          if (nextImage && String(nextImage).startsWith('data:')) {
+            try {
+              const publicUrl = await uploadDataUriImage(nextImage, `post-${post.id}.png`, adminSessionHeader);
+              nextImage = publicUrl;
+              if (args.verbose) console.log(`  uploaded image for ${post.id} -> ${publicUrl}`);
+            } catch (e) {
+              if (args.verbose) console.log(`  image upload failed for ${post.id}: ${String(e.message)}`);
+            }
+          }
+
+          // Replace any data: image src in content
+          const dataImgRegex = /<img[^>]+src=["'](data:[^"']+)["'][^>]*>/gi;
+          let match;
+          let newContent = nextContent;
+          while ((match = dataImgRegex.exec(nextContent)) !== null) {
+            const dataUri = match[1];
+            try {
+              const publicUrl = await uploadDataUriImage(dataUri, `post-${post.id}-${Math.floor(Math.random()*10000)}.png`, adminSessionHeader);
+              newContent = newContent.split(dataUri).join(publicUrl);
+              if (args.verbose) console.log(`  replaced embedded image in ${post.id} -> ${publicUrl}`);
+            } catch (e) {
+              if (args.verbose) console.log(`  embedded image upload failed for ${post.id}: ${String(e.message)}`);
+            }
+          }
+          nextContent = newContent;
+        } catch (e) {
+          if (args.verbose) console.log('Upload-images step skipped:', String(e.message || e));
+        }
+      }
 
       const isSame =
         nextContent === beforeContent &&

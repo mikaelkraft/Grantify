@@ -54,8 +54,16 @@ const plainTextToHtml = (value: string) => {
   const trimmed = text.trim();
   if (!trimmed) return '';
 
-  // Split into paragraphs on blank lines.
-  const paragraphs = trimmed.split(/\n\s*\n+/g);
+  // Prefer splitting on blank lines first (typical paragraph breaks).
+  let paragraphs = trimmed.split(/\n\s*\n+/g);
+
+  // If there's only a single paragraph but the text contains single newlines
+  // (many AI outputs use single-line breaks), treat each single newline as
+  // a paragraph separator so we can reliably inject inline cards.
+  if (paragraphs.length === 1 && trimmed.includes('\n')) {
+    paragraphs = trimmed.split(/\n+/g);
+  }
+
   return paragraphs
     .map((p) => {
       const safe = escapeHtml(p).replace(/\n/g, '<br />');
@@ -664,12 +672,17 @@ export const BlogPostView: React.FC = () => {
                 <div dangerouslySetInnerHTML={{ __html: articleHtml }} />
 
                 {post?.tags && Array.isArray(post.tags) && post.tags.length > 0 && (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {post.tags.map((t) => (
-                      <span key={t} className="text-sm font-bold text-grantify-green bg-grantify-green/10 px-2 py-1 rounded-full">
-                        {t}
-                      </span>
-                    ))}
+                  <div className="mt-6">
+                    <div className="flex items-center gap-3">
+                      <h4 className="font-bold text-sm text-gray-600 dark:text-gray-400 mr-2">Tags:</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {post.tags.map((t) => (
+                          <span key={t} className="text-sm font-bold text-grantify-green bg-grantify-green/10 px-2 py-1 rounded-full">
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -734,6 +747,14 @@ export const BlogPostView: React.FC = () => {
           </div>
         </div>
       </article>
+
+      {/* Tailwind safelist: ensure dynamic/injected classes are present in builds */}
+      <div aria-hidden className="hidden">
+        <span className="text-grantify-green bg-grantify-green bg-grantify-green/10 bg-grantify-gold/20 border-grantify-green/30 text-grantify-gold text-[10px] font-black uppercase tracking-[0.28em] rounded-2xl shadow-sm" />
+        <span className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 px-4 py-4 shadow-sm" />
+        <span className="text-[10px] font-black uppercase tracking-[0.28em] text-gray-400 dark:text-gray-500" />
+        <span className="text-base font-bold hover:underline transition-colors" />
+      </div>
 
       {/* Recommended Posts */}
       {recommendedPosts.length > 0 && (

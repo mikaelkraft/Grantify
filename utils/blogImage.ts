@@ -5,13 +5,12 @@ export const extractFirstImageSrcFromHtml = (html: string): string | null => {
   const src = (match && (match[1] || match[2] || match[3])) ? String(match[1] || match[2] || match[3]) : '';
   const trimmed = src.trim();
   if (!trimmed) return null;
-  if (trimmed.startsWith('data:')) return null;
   return trimmed;
 };
 
 export const derivePostImage = (post: { image?: string | null; content?: string | null }): string | null => {
   const direct = String(post?.image || '').trim();
-  if (direct && !direct.startsWith('data:')) return direct;
+  if (direct) return direct;
   return extractFirstImageSrcFromHtml(post?.content || '') || null;
 };
 

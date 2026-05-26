@@ -379,8 +379,29 @@ const deriveTags = ({ angleKey, title, html, newsItems }) => {
   const news = Array.isArray(newsItems) ? newsItems.map((i) => String(i?.title || '')).join(' ').toLowerCase() : '';
   const text = `${t} ${body} ${news}`;
 
-  // Always keep 1-2 stable anchors, but avoid the same 3 boring tags every time.
-  tags.add('Nigeria');
+  // Lightweight content-first keyword extraction to avoid repetitive generic tags.
+  const stopwords = new Set(['about','after','again','against','also','among','around','before','being','between','which','their','there','these','those','could','would','should','through','during','without','within','under','about','above','below','from','that','this','have','has','had','will','your','yourself','they','them','then','than','when','where','what','with','were','been','but','for','they','are','was','not','you','our','we','who','whom','how','why','its','it\'s','the','a','an','and','or','in','on','of','to','by']);
+
+  const tokens = {};
+  for (const part of text.split(/[^a-zA-Z0-9]+/)) {
+    const w = String(part || '').trim();
+    if (!w || w.length < 5) continue;
+    const lw = w.toLowerCase();
+    if (stopwords.has(lw)) continue;
+    if (/^\d+$/.test(lw)) continue;
+    tokens[lw] = (tokens[lw] || 0) + 1;
+  }
+  const tokenCandidates = Object.keys(tokens).sort((a, b) => tokens[b] - tokens[a]);
+  let addedFromContent = 0;
+  for (const tk of tokenCandidates) {
+    if (addedFromContent >= 3) break;
+    // Skip overly generic words.
+    if (/^(nigeria|nigerian|funding|opportunit|grant|grants|daily|briefing)$/.test(tk)) continue;
+    tags.add(tk.charAt(0).toUpperCase() + tk.slice(1));
+    addedFromContent += 1;
+  }
+
+  // Add domain-specific anchors conservatively based on actual text.
   if (/(grant|grants|funding|opportunit)/.test(text)) tags.add('Funding');
   if (/(loan|credit|lending|facility)/.test(text)) tags.add('Loans');
 
