@@ -430,7 +430,7 @@ const API_URL = String(process.env.API_URL || 'http://localhost:3001').replace(/
 
 const makeAdminSessionHeader = async (client) => {
   try {
-    const res = await client.query("SELECT id, password_hash FROM admin_users ORDER BY role DESC NULLS_LAST, id LIMIT 1");
+    const res = await client.query('SELECT id, password_hash FROM admin_users LIMIT 1');
     const row = res.rows?.[0];
     if (!row || !row.id || !row.password_hash) return null;
     const sess = { id: String(row.id), passwordHash: String(row.password_hash) };
@@ -616,10 +616,8 @@ async function migrate() {
       if (!adminSessionHeader && args.verbose) console.log('Upload-images step skipped: No admin session available for uploads');
     }
 
-    if (args.apply) {
-      await client.query('BEGIN');
-    }
-
+    // First pass: compute changes and perform any uploads outside the DB transaction.
+    const workItems = [];
     for (const post of posts) {
       const beforeContent = String(post.content || '');
       const related = sampleRelatedPosts(poolRows, post.id, 3, `${post.id}|${post.title}`);
@@ -710,20 +708,34 @@ async function migrate() {
         console.log(`  tags: ${(post.tags || []).join(', ')} -> ${nextTags.join(', ')}`);
       }
 
-      if (args.apply) {
-        backups.push({
-          id: post.id,
-          title: post.title,
-          before: {
-            content: beforeContent,
-            category: String(post.category || ''),
-            tags: Array.isArray(post.tags) ? post.tags : [],
-            sourceName: String(post.sourceName || ''),
-            sourceUrl: String(post.sourceUrl || ''),
-            image: beforeImage,
-          }
-        });
+      // Collect the work to perform inside a short DB transaction later.
+      workItems.push({
+        id: post.id,
+        title: post.title,
+        before: {
+          content: beforeContent,
+          category: String(post.category || ''),
+          tags: Array.isArray(post.tags) ? post.tags : [],
+          sourceName: String(post.sourceName || ''),
+          sourceUrl: String(post.sourceUrl || ''),
+          image: beforeImage,
+        },
+        after: {
+          content: nextContent,
+          category: nextCategory,
+          tags: nextTags,
+          sourceName: nextSourceName,
+          sourceUrl: nextSourceUrl,
+          image: nextImage,
+        }
+      });
+    }
 
+    // If applying changes, perform DB updates inside a short transaction now.
+    if (args.apply && workItems.length > 0) {
+      await client.query('BEGIN');
+      for (const item of workItems) {
+        backups.push({ id: item.id, title: item.title, before: item.before });
         await client.query(
           `UPDATE blog_posts
            SET content = $1,
@@ -734,7 +746,7 @@ async function migrate() {
                image = $6,
                updated_at = NOW()
            WHERE id = $7`,
-          [nextContent, nextCategory, nextTags, nextSourceName, nextSourceUrl, nextImage, post.id]
+          [item.after.content, item.after.category, item.after.tags, item.after.sourceName, item.after.sourceUrl, item.after.image, item.id]
         );
         updated++;
       }
