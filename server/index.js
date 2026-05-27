@@ -29,6 +29,21 @@ app.all(/^\/api\/(.*)/, async (req, res) => {
 app.listen(port, () => {
   // eslint-disable-next-line no-console
   console.log(`Server running at http://localhost:${port}`);
+
+  // Safety: warn when autoblog or offsite uploads are enabled in non-production
+  try {
+    const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
+    const autoblog = String(process.env.AUTOBLOG_ENABLED || '').toLowerCase() === 'true';
+    const uploads = String(process.env.OFFSITE_UPLOADS_ENABLED || '').toLowerCase() === 'true';
+    if (!isProd && autoblog) {
+      console.warn('WARNING: AUTOBLOG_ENABLED=true in non-production. This can publish daily posts locally.');
+    }
+    if (!isProd && uploads) {
+      console.warn('WARNING: OFFSITE_UPLOADS_ENABLED=true in non-production. This can upload files to offsite storage.');
+    }
+  } catch (e) {
+    /* ignore */
+  }
 });
 /*
   try {
