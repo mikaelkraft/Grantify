@@ -76,6 +76,28 @@ const getPathSegments = (req) => {
 };
 
 export default async function handler(req, res) {
+  const originalSetHeader = res.setHeader.bind(res);
+  res.setHeader = (name, value) => {
+    if (String(name || '').toLowerCase() === 'access-control-allow-headers') {
+      const existing = String(res.getHeader('Access-Control-Allow-Headers') || '');
+      const nextValues = new Set(
+        `${existing},${String(value || '')}`
+          .split(',')
+          .map((part) => part.trim())
+          .filter(Boolean)
+      );
+      nextValues.add('Content-Type');
+      nextValues.add('X-Admin-Session');
+      nextValues.add('Authorization');
+      return originalSetHeader('Access-Control-Allow-Headers', Array.from(nextValues).join(', '));
+    }
+    return originalSetHeader(name, value);
+  };
+
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.setHeader('Vary', 'Origin');
+
   const segments = getPathSegments(req);
 
   await ensureJsonBody(req);
