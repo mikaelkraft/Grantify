@@ -217,6 +217,10 @@ const sanitizeBlogText = (html) => {
         if (/\b(today i|yesterday i|this morning i|this afternoon i|i was with|i met with|we met with|we were with|i spent the day|i visited)\b/i.test(low)) return false;
         // Remove sentences that start with a narratorial clause like "As she navigated..."
         if (/^as\s+[a-z][a-z]+/i.test(s)) return false;
+        // Remove travel/visit vignettes such as "I visited Kano", "We travelled to Lagos", "I spent the day in Abuja"
+        if (/\b(i|we)\b[\s\S]{0,120}\b(visited|traveled|travelled|flew|went|arrived|met|spent the day in|spent the morning in|spent the afternoon in)\b/i.test(s)) return false;
+        // Also remove short first-person sentences that explicitly mention being in a city/place (e.g. "I was in Lagos.")
+        if (/\b(i|we)\s+(was|were)\s+in\s+[A-Z][a-z]{2,}/.test(s)) return false;
         return true;
       });
       let out = filtered.join(' ');
@@ -293,7 +297,7 @@ const deriveDailyTagsFromCategory = (category, html) => {
     if (!tags.includes(s)) tags.push(s);
   };
 
-  add('daily');
+  // intentionally do not add a synthetic 'daily' tag; keep tags content-first
 
   const c = String(category || '').toLowerCase();
   if (c.includes('grant')) {
@@ -454,7 +458,8 @@ const uploadDataUriImage = async (dataUri, filename, adminHeader) => {
     let lastErr = null;
     for (let i = 0; i < attempts; i++) {
       try {
-        const res = await fetch(url, opts);
+        const callOpts = Object.assign({ redirect: 'follow', cache: 'no-store' }, opts || {});
+        const res = await fetch(url, callOpts);
         if (!res.ok) {
           const txt = await res.text().catch(() => '');
           const err = new Error(`HTTP ${res.status} ${res.statusText}: ${txt}`);
@@ -497,9 +502,9 @@ const uploadDataUriImage = async (dataUri, filename, adminHeader) => {
     // PUT bytes to uploadUrl (with retries)
     const putRes = await fetchWithRetry(uploadUrl, {
       method: 'PUT',
-      headers: { 'Content-Type': mime },
+      headers: { 'Content-Type': mime, 'Content-Length': String(buf.length) },
       body: buf,
-    }, 4, 500);
+    }, 6, 700);
     const putText = await putRes.text().catch(() => '');
     let data = null;
     try { data = putText ? JSON.parse(putText) : null; } catch { data = null; }
