@@ -483,6 +483,27 @@ const stripDatesFromTitle = (title) => {
   return t;
 };
 
+const escapeHtml = (value) => String(value || '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
+
+const buildSourcesHtml = async (newsItems) => {
+  const items = Array.isArray(newsItems) ? newsItems : [];
+  if (items.length === 0) return '';
+
+  const list = items.slice(0, 6).map((item, index) => {
+    const title = escapeHtml(String(item?.title || `Source ${index + 1}`).replace(/\s+/g, ' ').trim());
+    const link = escapeHtml(String(item?.link || '').trim());
+    if (!link) return '';
+    return `<li><a href="${link}" target="_blank" rel="noopener noreferrer">${title}</a></li>`;
+  }).filter(Boolean).join('');
+
+  return list ? `<h3>Sources</h3><ul>${list}</ul>` : '';
+};
+
 const bestEffortLogCronRun = async ({
   cronName,
   status,

@@ -108,6 +108,42 @@ export const kvSetRandomState = async () => {
   return state;
 };
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const RETRYABLE_FETCH_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
+
+const isRetryableFetchError = (err) => {
+  const msg = err instanceof Error ? err.message : String(err || '');
+  return /fetch failed|network|timeout|timed out|ECONNRESET|EAI_AGAIN|ETIMEDOUT|socket hang up|aborted/i.test(msg);
+};
+
+export const fetchWithRetry = async (url, init, options = {}) => {
+  const attempts = Math.max(1, Number(options.attempts || 3));
+  const baseDelayMs = Math.max(0, Number(options.baseDelayMs || 250));
+
+  let lastError = null;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const res = await fetch(url, init);
+      if (attempt < attempts && RETRYABLE_FETCH_STATUSES.has(res.status)) {
+        await res.arrayBuffer().catch(() => {});
+        await sleep(baseDelayMs * attempt);
+        continue;
+      }
+      return res;
+    } catch (err) {
+      lastError = err;
+      if (attempt < attempts && isRetryableFetchError(err)) {
+        await sleep(baseDelayMs * attempt);
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  throw lastError || new Error('fetch failed');
+};
+
 export const kvGetState = async () => kvGet('gdrive_oauth_state');
 
 export const getGDriveOAuthConfig = (req) => {
@@ -157,11 +193,11 @@ export const refreshGDriveAccessToken = async (req) => {
   body.set('refresh_token', refreshToken);
   body.set('redirect_uri', redirectUri);
 
-  const res = await fetch(tokenUrl, {
+  const res = await fetchWithRetry(tokenUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
-  });
+  }, { attempts: 3, baseDelayMs: 400 });
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -181,7 +217,7 @@ export const gdriveFetch = async (accessToken, url, init) => {
   headers.set('Authorization', `Bearer ${accessToken}`);
   if (!headers.has('Content-Type') && init?.body) headers.set('Content-Type', 'application/json');
 
-  const res = await fetch(url, { ...init, headers });
+  const res = await fetchWithRetry(url, { ...init, headers }, { attempts: 3, baseDelayMs: 400 });
   const text = await res.text();
   let json = null;
   try { json = text ? JSON.parse(text) : null; } catch { json = null; }

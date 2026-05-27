@@ -7,7 +7,7 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import pool from '../db.js';
 import { getOriginFromReq, refreshOneDriveAccessToken, graphFetch, kvSet, toStr as sharedToStr } from './onedrive_shared.js';
-import { refreshGDriveAccessToken, getOrCreateBlogImagesFolderId, toStr as gToStr } from './gdrive_shared.js';
+import { fetchWithRetry, refreshGDriveAccessToken, getOrCreateBlogImagesFolderId, toStr as gToStr } from './gdrive_shared.js';
 
 const toStr = (v) => (typeof v === 'string' ? v : Array.isArray(v) ? v.join(',') : v === undefined || v === null ? '' : String(v));
 
@@ -151,7 +151,7 @@ export default async function handler(req, res) {
         ...(folderId ? { parents: [String(folderId)] } : {}),
       };
 
-      const sessRes = await fetch(createUrl, {
+      const sessRes = await fetchWithRetry(createUrl, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -159,7 +159,7 @@ export default async function handler(req, res) {
           'X-Upload-Content-Type': contentType,
         },
         body: JSON.stringify(metadata),
-      });
+      }, { attempts: 3, baseDelayMs: 400 });
 
       if (!sessRes.ok) {
         const text = await sessRes.text().catch(() => '');

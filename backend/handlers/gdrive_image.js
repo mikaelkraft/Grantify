@@ -1,7 +1,7 @@
 // Handler: /api/uploads/gdrive/image
 // Public endpoint that streams a Google Drive file (blog image) via the server.
 
-import { refreshGDriveAccessToken, pipeWebFetchToNodeRes, toStr } from './gdrive_shared.js';
+import { fetchWithRetry, refreshGDriveAccessToken, pipeWebFetchToNodeRes, toStr } from './gdrive_shared.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -22,12 +22,12 @@ export default async function handler(req, res) {
   }
 
   const url = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media`;
-  const driveRes = await fetch(url, {
+  const driveRes = await fetchWithRetry(url, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
-  });
+  }, { attempts: 3, baseDelayMs: 400 });
 
   if (!driveRes.ok) {
     return res.status(driveRes.status).send('Not found');
