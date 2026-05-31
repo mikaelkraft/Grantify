@@ -81,7 +81,7 @@ export const AiChatbot: React.FC = () => {
   }, [messages, isOpen]);
 
   const partsToNodes = useMemo(() => {
-    const urlRegex = /((?:https?:\/\/|www\.)[^\s<]+)|((?:\/blog\/|\/loan-providers|\/blog)\/?[^\s<]*)/gi;
+    const urlRegex = /((?:https?:\/\/|www\.)[^\s<]+)|((?:\/?(?:blog|loan-providers)\/?)[^\s<]*)/gi;
 
     const normalizeInternalHref = (href: string) => {
       const raw = String(href || '').trim();
@@ -89,6 +89,7 @@ export const AiChatbot: React.FC = () => {
 
       // Allow plain internal paths.
       if (raw.startsWith('/')) return raw;
+      if (/^(blog|loan-providers)\b/i.test(raw)) return `/${raw.replace(/^\/+/, '')}`;
 
       // Convert absolute Grantify links into internal SPA routes.
       // Supports both BrowserRouter-style and legacy HashRouter-style URLs.
@@ -211,10 +212,11 @@ export const AiChatbot: React.FC = () => {
             const internal = normalizeInternalHref(href);
 
             if (internal) {
+              const internalHref = internal.startsWith('/') ? internal : `/${internal.replace(/^\/+/, '')}`;
               nodes.push(
                 <Link
                   key={`il_${key++}`}
-                  to={internal}
+                  to={internalHref}
                   className="underline break-words"
                   onClick={() => setIsOpen(false)}
                 >
