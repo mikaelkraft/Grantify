@@ -129,7 +129,7 @@ CRITICAL CONTENT RULES:
     ? titles.map((t, i) => `${i + 1}. ${t}`).join('\n')
     : '(none available)';
 
-  const userPrompt = `Write a Nigeria Funding & Growth Briefing with this angle: ${safeAngle}.
+  const userPrompt = `Write a Funding & Growth Briefing for Nigerian operators with this angle: ${safeAngle}.
 
 Story seed (use this as the opening vignette, fictional but realistic): ${safeSeed}
 
@@ -138,6 +138,8 @@ ${recentBlock}
 
 Structure:
 - <h2> punchy title (no date)
+- Keep title natural and specific. Do NOT force "Nigeria" or "Nigerian" in every title.
+- At most one use of "Nigeria"/"Nigerian" in the title, only if it adds clarity.
 - 1 narrative hook paragraph that starts with a real moment, then zooms out to the problem
 - 4-6 <h3> sections with crisp subheads
 - Use fresh section titles instead of repeating templates. Prefer these anchors for this run:
@@ -517,6 +519,35 @@ const stripDatesFromTitle = (title) => {
   return t;
 };
 
+const normalizeGeneratedTitle = (title) => {
+  const input = String(title || '').trim();
+  if (!input) return '';
+
+  let t = input;
+
+  // Remove repetitive location-led prefixes that make titles look templated.
+  t = t
+    .replace(/^\s*Nigeria(?:'s|’s)?\s*[:\-–]?\s*/i, '')
+    .replace(/^\s*Nigerian\s*[:\-–]?\s*/i, '')
+    .trim();
+
+  // If title still contains the location token multiple times, keep only the first occurrence.
+  let seen = false;
+  t = t.replace(/\b(nigeria|nigerian)\b/gi, (m) => {
+    if (!seen) {
+      seen = true;
+      return m;
+    }
+    return '';
+  }).replace(/\s{2,}/g, ' ').trim();
+
+  // Drop trailing "in Nigeria" when the rest already reads clearly.
+  const withoutTail = t.replace(/\s+in\s+Nigeria\s*$/i, '').trim();
+  if (withoutTail.length >= 18) t = withoutTail;
+
+  return t;
+};
+
 const escapeHtml = (value) => String(value || '')
   .replace(/&/g, '&amp;')
   .replace(/</g, '&lt;')
@@ -798,7 +829,7 @@ export default async function handler(req, res) {
     const data = await aiRes.json();
     const html = data.choices?.[0]?.message?.content || '';
     const extractedTitle = extractTitleFromHtml(html) || '';
-    const title = stripDatesFromTitle(extractedTitle) || 'Nigeria Funding & Opportunities Briefing';
+    const title = normalizeGeneratedTitle(stripDatesFromTitle(extractedTitle)) || 'Funding & Growth Briefing';
 
     const id = Date.now().toString();
 
@@ -1044,7 +1075,7 @@ const runDryRun = async ({ force, outFile, json }) => {
     const data = await aiRes.json();
     const html = data.choices?.[0]?.message?.content || '';
     const extractedTitle = extractTitleFromHtml(html) || '';
-    const title = stripDatesFromTitle(extractedTitle) || 'Nigeria Funding & Opportunities Briefing';
+    const title = normalizeGeneratedTitle(stripDatesFromTitle(extractedTitle)) || 'Funding & Growth Briefing';
     const id = Date.now().toString();
 
     const imageQuery = buildUnsplashQuery({ title, newsItems });
