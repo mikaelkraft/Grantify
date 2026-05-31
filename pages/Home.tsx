@@ -379,46 +379,58 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* Monetization / Partner Section (admin-only) */}
-      {showPartnerRevenue && (
+      {/* Monetization / Partner Section (admin-only OR active sponsored listings visible to public) */}
+      {(showPartnerRevenue || (sponsoredListings && sponsoredListings.length > 0)) && (
       <section className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 pb-12">
         <div className="rounded-[2.5rem] border border-gray-100 dark:border-gray-800 bg-gradient-to-br from-emerald-950 via-gray-950 to-gray-900 text-white p-6 md:p-10 shadow-2xl relative overflow-hidden">
           <div className="absolute -top-16 -right-16 w-48 h-48 bg-grantify-gold/10 rounded-full blur-3xl"></div>
           <div className="relative z-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
-            <div className="max-w-2xl">
-              <p className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-gold mb-3">Partner Revenue</p>
-              <h2 className="text-2xl md:text-3xl font-black leading-tight mb-3">Turn the audience into sponsor revenue.</h2>
-              <p className="text-sm md:text-base text-white/80 leading-relaxed">
-                Offer lenders, fintechs, and service brands a clear path to featured placement, lead generation, and branded visibility across the home page, blog, and provider directory.
-              </p>
-              {typeof sponsoredTiersCount === 'number' || typeof activeSponsoredCount === 'number' ? (
-                <div className="mt-4 text-sm text-white/70">
-                  <div className="flex gap-4">
-                    {typeof sponsoredTiersCount === 'number' && (
-                      <div className="bg-white/5 px-3 py-2 rounded-md">Pricing tiers: <strong className="ml-2">{sponsoredTiersCount}</strong></div>
-                    )}
-                    {typeof activeSponsoredCount === 'number' && (
-                      <div className="bg-white/5 px-3 py-2 rounded-md">Active listings: <strong className="ml-2">{activeSponsoredCount}</strong></div>
-                    )}
-                  </div>
+            {showPartnerRevenue ? (
+              <>
+                <div className="max-w-2xl">
+                  <p className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-gold mb-3">Partner Revenue</p>
+                  <h2 className="text-2xl md:text-3xl font-black leading-tight mb-3">Turn the audience into sponsor revenue.</h2>
+                  <p className="text-sm md:text-base text-white/80 leading-relaxed">
+                    Offer lenders, fintechs, and service brands a clear path to featured placement, lead generation, and branded visibility across the home page, blog, and provider directory.
+                  </p>
+                  {typeof sponsoredTiersCount === 'number' || typeof activeSponsoredCount === 'number' ? (
+                    <div className="mt-4 text-sm text-white/70">
+                      <div className="flex gap-4">
+                        {typeof sponsoredTiersCount === 'number' && (
+                          <div className="bg-white/5 px-3 py-2 rounded-md">Pricing tiers: <strong className="ml-2">{sponsoredTiersCount}</strong></div>
+                        )}
+                        {typeof activeSponsoredCount === 'number' && (
+                          <div className="bg-white/5 px-3 py-2 rounded-md">Active listings: <strong className="ml-2">{activeSponsoredCount}</strong></div>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
-              ) : null}
-            </div>
-            <div className="flex gap-3 w-full lg:w-auto">
-              <Link to="/admin?tab=sponsored" className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all w-full lg:w-auto">
-                Manage Sponsored Listings <ExternalLink size={16} />
-              </Link>
-              <Link to="/contact" className="inline-flex items-center justify-center gap-2 border border-white/10 text-white font-black px-4 py-3 rounded-xl hover:bg-white/5 transition-all">
-                Request a Media Kit
-              </Link>
-            </div>
+                <div className="flex gap-3 w-full lg:w-auto">
+                  <Link to="/admin?tab=sponsored" className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all w-full lg:w-auto">
+                    Manage Sponsored Listings <ExternalLink size={16} />
+                  </Link>
+                  <Link to="/contact" className="inline-flex items-center justify-center gap-2 border border-white/10 text-white font-black px-4 py-3 rounded-xl hover:bg-white/5 transition-all">
+                    Request a Media Kit
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <div className="max-w-2xl">
+                <p className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-gold mb-3">Sponsored</p>
+                <h2 className="text-2xl md:text-3xl font-black leading-tight mb-3">Sponsored Listings</h2>
+                <p className="text-sm md:text-base text-white/80 leading-relaxed">Paid featured listings currently active on Grantify.</p>
+              </div>
+            )}
           </div>
           <div className="relative z-10 grid gap-4 md:grid-cols-3 mt-6">
             {sponsoredListings && sponsoredListings.length > 0 ? (
               sponsoredListings.slice(0, 3).map((s: any) => (
                 <div key={s.id} className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
                   <div className="text-sm font-black uppercase tracking-widest text-grantify-gold mb-2">{String(s.tier_name || 'Sponsored')}</div>
-                  <div className="text-lg font-bold text-white mb-2">{String(s.provider_name || s.provider_id || 'Provider')}</div>
+                  <Link to={`/loan-providers?highlight=${encodeURIComponent(String(s.provider_id || ''))}`} className="text-lg font-bold text-white mb-2 inline-block hover:underline">
+                    {String(s.provider_name || s.provider_id || 'Provider')}
+                  </Link>
                   <div className="text-sm text-white/75 leading-relaxed">Status: <span className="font-bold">{String(s.payment_status || 'pending')}</span></div>
                   {s.start_at && <div className="text-xs text-white/60 mt-2">Starts: {new Date(s.start_at).toLocaleDateString()}</div>}
                   {s.end_at && <div className="text-xs text-white/60">Ends: {new Date(s.end_at).toLocaleDateString()}</div>}
