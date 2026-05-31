@@ -426,15 +426,17 @@ export const Home: React.FC = () => {
           <div className="relative z-10 grid gap-4 md:grid-cols-3 mt-6">
             {sponsoredListings && sponsoredListings.length > 0 ? (
               sponsoredListings.slice(0, 3).map((s: any) => (
-                <div key={s.id} className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+                <Link
+                  key={s.id}
+                  to={`/loan-providers?highlight=${encodeURIComponent(String(s.provider_id || ''))}`}
+                  className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm block transition-all hover:bg-white/10 hover:border-white/20 hover:-translate-y-0.5"
+                >
                   <div className="text-sm font-black uppercase tracking-widest text-grantify-gold mb-2">{String(s.tier_name || 'Sponsored')}</div>
-                  <Link to={`/loan-providers?highlight=${encodeURIComponent(String(s.provider_id || ''))}`} className="text-lg font-bold text-white mb-2 inline-block hover:underline">
-                    {String(s.provider_name || s.provider_id || 'Provider')}
-                  </Link>
+                  <div className="text-lg font-bold text-white mb-2 hover:underline">{String(s.provider_name || s.provider_id || 'Provider')}</div>
                   <div className="text-sm text-white/75 leading-relaxed">Status: <span className="font-bold">{String(s.payment_status || 'pending')}</span></div>
                   {s.start_at && <div className="text-xs text-white/60 mt-2">Starts: {new Date(s.start_at).toLocaleDateString()}</div>}
                   {s.end_at && <div className="text-xs text-white/60">Ends: {new Date(s.end_at).toLocaleDateString()}</div>}
-                </div>
+                </Link>
               ))
             ) : (
               [
