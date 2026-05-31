@@ -28,6 +28,7 @@ import oneDriveConnect from '../backend/handlers/onedrive_connect.js';
 import oneDriveCallback from '../backend/handlers/onedrive_callback.js';
 import oneDriveFinalize from '../backend/handlers/onedrive_finalize.js';
 import oneDriveStatus from '../backend/handlers/onedrive_status.js';
+import sponsored from '../backend/handlers/sponsored.js';
 
 const ensureJsonBody = async (req) => {
   // Vercel may not populate req.body for non-POST methods.
@@ -152,6 +153,8 @@ export default async function handler(req, res) {
       if (rest.join('/') === 'onedrive/status') return oneDriveStatus(req, res);
       return res.status(404).json({ error: 'Not found' });
     }
+
+    if (root === 'sponsored') return sponsored(req, res);
 
     return res.status(404).json({ error: 'Not found' });
   } catch (err) {

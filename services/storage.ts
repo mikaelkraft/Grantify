@@ -677,6 +677,46 @@ export const ApiService = {
     if (!res.ok) throw new Error('Failed to update submission status');
   },
 
+  // -- Sponsored Listings / Pricing --
+  getSponsoredPricing: async (): Promise<Array<{ id: number; tierName: string; priceCents: number; durationDays: number; description: string }>> => {
+    const res = await fetch(`${API_URL}/api/sponsored?what=pricing`);
+    if (!res.ok) throw new Error('Failed to fetch sponsored pricing');
+    return await res.json();
+  },
+
+  createSponsoredPurchase: async (providerId: number, tierId: number, payerInfo?: any): Promise<{ id: number; paymentUrl: string | null; amountCents: number }> => {
+    const res = await fetch(`${API_URL}/api/sponsored?action=create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ providerId, tierId, payerInfo })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.error || 'Failed to create sponsored purchase');
+    }
+    return await res.json();
+  },
+
+  adminMarkSponsoredPaid: async (id: number): Promise<void> => {
+    const adminHeader = getAdminSessionHeader();
+    if (!adminHeader) throw new Error('Admin session missing');
+    const res = await fetch(`${API_URL}/api/sponsored?action=mark_paid`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Session': adminHeader },
+      body: JSON.stringify({ id })
+    });
+    if (!res.ok) {
+      const payload = await res.json().catch(() => null);
+      throw new Error(payload?.error || 'Failed to mark sponsored purchase as paid');
+    }
+  },
+
+  getActiveSponsoredListings: async (): Promise<any[]> => {
+    const res = await fetch(`${API_URL}/api/sponsored?what=listings&active=1`);
+    if (!res.ok) throw new Error('Failed to fetch active sponsored listings');
+    return await res.json();
+  },
+
   // -- Blog --
   getBlogPosts: async (category?: string): Promise<BlogPost[]> => {
     const url = category ? `${API_URL}/api/blog?category=${category}` : `${API_URL}/api/blog`;

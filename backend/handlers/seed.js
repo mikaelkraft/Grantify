@@ -401,6 +401,43 @@ export default async function handler(req, res) {
       ADD COLUMN IF NOT EXISTS claps INTEGER DEFAULT 0
     `);
 
+    // Sponsored pricing and listings (monetization)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS sponsored_pricing (
+        id SERIAL PRIMARY KEY,
+        tier_name TEXT NOT NULL,
+        price_cents INTEGER NOT NULL DEFAULT 0,
+        duration_days INTEGER NOT NULL DEFAULT 30,
+        description TEXT DEFAULT '',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS sponsored_listings (
+        id SERIAL PRIMARY KEY,
+        provider_id INTEGER REFERENCES loan_providers(id) ON DELETE CASCADE,
+        tier_id INTEGER REFERENCES sponsored_pricing(id) ON DELETE SET NULL,
+        amount_cents INTEGER DEFAULT 0,
+        payer_info JSONB,
+        payment_status TEXT NOT NULL DEFAULT 'pending',
+        start_at TIMESTAMP,
+        end_at TIMESTAMP,
+        admin_note TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    const pricingCount = await client.query('SELECT COUNT(*) FROM sponsored_pricing');
+    if (parseInt(pricingCount.rows[0].count, 10) === 0) {
+      await client.query(`INSERT INTO sponsored_pricing (tier_name, price_cents, duration_days, description) VALUES
+        ('Basic', 500000, 7, 'Basic featured listing for 7 days'),
+        ('Standard', 2500000, 30, 'Standard featured listing for 30 days'),
+        ('Premium', 7000000, 90, 'Premium featured listing for 90 days')
+      `);
+    }
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS blog_post_reactions (
         post_id TEXT REFERENCES blog_posts(id) ON DELETE CASCADE,

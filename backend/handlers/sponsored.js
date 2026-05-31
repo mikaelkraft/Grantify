@@ -1,0 +1,102 @@
+import pool from '../db.js';
+
+const parseAdminSession = (req) => {
+  try {
+    const raw = req.headers['x-admin-session'];
+    if (!raw) return null;
+    const json = decodeURIComponent(escape(Buffer.from(String(raw), 'base64').toString('utf8')));
+    const parsed = JSON.parse(json);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+// Simple sponsored listing handler
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Admin-Session');
+
+  if (req.method === 'OPTIONS') return res.status(200).end();
+
+  const client = await pool.connect();
+  try {
+    if (req.method === 'GET') {
+      const { what, active } = req.query || {};
+      if (what === 'pricing') {
+        const r = await client.query('SELECT id, tier_name, price_cents, duration_days, description FROM sponsored_pricing ORDER BY price_cents ASC');
+        return res.status(200).json(r.rows.map(r => ({ id: r.id, tierName: r.tier_name, priceCents: r.price_cents, durationDays: r.duration_days, description: r.description })));
+      }
+
+      if (what === 'listings') {
+        const q = `SELECT sl.*, lp.name as provider_name, sp.tier_name, sp.duration_days
+                   FROM sponsored_listings sl
+                   LEFT JOIN loan_providers lp ON lp.id = sl.provider_id
+                   LEFT JOIN sponsored_pricing sp ON sp.id = sl.tier_id
+                   ${active ? "WHERE sl.payment_status='paid' AND (sl.end_at IS NULL OR sl.end_at > NOW())" : ''}
+                   ORDER BY sl.created_at DESC`;
+        const r = await client.query(q);
+        return res.status(200).json(r.rows);
+      }
+
+      return res.status(400).json({ error: 'Missing query parameter `what` (pricing|listings)' });
+    }
+
+    if (req.method === 'POST') {
+      const { action } = req.query || {};
+      if (action === 'create') {
+        const { providerId, tierId, payerInfo } = req.body || {};
+        if (!providerId || !tierId) return res.status(400).json({ error: 'providerId and tierId are required' });
+
+        const tierRes = await client.query('SELECT id, price_cents FROM sponsored_pricing WHERE id = $1', [tierId]);
+        if (tierRes.rows.length === 0) return res.status(400).json({ error: 'Invalid tier' });
+
+        const amount = tierRes.rows[0].price_cents || 0;
+        const insert = await client.query(
+          `INSERT INTO sponsored_listings (provider_id, tier_id, amount_cents, payer_info, payment_status)
+           VALUES ($1, $2, $3, $4, 'pending') RETURNING id`,
+          [providerId, tierId, amount, payerInfo ? JSON.stringify(payerInfo) : null]
+        );
+        const id = insert.rows[0].id;
+
+        // In a production flow this would return a Stripe/Paystack checkout URL. For now return a stub and the record id.
+        return res.status(200).json({ id, paymentUrl: null, amountCents: amount });
+      }
+
+      if (action === 'mark_paid') {
+        const sessionRaw = req.headers['x-admin-session'];
+        const session = parseAdminSession ? parseAdminSession(req) : null;
+        if (!session?.id) return res.status(401).json({ error: 'Unauthorized' });
+
+        const { id } = req.body || {};
+        if (!id) return res.status(400).json({ error: 'id required' });
+
+        // Fetch listing and its tier
+        const r = await client.query('SELECT sl.*, sp.duration_days FROM sponsored_listings sl LEFT JOIN sponsored_pricing sp ON sp.id = sl.tier_id WHERE sl.id = $1', [id]);
+        if (r.rows.length === 0) return res.status(404).json({ error: 'Listing not found' });
+        const listing = r.rows[0];
+        const duration = listing.duration_days || 30;
+
+        await client.query('BEGIN');
+        await client.query('UPDATE sponsored_listings SET payment_status = $1, start_at = NOW(), end_at = NOW() + ($2 || "1 day")::interval, updated_at = CURRENT_TIMESTAMP WHERE id = $3', ['paid', `${duration} days`, id]);
+
+        // Mark provider as recommended/featured
+        if (listing.provider_id) {
+          await client.query('UPDATE loan_providers SET is_recommended = TRUE WHERE id = $1', [listing.provider_id]);
+        }
+
+        await client.query('COMMIT');
+        return res.status(200).json({ success: true });
+      }
+    }
+
+    return res.status(405).json({ error: 'Method not allowed' });
+  } catch (err) {
+    try { await client.query('ROLLBACK'); } catch {}
+    console.error('Sponsored handler error:', err);
+    return res.status(500).json({ error: err?.message || String(err) });
+  } finally {
+    client.release();
+  }
+}

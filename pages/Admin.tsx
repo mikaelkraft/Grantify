@@ -94,6 +94,11 @@ export const Admin: React.FC = () => {
   }, [blogPosts]);
   const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
 
+  // Sponsored listings state
+  const [sponsoredPricing, setSponsoredPricing] = useState<Array<any>>([]);
+  const [sponsoredListingsAdmin, setSponsoredListingsAdmin] = useState<Array<any>>([]);
+  const [isLoadingSponsored, setIsLoadingSponsored] = useState(false);
+
   // Smart Writer helpers
   const [smartWriteInstructions, setSmartWriteInstructions] = useState('');
   const [flagsInbox, setFlagsInbox] = useState<ContentFlag[]>([]);
@@ -176,6 +181,26 @@ export const Admin: React.FC = () => {
         if (!canceled) setOneDriveStatus(null);
       }
     };
+
+    // Load sponsored data when this tab is active
+    const loadSponsored = async () => {
+      if (!user || activeTab !== 'sponsored') return;
+      setIsLoadingSponsored(true);
+      try {
+        const pricing = await ApiService.getSponsoredPricing();
+        setSponsoredPricing(pricing || []);
+        const listings = await ApiService.getActiveSponsoredListings();
+        setSponsoredListingsAdmin(listings || []);
+      } catch (err) {
+        console.warn('Failed to load sponsored data', err);
+      } finally {
+        setIsLoadingSponsored(false);
+      }
+    };
+
+    if (user && activeTab === 'sponsored') {
+      loadSponsored();
+    }
 
     const onFocus = () => {
       fetchStatus();
@@ -1437,11 +1462,12 @@ export const Admin: React.FC = () => {
              </button>
            )}
 
-           {[
+            {[
              {id: 'applications', label: 'Applications'},
              {id: 'testimonials', label: 'Testimonials'},
              {id: 'ads', label: 'Ad Management'},
              {id: 'providers', label: 'Loan Providers'},
+             {id: 'sponsored', label: 'Sponsored Listings'},
              {id: 'content', label: 'Page Content'}
            ].map(tab => (
              <button
@@ -1452,6 +1478,8 @@ export const Admin: React.FC = () => {
                {tab.label}
              </button>
            ))}
+
+          {/* Sponsored Listings content loaded when selected */}
 
            {/* Explicit buttons for reviews and blog with icons */}
            <button 
@@ -2426,6 +2454,82 @@ export const Admin: React.FC = () => {
                 </div>
               )}
               {/* Blog Management Tab */}
+              {activeTab === 'sponsored' && (
+                <div className="max-w-4xl mx-auto">
+                  <div className="flex justify-between items-center mb-4">
+                    <div>
+                      <h3 className="text-xl font-bold">Sponsored Listings</h3>
+                      <p className="text-sm text-gray-500">Manage pricing tiers and sponsored purchases. Mark purchases as paid to activate featured listings.</p>
+                    </div>
+                  </div>
+
+                  {isLoadingSponsored ? (
+                    <div className="text-gray-500">Loading sponsored data...</div>
+                  ) : (
+                    <>
+                      <div className="mb-6">
+                        <h4 className="font-bold mb-2">Pricing Tiers</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          {sponsoredPricing.map((p) => (
+                            <div key={p.id} className="p-3 border rounded bg-gray-50 dark:bg-gray-800">
+                              <div className="text-sm font-bold">{p.tierName}</div>
+                              <div className="text-xs text-gray-600 dark:text-gray-300">{p.description}</div>
+                              <div className="mt-2 text-sm font-mono">{(p.priceCents/100).toLocaleString(undefined, {style:'currency', currency:'NGN'})} for {p.durationDays} days</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="font-bold mb-2">Active / Recent Purchases</h4>
+                        <table className="w-full text-left text-sm">
+                          <thead>
+                            <tr className="text-xs text-gray-500">
+                              <th className="p-2">ID</th>
+                              <th className="p-2">Provider</th>
+                              <th className="p-2">Tier</th>
+                              <th className="p-2">Status</th>
+                              <th className="p-2">Period</th>
+                              <th className="p-2">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sponsoredListingsAdmin.map((s) => (
+                              <tr key={s.id} className="border-t">
+                                <td className="p-2 align-top">{s.id}</td>
+                                <td className="p-2 align-top">{s.provider_name || s.provider_id}</td>
+                                <td className="p-2 align-top">{s.tier_name || s.tier_id}</td>
+                                <td className="p-2 align-top">{s.payment_status}</td>
+                                <td className="p-2 align-top">{s.start_at ? new Date(s.start_at).toLocaleDateString() : '-'} — {s.end_at ? new Date(s.end_at).toLocaleDateString() : '-'}</td>
+                                <td className="p-2 align-top">
+                                  {s.payment_status !== 'paid' && (
+                                    <button
+                                      onClick={async () => {
+                                        if (!confirm('Mark this purchase as paid and activate the featured listing?')) return;
+                                        try {
+                                          await ApiService.adminMarkSponsoredPaid(s.id);
+                                          const listings = await ApiService.getActiveSponsoredListings();
+                                          setSponsoredListingsAdmin(listings || []);
+                                          alert('Marked as paid and activated');
+                                        } catch (err) {
+                                          alert('Failed to mark as paid');
+                                        }
+                                      }}
+                                      className="px-3 py-1 rounded bg-grantify-green text-white text-xs font-bold"
+                                    >
+                                      Mark Paid
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
               {activeTab === 'blog' && (
                 <div className="max-w-6xl mx-auto">
                    <div className="flex justify-between items-center mb-6">
