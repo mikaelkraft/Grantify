@@ -21,6 +21,17 @@ export const Contact: React.FC = () => {
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const focusContactForm = () => {
+    window.setTimeout(() => {
+      document.getElementById('contact-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
+  };
+
+  const prefillSubject = (subject: string) => {
+    setFormData(prev => ({ ...prev, subject }));
+    focusContactForm();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -94,6 +105,36 @@ export const Contact: React.FC = () => {
         Have questions about funding options, providers, or your application? We're here to help. Fill out the form below and our team will get back to you as soon as possible.
       </p>
 
+      <div className="mb-8 rounded-3xl border border-gray-100 dark:border-gray-800 bg-gradient-to-br from-gray-900 via-gray-950 to-gray-900 text-white p-6 md:p-8 shadow-2xl relative overflow-hidden">
+        <div className="absolute -top-12 -right-12 w-32 h-32 bg-grantify-gold/10 rounded-full blur-3xl"></div>
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+          <div className="max-w-2xl">
+            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-gold mb-3">Business Opportunities</p>
+            <h2 className="text-2xl md:text-3xl font-black leading-tight mb-3">Ask for a media kit, featured listing, or lead package.</h2>
+            <p className="text-sm md:text-base text-white/80 leading-relaxed">
+              We work with lenders, fintech brands, service providers, and sponsors who want qualified traffic and clear placement options.
+            </p>
+          </div>
+        </div>
+        <div className="relative z-10 grid gap-3 md:grid-cols-3 mt-6">
+          {[
+            { title: 'Featured Listing', action: () => prefillSubject('Featured Listing'), copy: 'Priority placement in the provider directory.' },
+            { title: 'Sponsored Article', action: () => prefillSubject('Sponsored Content'), copy: 'Clearly labeled editorial sponsorship in the blog.' },
+            { title: 'Lead Generation', action: () => prefillSubject('Partnership'), copy: 'Qualified enquiries from users ready to compare offers.' },
+          ].map((item) => (
+            <button
+              key={item.title}
+              type="button"
+              onClick={item.action}
+              className="text-left rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm hover:bg-white/10 transition-all"
+            >
+              <div className="text-sm font-black uppercase tracking-widest text-grantify-gold mb-2">{item.title}</div>
+              <p className="text-sm text-white/75 leading-relaxed">{item.copy}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Header Ad Slot */}
       {ads?.header && (
         <div className="my-8 flex justify-center">
@@ -140,7 +181,7 @@ export const Contact: React.FC = () => {
         </div>
       )}
 
-      <div className="max-w-2xl mx-auto">
+      <div id="contact-form" className="max-w-2xl mx-auto">
          {/* Ad slot within contact area removed to keep it cleaner */}
 
         <div className="bg-green-50 dark:bg-gray-950 border border-green-200 dark:border-gray-800 rounded-xl p-6 shadow-sm">
@@ -200,6 +241,9 @@ export const Contact: React.FC = () => {
                   <option value="Application Status">Application Status</option>
                   <option value="Repayment Question">Repayment Question</option>
                   <option value="Partnership">Partnership</option>
+                  <option value="Featured Listing">Featured Listing</option>
+                  <option value="Sponsored Content">Sponsored Content</option>
+                  <option value="Media Kit Request">Media Kit Request</option>
                   <option value="Complaint">Complaint</option>
                   <option value="Other">Other</option>
                 </select>

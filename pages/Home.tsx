@@ -347,6 +347,37 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
+      {/* Monetization / Partner Section */}
+      <section className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 pb-12">
+        <div className="rounded-[2.5rem] border border-gray-100 dark:border-gray-800 bg-gradient-to-br from-emerald-950 via-gray-950 to-gray-900 text-white p-6 md:p-10 shadow-2xl relative overflow-hidden">
+          <div className="absolute -top-16 -right-16 w-48 h-48 bg-grantify-gold/10 rounded-full blur-3xl"></div>
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+            <div className="max-w-2xl">
+              <p className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-gold mb-3">Partner Revenue</p>
+              <h2 className="text-2xl md:text-3xl font-black leading-tight mb-3">Turn the audience into sponsor revenue.</h2>
+              <p className="text-sm md:text-base text-white/80 leading-relaxed">
+                Offer lenders, fintechs, and service brands a clear path to featured placement, lead generation, and branded visibility across the home page, blog, and provider directory.
+              </p>
+            </div>
+            <Link to="/contact" className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all w-full lg:w-auto">
+              Request a Media Kit <ExternalLink size={16} />
+            </Link>
+          </div>
+          <div className="relative z-10 grid gap-4 md:grid-cols-3 mt-6">
+            {[
+              { title: 'Featured Provider Slots', copy: 'Sell premium placement in the loan provider grid and above-the-fold discovery blocks.' },
+              { title: 'Sponsored Articles', copy: 'Publish clearly labeled editorial sponsorships that educate while converting qualified traffic.' },
+              { title: 'Lead Packages', copy: 'Charge for qualified enquiries from visitors already comparing funding options.' },
+            ].map((item) => (
+              <div key={item.title} className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+                <div className="text-sm font-black uppercase tracking-widest text-grantify-gold mb-2">{item.title}</div>
+                <p className="text-sm text-white/75 leading-relaxed">{item.copy}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Blog Slider for Engagement */}
       <BlogSlider posts={blogPosts} />
 

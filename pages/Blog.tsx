@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ApiService } from '../services/storage';
 import { BlogPost } from '../types';
-import { Loader2, MessageSquare, ThumbsUp, Heart, Hand, Calendar, ChevronRight, ChevronLeft, Eye } from 'lucide-react';
+import { Loader2, MessageSquare, ThumbsUp, Heart, Hand, Calendar, ChevronRight, ChevronLeft, Eye, ExternalLink, Zap } from 'lucide-react';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
 import { derivePostImage, withImageCacheBuster } from '../utils/blogImage';
 import { makeBlogPath } from '../utils/blogRouting';
@@ -89,6 +89,34 @@ export const Blog: React.FC = () => {
             {`Page ${page} of ${totalPages} • ${totalPosts.toLocaleString()} posts`}
           </p>
         )}
+      </div>
+
+      <div className="mb-10 rounded-[2rem] border border-gray-100 dark:border-gray-800 bg-gradient-to-br from-gray-900 via-gray-950 to-gray-900 text-white p-6 md:p-8 shadow-2xl relative overflow-hidden">
+        <div className="absolute -top-12 -right-12 w-32 h-32 bg-grantify-gold/10 rounded-full blur-3xl"></div>
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+          <div className="max-w-2xl">
+            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-gold mb-3 flex items-center gap-2"><Zap size={12} /> Media Kit</p>
+            <h2 className="text-2xl md:text-3xl font-black leading-tight mb-3">Sponsor an article, category, or newsletter mention.</h2>
+            <p className="text-sm md:text-base text-white/80 leading-relaxed">
+              This page attracts readers who are actively searching for funding, providers, and business guidance. Sponsored posts and content partnerships can be clearly labeled while still driving qualified traffic.
+            </p>
+          </div>
+          <Link to="/contact" className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all w-full lg:w-auto">
+            Advertise With Us <ExternalLink size={16} />
+          </Link>
+        </div>
+
+        <div className="relative z-10 grid gap-4 md:grid-cols-3 mt-6">
+          {[
+            'Sponsored article placement',
+            'Category sponsorship and pinned visibility',
+            'Newsletter / homepage shoutout packages',
+          ].map((item) => (
+            <div key={item} className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm text-sm text-white/80 leading-relaxed">
+              {item}
+            </div>
+          ))}
+        </div>
       </div>
 
       {error && (

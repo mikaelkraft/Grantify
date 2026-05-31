@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { ExternalLink, AlertTriangle, ShieldCheck, Info, Loader2, Star, CheckCircle, Zap, Award, Smartphone, MessageCircle, X, Send, CornerDownRight, ThumbsUp, ThumbsDown, Flag } from 'lucide-react';
 import { ApiService } from '../services/storage';
 import { AdSlot } from '../components/AdSlot';
@@ -298,6 +299,39 @@ export const LoanProviders: React.FC = () => {
           </div>
         </div>
 
+        <div className="mb-12 rounded-[2rem] border border-gray-100 dark:border-gray-800 bg-gradient-to-br from-gray-900 via-gray-950 to-gray-900 text-white p-6 md:p-8 shadow-2xl relative overflow-hidden">
+          <div className="absolute -top-16 -right-16 w-40 h-40 bg-grantify-gold/10 rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-16 -left-16 w-40 h-40 bg-white/5 rounded-full blur-3xl"></div>
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+            <div className="max-w-2xl">
+              <p className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-gold mb-3">Partner With Grantify</p>
+              <h2 className="text-2xl md:text-3xl font-black leading-tight mb-3">Monetize your audience with featured placement, leads, and sponsored editorial.</h2>
+              <p className="text-sm md:text-base text-white/80 leading-relaxed max-w-xl">
+                Lenders and fintech brands can buy visibility where users are already comparing options. We offer featured listings, lead packages, and sponsored content placements that stay clearly labeled.
+              </p>
+            </div>
+            <Link
+              to="/contact"
+              className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all w-full lg:w-auto"
+            >
+              Get Featured <ExternalLink size={16} />
+            </Link>
+          </div>
+
+          <div className="relative z-10 grid gap-4 md:grid-cols-3 mt-6">
+            {[
+              { title: 'Featured Listing', copy: 'Top placement in the provider grid, badge styling, and priority discovery on high-intent traffic.' },
+              { title: 'Qualified Leads', copy: 'Pay for real enquiries from users who are actively comparing lenders and ready to apply.' },
+              { title: 'Sponsored Content', copy: 'Run labeled editorial placements in the blog and home page to build trust before the click.' },
+            ].map((item) => (
+              <div key={item.title} className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+                <div className="text-sm font-black uppercase tracking-widest text-grantify-gold mb-2">{item.title}</div>
+                <p className="text-sm text-white/75 leading-relaxed">{item.copy}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Suggest a Loan App */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm mb-12">
           <div className="p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -359,6 +393,8 @@ export const LoanProviders: React.FC = () => {
                     value={suggestForm.name || ''}
                     onChange={(e) => setSuggestForm(prev => ({ ...prev, name: e.target.value }))}
                     required
+                    placeholder="e.g. QuickCash Nigeria"
+                    title="App or provider name"
                   />
                 </div>
 
@@ -455,6 +491,8 @@ export const LoanProviders: React.FC = () => {
                     className="w-full p-3 rounded-xl bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 outline-none focus:ring-2 focus:ring-grantify-green"
                     value={Number(suggestForm.rating || 0)}
                     onChange={(e) => setSuggestForm(prev => ({ ...prev, rating: parseFloat(e.target.value) }))}
+                    placeholder="e.g. 4.5"
+                    title="Rating from 0 to 5"
                   />
                 </div>
 
@@ -496,7 +534,10 @@ export const LoanProviders: React.FC = () => {
           <section className="mb-16">
             <div className="flex items-center gap-2 mb-8 border-b pb-4">
               <Award className="text-grantify-gold" size={28} />
-              <h2 className="text-2xl font-black text-gray-800 dark:text-gray-100 uppercase tracking-tighter">Highly Recommended</h2>
+              <div>
+                <h2 className="text-2xl font-black text-gray-800 dark:text-gray-100 uppercase tracking-tighter">Highly Recommended</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-bold mt-1">Premium or featured placements can occupy this section.</p>
+              </div>
             </div>
             
             <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -506,7 +547,7 @@ export const LoanProviders: React.FC = () => {
                   className="group relative bg-white dark:bg-gray-900 border-2 border-grantify-green/20 dark:border-gray-800 rounded-2xl p-6 transition-all duration-300 hover:shadow-2xl hover:border-grantify-green hover:-translate-y-1 overflow-hidden"
                 >
                   <div className="absolute top-0 right-0 bg-grantify-green text-white text-[10px] font-black px-3 py-1 rounded-bl-lg uppercase tracking-widest">
-                    Top Pick
+                    Featured
                   </div>
 
                   <div className="flex items-center justify-between mb-4">
@@ -705,6 +746,21 @@ export const LoanProviders: React.FC = () => {
           <p className="text-gray-400 text-[10px] font-black uppercase tracking-[0.2em]">
             Information last updated: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} • Grantify Data Engine
           </p>
+        </div>
+
+        <div className="mt-12 rounded-[2rem] border border-gray-100 dark:border-gray-800 bg-gray-900 text-white p-6 md:p-8 shadow-2xl">
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+            <div className="max-w-2xl">
+              <p className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-gold mb-3">Monetize This Directory</p>
+              <h2 className="text-2xl md:text-3xl font-black leading-tight mb-3">Buy placement where users are actively choosing a lender.</h2>
+              <p className="text-sm md:text-base text-white/80 leading-relaxed">
+                Upgrade to a featured slot, run a sponsored listing, or capture lead-intent traffic from people comparing offers in real time.
+              </p>
+            </div>
+            <Link to="/contact" className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all w-full lg:w-auto">
+              Request Pricing <ExternalLink size={16} />
+            </Link>
+          </div>
         </div>
       </div>
 
