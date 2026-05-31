@@ -38,6 +38,7 @@ export const Home: React.FC = () => {
   const [isLoadingBlogPosts, setIsLoadingBlogPosts] = useState(true);
 
   const [partnerRegionFilter, setPartnerRegionFilter] = useState<'all' | GrantNetwork['region']>('all');
+  const [showPartnerRevenue, setShowPartnerRevenue] = useState(false);
   
   // Data State
   const [ads, setAds] = useState<AdConfig | null>(null);
@@ -144,6 +145,18 @@ export const Home: React.FC = () => {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('admin_session');
+      if (!raw) return setShowPartnerRevenue(false);
+      const parsed = JSON.parse(raw);
+      // Only show partner revenue to admin roles
+      setShowPartnerRevenue(Boolean(parsed && parsed.role));
+    } catch {
+      setShowPartnerRevenue(false);
+    }
   }, []);
 
   const handlePurposeChange = (val: string) => {
@@ -347,7 +360,8 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* Monetization / Partner Section */}
+      {/* Monetization / Partner Section (admin-only) */}
+      {showPartnerRevenue && (
       <section className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 pb-12">
         <div className="rounded-[2.5rem] border border-gray-100 dark:border-gray-800 bg-gradient-to-br from-emerald-950 via-gray-950 to-gray-900 text-white p-6 md:p-10 shadow-2xl relative overflow-hidden">
           <div className="absolute -top-16 -right-16 w-48 h-48 bg-grantify-gold/10 rounded-full blur-3xl"></div>
@@ -377,6 +391,7 @@ export const Home: React.FC = () => {
           </div>
         </div>
       </section>
+      )}
 
       {/* Blog Slider for Engagement */}
       <BlogSlider posts={blogPosts} />
