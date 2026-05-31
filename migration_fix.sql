@@ -156,7 +156,12 @@ CREATE TABLE IF NOT EXISTS sponsored_listings (
         payment_status TEXT NOT NULL DEFAULT 'pending' CHECK (payment_status IN ('pending','paid','cancelled')),
         start_at TIMESTAMP,
         end_at TIMESTAMP,
-        admin_note TEXT,
+    admin_note TEXT,
+    invoice_number TEXT,
+    billing_info JSONB,
+    offline_payment_method TEXT,
+    invoice_issued_at TIMESTAMP,
+    invoice_due_date TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

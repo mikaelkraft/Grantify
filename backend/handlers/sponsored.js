@@ -23,7 +23,7 @@ export default async function handler(req, res) {
   const client = await pool.connect();
   try {
     if (req.method === 'GET') {
-      const { what, active } = req.query || {};
+      const { what, active, action } = req.query || {};
       if (what === 'pricing') {
         const r = await client.query('SELECT id, tier_name, price_cents, duration_days, description FROM sponsored_pricing ORDER BY price_cents ASC');
         return res.status(200).json(r.rows.map(r => ({ id: r.id, tierName: r.tier_name, priceCents: r.price_cents, durationDays: r.duration_days, description: r.description })));
@@ -37,6 +37,33 @@ export default async function handler(req, res) {
                    ${active ? "WHERE sl.payment_status='paid' AND (sl.end_at IS NULL OR sl.end_at > NOW())" : ''}
                    ORDER BY sl.created_at DESC`;
         const r = await client.query(q);
+
+        // Export CSV for admins
+        if (String(action).toLowerCase() === 'export_csv') {
+          // Require admin
+          const session = parseAdminSession(req);
+          if (!session?.id) return res.status(401).json({ error: 'Unauthorized' });
+
+          const rows = r.rows || [];
+          const cols = [
+            'id','provider_id','provider_name','tier_id','tier_name','amount_cents','payment_status','start_at','end_at','created_at','updated_at','payer_info','invoice_number','billing_info','offline_payment_method','invoice_issued_at','invoice_due_date','admin_note'
+          ];
+
+          const esc = (v) => {
+            if (v === null || v === undefined) return '';
+            if (typeof v === 'object') v = JSON.stringify(v);
+            return '"' + String(v).replace(/"/g, '""') + '"';
+          };
+
+          const header = cols.join(',') + '\n';
+          const body = rows.map(rw => cols.map(c => esc(rw[c])).join(',')).join('\n');
+          const csv = header + body;
+
+          res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+          res.setHeader('Content-Disposition', 'attachment; filename="sponsored_listings.csv"');
+          return res.status(200).send(csv);
+        }
+
         return res.status(200).json(r.rows);
       }
 
@@ -87,6 +114,32 @@ export default async function handler(req, res) {
         }
 
         await client.query('COMMIT');
+        return res.status(200).json({ success: true });
+      }
+
+      if (action === 'update_invoice') {
+        // Admin-only: update invoice/billing details for a sponsored listing
+        const session = parseAdminSession(req);
+        if (!session?.id) return res.status(401).json({ error: 'Unauthorized' });
+
+        const { id, invoiceNumber, billingInfo, offlinePaymentMethod, invoiceIssuedAt, invoiceDueDate, adminNote } = req.body || {};
+        if (!id) return res.status(400).json({ error: 'id required' });
+
+        const updates = [];
+        const params = [];
+        let idx = 1;
+        if (invoiceNumber !== undefined) { updates.push(`invoice_number = $${idx++}`); params.push(invoiceNumber); }
+        if (billingInfo !== undefined) { updates.push(`billing_info = $${idx++}`); params.push(billingInfo ? JSON.stringify(billingInfo) : null); }
+        if (offlinePaymentMethod !== undefined) { updates.push(`offline_payment_method = $${idx++}`); params.push(offlinePaymentMethod); }
+        if (invoiceIssuedAt !== undefined) { updates.push(`invoice_issued_at = $${idx++}`); params.push(invoiceIssuedAt); }
+        if (invoiceDueDate !== undefined) { updates.push(`invoice_due_date = $${idx++}`); params.push(invoiceDueDate); }
+        if (adminNote !== undefined) { updates.push(`admin_note = $${idx++}`); params.push(adminNote); }
+
+        if (updates.length === 0) return res.status(400).json({ error: 'No invoice fields provided' });
+
+        params.push(id);
+        const sql = `UPDATE sponsored_listings SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = $${idx}`;
+        await client.query(sql, params);
         return res.status(200).json({ success: true });
       }
     }

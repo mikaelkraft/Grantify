@@ -2488,7 +2488,27 @@ export const Admin: React.FC = () => {
                       </div>
 
                       <div>
-                        <h4 className="font-bold mb-2">Active / Recent Purchases</h4>
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-bold mb-2">Active / Recent Purchases</h4>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={async () => {
+                                try {
+                                  setIsLoadingSponsored(true);
+                                  await ApiService.adminDownloadSponsoredCSV();
+                                } catch (e: any) {
+                                  alert(e?.message || 'Failed to download CSV');
+                                } finally {
+                                  setIsLoadingSponsored(false);
+                                }
+                              }}
+                              className="px-3 py-1 rounded bg-blue-600 text-white text-xs font-bold"
+                              title="Download CSV of sponsored listings"
+                            >
+                              <Download size={14} /> CSV
+                            </button>
+                          </div>
+                        </div>
                         <table className="w-full text-left text-sm">
                           <thead>
                             <tr className="text-xs text-gray-500">
@@ -2527,6 +2547,31 @@ export const Admin: React.FC = () => {
                                       Mark Paid
                                     </button>
                                   )}
+                                  <button
+                                    onClick={async () => {
+                                      try {
+                                        const invoiceNumber = window.prompt('Enter invoice number (leave blank to skip)', s.invoice_number || '');
+                                        if (invoiceNumber === null) return;
+                                        const billingName = window.prompt('Enter billing name (optional)', (s.billing_info && s.billing_info.name) || '');
+                                        if (billingName === null) return;
+                                        const billingEmail = window.prompt('Enter billing email (optional)', (s.billing_info && s.billing_info.email) || '');
+                                        if (billingEmail === null) return;
+
+                                        const billing = { name: billingName || undefined, email: billingEmail || undefined };
+                                        await ApiService.updateSponsoredInvoice(s.id, { invoiceNumber: invoiceNumber || undefined, billingInfo: Object.keys(billing).length ? billing : undefined });
+                                        const listings = await ApiService.getActiveSponsoredListings();
+                                        setSponsoredListingsAdmin(listings || []);
+                                        alert('Invoice info updated');
+                                      } catch (err: any) {
+                                        console.error(err);
+                                        alert(err?.message || 'Failed to update invoice');
+                                      }
+                                    }}
+                                    className="ml-2 px-2 py-1 rounded bg-yellow-600 text-white text-xs font-bold"
+                                    title="Add / update invoice and billing info"
+                                  >
+                                    Invoice
+                                  </button>
                                 </td>
                               </tr>
                             ))}

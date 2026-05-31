@@ -711,6 +711,41 @@ export const ApiService = {
     }
   },
 
+  adminDownloadSponsoredCSV: async (): Promise<void> => {
+    const adminHeader = getAdminSessionHeader();
+    if (!adminHeader) throw new Error('Admin session missing');
+    const res = await fetch(`${API_URL}/api/sponsored?what=listings&action=export_csv`, {
+      headers: { 'X-Admin-Session': adminHeader }
+    });
+    if (!res.ok) {
+      const payload = await res.text().catch(() => null);
+      throw new Error(payload || 'Failed to download CSV');
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sponsored_listings.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
+
+  updateSponsoredInvoice: async (id: number, payload: { invoiceNumber?: string; billingInfo?: any; offlinePaymentMethod?: string; invoiceIssuedAt?: string; invoiceDueDate?: string; adminNote?: string }): Promise<void> => {
+    const adminHeader = getAdminSessionHeader();
+    if (!adminHeader) throw new Error('Admin session missing');
+    const res = await fetch(`${API_URL}/api/sponsored?action=update_invoice`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Session': adminHeader },
+      body: JSON.stringify({ id, ...payload })
+    });
+    if (!res.ok) {
+      const payloadErr = await res.json().catch(() => null);
+      throw new Error(payloadErr?.error || 'Failed to update invoice');
+    }
+  },
+
   getActiveSponsoredListings: async (): Promise<any[]> => {
     const res = await fetch(`${API_URL}/api/sponsored?what=listings&active=1`);
     if (!res.ok) throw new Error('Failed to fetch active sponsored listings');
