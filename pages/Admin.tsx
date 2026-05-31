@@ -171,6 +171,13 @@ export const Admin: React.FC = () => {
     let canceled = false;
     let intervalId: number | null = null;
 
+    // If URL contains ?tab=sponsored (or other tab), open that tab on mount
+    try {
+      const qs = new URLSearchParams(window.location.search || '');
+      const requested = qs.get('tab');
+      if (requested && !canceled) setActiveTab(requested);
+    } catch {}
+
     const fetchStatus = async () => {
       if (!user) return;
       if (activeTab !== 'blog') return;

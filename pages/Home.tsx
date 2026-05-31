@@ -10,7 +10,7 @@ import { matchGrantNetwork, GRANT_NETWORKS } from '../utils/grantMatcher';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
 import { derivePostImage, withImageCacheBuster } from '../utils/blogImage';
 import { makeBlogPath } from '../utils/blogRouting';
-import { LoanType, ApplicationStatus, LoanApplication, Testimonial, AdConfig, BlogPost, GrantNetwork } from '../types';
+import { LoanType, ApplicationStatus, LoanApplication, Testimonial, AdConfig, BlogPost, GrantNetwork, UserRole } from '../types';
 import { 
   Calculator, CheckCircle, AlertCircle, ArrowRight, Share2, Copy, 
   Info, Loader2, MessageSquarePlus, Send, Zap, Landmark, 
@@ -39,6 +39,8 @@ export const Home: React.FC = () => {
 
   const [partnerRegionFilter, setPartnerRegionFilter] = useState<'all' | GrantNetwork['region']>('all');
   const [showPartnerRevenue, setShowPartnerRevenue] = useState(false);
+  const [sponsoredTiersCount, setSponsoredTiersCount] = useState<number | null>(null);
+  const [activeSponsoredCount, setActiveSponsoredCount] = useState<number | null>(null);
   
   // Data State
   const [ads, setAds] = useState<AdConfig | null>(null);
@@ -152,8 +154,21 @@ export const Home: React.FC = () => {
       const raw = localStorage.getItem('admin_session');
       if (!raw) return setShowPartnerRevenue(false);
       const parsed = JSON.parse(raw);
-      // Only show partner revenue to admin roles
-      setShowPartnerRevenue(Boolean(parsed && parsed.role));
+      // Only show partner revenue to super-admins
+      setShowPartnerRevenue(Boolean(parsed && parsed.role === UserRole.SUPER_ADMIN));
+      // If super-admin, fetch a couple of lightweight sponsored metrics
+      if (parsed && parsed.role === UserRole.SUPER_ADMIN) {
+        (async () => {
+          try {
+            const pricing = await ApiService.getSponsoredPricing().catch(() => null);
+            const listings = await ApiService.getActiveSponsoredListings().catch(() => null);
+            if (pricing && Array.isArray(pricing)) setSponsoredTiersCount(pricing.length);
+            if (listings && Array.isArray(listings)) setActiveSponsoredCount(listings.length);
+          } catch (e) {
+            // ignore metric errors for now
+          }
+        })();
+      }
     } catch {
       setShowPartnerRevenue(false);
     }
@@ -372,10 +387,27 @@ export const Home: React.FC = () => {
               <p className="text-sm md:text-base text-white/80 leading-relaxed">
                 Offer lenders, fintechs, and service brands a clear path to featured placement, lead generation, and branded visibility across the home page, blog, and provider directory.
               </p>
+              {typeof sponsoredTiersCount === 'number' || typeof activeSponsoredCount === 'number' ? (
+                <div className="mt-4 text-sm text-white/70">
+                  <div className="flex gap-4">
+                    {typeof sponsoredTiersCount === 'number' && (
+                      <div className="bg-white/5 px-3 py-2 rounded-md">Pricing tiers: <strong className="ml-2">{sponsoredTiersCount}</strong></div>
+                    )}
+                    {typeof activeSponsoredCount === 'number' && (
+                      <div className="bg-white/5 px-3 py-2 rounded-md">Active listings: <strong className="ml-2">{activeSponsoredCount}</strong></div>
+                    )}
+                  </div>
+                </div>
+              ) : null}
             </div>
-            <Link to="/contact" className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all w-full lg:w-auto">
-              Request a Media Kit <ExternalLink size={16} />
-            </Link>
+            <div className="flex gap-3 w-full lg:w-auto">
+              <Link to="/admin?tab=sponsored" className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all w-full lg:w-auto">
+                Manage Sponsored Listings <ExternalLink size={16} />
+              </Link>
+              <Link to="/contact" className="inline-flex items-center justify-center gap-2 border border-white/10 text-white font-black px-4 py-3 rounded-xl hover:bg-white/5 transition-all">
+                Request a Media Kit
+              </Link>
+            </div>
           </div>
           <div className="relative z-10 grid gap-4 md:grid-cols-3 mt-6">
             {[
