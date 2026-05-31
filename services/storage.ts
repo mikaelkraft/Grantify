@@ -149,6 +149,14 @@ const getOrCreateAnonUserId = (): string => {
 
 export const getAnonUserId = (): string => getOrCreateAnonUserId();
 
+export type BlogPostsPage = {
+  items: BlogPost[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
 // Initial Seed Data (Used for Mock Mode if API fails or is empty)
 const initialTestimonials: Testimonial[] = [
   {
@@ -676,6 +684,20 @@ export const ApiService = {
     const headers: Record<string,string> | undefined = adminHeader ? { 'X-Admin-Session': adminHeader } : undefined;
     const res = await fetch(url, { headers });
     if (!res.ok) throw new Error('Failed to fetch blog posts');
+    return await res.json();
+  },
+
+  getBlogPostsPage: async (opts?: { category?: string; page?: number; pageSize?: number }): Promise<BlogPostsPage> => {
+    const qs = new URLSearchParams();
+    qs.set('paginated', '1');
+    qs.set('page', String(Math.max(1, Number(opts?.page) || 1)));
+    qs.set('pageSize', String(Math.min(30, Math.max(1, Number(opts?.pageSize) || 9))));
+    if (opts?.category) qs.set('category', String(opts.category));
+
+    const adminHeader = getAdminSessionHeader();
+    const headers: Record<string,string> | undefined = adminHeader ? { 'X-Admin-Session': adminHeader } : undefined;
+    const res = await fetch(`${API_URL}/api/blog?${qs.toString()}`, { headers });
+    if (!res.ok) throw new Error('Failed to fetch paginated blog posts');
     return await res.json();
   },
 

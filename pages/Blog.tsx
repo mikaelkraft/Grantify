@@ -2,25 +2,33 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ApiService } from '../services/storage';
 import { BlogPost } from '../types';
-import { Loader2, MessageSquare, ThumbsUp, Heart, Hand, Calendar, ChevronRight, Eye } from 'lucide-react';
+import { Loader2, MessageSquare, ThumbsUp, Heart, Hand, Calendar, ChevronRight, ChevronLeft, Eye } from 'lucide-react';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
 import { derivePostImage, withImageCacheBuster } from '../utils/blogImage';
 import { makeBlogPath } from '../utils/blogRouting';
 
 export const Blog: React.FC = () => {
+  const PAGE_SIZE = 9;
   const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPosts, setTotalPosts] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [myReactions, setMyReactions] = useState<Record<string, 'likes' | 'loves' | 'claps' | null>>({});
 
   useEffect(() => {
     const fetchPosts = async () => {
+      setIsLoading(true);
+      setError('');
       try {
-        const data = await ApiService.getBlogPosts();
-        setPosts(data);
+        const data = await ApiService.getBlogPostsPage({ page, pageSize: PAGE_SIZE });
+        setPosts(Array.isArray(data.items) ? data.items : []);
+        setTotalPosts(Number(data.total || 0));
+        setTotalPages(Math.max(1, Number(data.totalPages || 1)));
         try {
           const next: Record<string, 'likes' | 'loves' | 'claps' | null> = {};
-          for (const p of data) {
+          for (const p of (Array.isArray(data.items) ? data.items : [])) {
             const stored = localStorage.getItem(`grantify_blog_reaction_${p.id}`);
             next[p.id] = (stored === 'likes' || stored === 'loves' || stored === 'claps') ? stored : null;
           }
@@ -35,7 +43,13 @@ export const Blog: React.FC = () => {
       }
     };
     fetchPosts();
-  }, []);
+  }, [page]);
+
+  useEffect(() => {
+    if (page > 1) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [page]);
 
   const handleReact = async (postId: string, reactionType: 'likes' | 'loves' | 'claps') => {
     try {
@@ -70,7 +84,18 @@ export const Blog: React.FC = () => {
         <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
           Expert insights on Nigerian grants, business strategies, and financial management to help you grow.
         </p>
+        {totalPosts > 0 && (
+          <p className="mt-3 text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+            {`Page ${page} of ${totalPages} • ${totalPosts.toLocaleString()} posts`}
+          </p>
+        )}
       </div>
+
+      {error && (
+        <div className="mb-6 text-center py-4 bg-red-50 dark:bg-red-950/30 rounded-xl border border-red-100 dark:border-red-900">
+          <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
+        </div>
+      )}
 
       {posts.length === 0 ? (
         <div className="text-center py-20 bg-gray-50 dark:bg-gray-900 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-800">
@@ -186,6 +211,34 @@ export const Blog: React.FC = () => {
               );
             })()
           ))}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page <= 1 || isLoading}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed hover:border-grantify-green/50"
+            aria-label="Previous page"
+          >
+            <ChevronLeft size={16} /> Previous
+          </button>
+
+          <span className="text-sm font-bold text-gray-500 dark:text-gray-300 min-w-[110px] text-center">
+            {`${page} / ${totalPages}`}
+          </span>
+
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages || isLoading}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed hover:border-grantify-green/50"
+            aria-label="Next page"
+          >
+            Next <ChevronRight size={16} />
+          </button>
         </div>
       )}
     </div>

@@ -138,6 +138,9 @@ const buildCacheKey = (req) => {
   const id = toStr(req?.query?.id).trim();
   const category = toStr(req?.query?.category).trim();
   const summary = toStr(req?.query?.summary).trim();
+  const paginated = toStr(req?.query?.paginated).trim();
+  const page = toStr(req?.query?.page).trim();
+  const pageSize = toStr(req?.query?.pageSize).trim();
   const excludeId = toStr(req?.query?.excludeId).trim();
   const limit = toStr(req?.query?.limit).trim();
   const commentsSort = toStr(req?.query?.commentsSort).trim();
@@ -146,6 +149,9 @@ const buildCacheKey = (req) => {
   const adminKey = isAdminRequest ? 'admin:1' : 'admin:0';
   if (id) return `id:${id}:sort:${commentsSort}:hidden:${includeHidden}:${adminKey}`;
   if (summary === '1') return `summary:${category || 'all'}:exclude:${excludeId || ''}:limit:${limit || ''}:${adminKey}`;
+  if (paginated === '1') {
+    return `list:paged:${category || 'all'}:page:${page || '1'}:size:${pageSize || '9'}:${adminKey}`;
+  }
   return `list:${category || 'all'}:${adminKey}`;
 };
 
@@ -247,9 +253,14 @@ export default async function handler(req, res) {
       }
 
       const isSummary = toStr(req.query?.summary).trim() === '1';
+      const isPaginated = toStr(req.query?.paginated).trim() === '1';
       const excludeId = toStr(req.query?.excludeId).trim();
       const limitRaw = Number.parseInt(toStr(req.query?.limit).trim() || '0', 10);
       const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 50) : 0;
+      const pageRaw = Number.parseInt(toStr(req.query?.page).trim() || '1', 10);
+      const pageSizeRaw = Number.parseInt(toStr(req.query?.pageSize).trim() || '9', 10);
+      const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
+      const pageSize = Number.isFinite(pageSizeRaw) && pageSizeRaw > 0 ? Math.min(pageSizeRaw, 30) : 9;
 
       if (isSummary) {
         const params = [];
@@ -324,8 +335,20 @@ export default async function handler(req, res) {
       }
       query += ' ORDER BY created_at DESC';
 
+      let total = 0;
+      if (isPaginated) {
+        let countQuery = 'SELECT COUNT(*)::int AS total FROM blog_posts';
+        if (whereParts.length > 0) {
+          countQuery += ` WHERE ${whereParts.join(' AND ')}`;
+        }
+        const countRes = await client.query(countQuery, params);
+        total = Number(countRes.rows?.[0]?.total || 0);
+        const offset = (page - 1) * pageSize;
+        query += ` LIMIT ${pageSize} OFFSET ${offset}`;
+      }
+
       const result = await client.query(query, params);
-      const payload = result.rows.map(row => ({
+      const items = result.rows.map(row => ({
         id: row.id,
         title: row.title,
         content: row.content,
@@ -344,8 +367,22 @@ export default async function handler(req, res) {
         createdAt: row.created_at,
         updatedAt: row.updated_at
       }));
-      setCacheEntry(cacheKey, payload);
-      return res.status(200).json(payload);
+
+      if (isPaginated) {
+        const totalPages = total > 0 ? Math.ceil(total / pageSize) : 1;
+        const payload = {
+          items,
+          total,
+          page,
+          pageSize,
+          totalPages,
+        };
+        setCacheEntry(cacheKey, payload);
+        return res.status(200).json(payload);
+      }
+
+      setCacheEntry(cacheKey, items);
+      return res.status(200).json(items);
     }
 
     if (req.method === 'POST') {
