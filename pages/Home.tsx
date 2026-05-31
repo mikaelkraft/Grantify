@@ -41,6 +41,7 @@ export const Home: React.FC = () => {
   const [showPartnerRevenue, setShowPartnerRevenue] = useState(false);
   const [sponsoredTiersCount, setSponsoredTiersCount] = useState<number | null>(null);
   const [activeSponsoredCount, setActiveSponsoredCount] = useState<number | null>(null);
+  const [sponsoredListings, setSponsoredListings] = useState<Array<any> | null>(null);
   
   // Data State
   const [ads, setAds] = useState<AdConfig | null>(null);
@@ -163,7 +164,10 @@ export const Home: React.FC = () => {
             const pricing = await ApiService.getSponsoredPricing().catch(() => null);
             const listings = await ApiService.getActiveSponsoredListings().catch(() => null);
             if (pricing && Array.isArray(pricing)) setSponsoredTiersCount(pricing.length);
-            if (listings && Array.isArray(listings)) setActiveSponsoredCount(listings.length);
+            if (listings && Array.isArray(listings)) {
+              setActiveSponsoredCount(listings.length);
+              setSponsoredListings(listings);
+            }
           } catch (e) {
             // ignore metric errors for now
           }
@@ -410,16 +414,28 @@ export const Home: React.FC = () => {
             </div>
           </div>
           <div className="relative z-10 grid gap-4 md:grid-cols-3 mt-6">
-            {[
-              { title: 'Featured Provider Slots', copy: 'Sell premium placement in the loan provider grid and above-the-fold discovery blocks.' },
-              { title: 'Sponsored Articles', copy: 'Publish clearly labeled editorial sponsorships that educate while converting qualified traffic.' },
-              { title: 'Lead Packages', copy: 'Charge for qualified enquiries from visitors already comparing funding options.' },
-            ].map((item) => (
-              <div key={item.title} className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-                <div className="text-sm font-black uppercase tracking-widest text-grantify-gold mb-2">{item.title}</div>
-                <p className="text-sm text-white/75 leading-relaxed">{item.copy}</p>
-              </div>
-            ))}
+            {sponsoredListings && sponsoredListings.length > 0 ? (
+              sponsoredListings.slice(0, 3).map((s: any) => (
+                <div key={s.id} className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+                  <div className="text-sm font-black uppercase tracking-widest text-grantify-gold mb-2">{String(s.tier_name || 'Sponsored')}</div>
+                  <div className="text-lg font-bold text-white mb-2">{String(s.provider_name || s.provider_id || 'Provider')}</div>
+                  <div className="text-sm text-white/75 leading-relaxed">Status: <span className="font-bold">{String(s.payment_status || 'pending')}</span></div>
+                  {s.start_at && <div className="text-xs text-white/60 mt-2">Starts: {new Date(s.start_at).toLocaleDateString()}</div>}
+                  {s.end_at && <div className="text-xs text-white/60">Ends: {new Date(s.end_at).toLocaleDateString()}</div>}
+                </div>
+              ))
+            ) : (
+              [
+                { title: 'Featured Provider Slots', copy: 'Sell premium placement in the loan provider grid and above-the-fold discovery blocks.' },
+                { title: 'Sponsored Articles', copy: 'Publish clearly labeled editorial sponsorships that educate while converting qualified traffic.' },
+                { title: 'Lead Packages', copy: 'Charge for qualified enquiries from visitors already comparing funding options.' },
+              ].map((item) => (
+                <div key={item.title} className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+                  <div className="text-sm font-black uppercase tracking-widest text-grantify-gold mb-2">{item.title}</div>
+                  <p className="text-sm text-white/75 leading-relaxed">{item.copy}</p>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </section>
