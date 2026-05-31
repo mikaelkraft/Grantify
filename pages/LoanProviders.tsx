@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { ExternalLink, AlertTriangle, ShieldCheck, Info, Loader2, Star, CheckCircle, Zap, Award, Smartphone, MessageCircle, X, Send, CornerDownRight, ThumbsUp, ThumbsDown, Flag } from 'lucide-react';
 import { ApiService } from '../services/storage';
 import { AdSlot } from '../components/AdSlot';
 import { AdConfig, LoanProvider, ProviderReview } from '../types';
 
 export const LoanProviders: React.FC = () => {
+  const location = useLocation();
   const [providers, setProviders] = useState<LoanProvider[]>([]);
   const [ads, setAds] = useState<AdConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [highlightProviderId, setHighlightProviderId] = useState<string>('');
 
   // User submission (suggest a provider/app)
   const [showSuggestForm, setShowSuggestForm] = useState(false);
@@ -39,6 +41,8 @@ export const LoanProviders: React.FC = () => {
   const replyTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const myUserIdRef = useRef<string>('');
+  const providerCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const highlightTimeoutRef = useRef<number | null>(null);
   if (!myUserIdRef.current) {
     try {
       const key = 'grantify_uid';
@@ -67,6 +71,42 @@ export const LoanProviders: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    try {
+      const qs = new URLSearchParams(location.search || '');
+      const highlight = String(qs.get('highlight') || '').trim();
+      setHighlightProviderId(highlight);
+    } catch {
+      setHighlightProviderId('');
+    }
+  }, [location.search]);
+
+  useEffect(() => {
+    if (!highlightProviderId || isLoading || providers.length === 0) return;
+
+    const match = providers.find((p) => String(p.id || '') === highlightProviderId);
+    if (!match) return;
+
+    const key = String(match.id || '');
+    const el = providerCardRefs.current[key];
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    if (highlightTimeoutRef.current) {
+      window.clearTimeout(highlightTimeoutRef.current);
+    }
+    highlightTimeoutRef.current = window.setTimeout(() => {
+      setHighlightProviderId('');
+    }, 3500);
+
+    return () => {
+      if (highlightTimeoutRef.current) {
+        window.clearTimeout(highlightTimeoutRef.current);
+      }
+    };
+  }, [highlightProviderId, isLoading, providers]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -544,7 +584,8 @@ export const LoanProviders: React.FC = () => {
               {providers.filter(p => p.isRecommended).map((provider, index) => (
                 <div 
                   key={provider.id || `rec-${index}`} 
-                  className="group relative bg-white dark:bg-gray-900 border-2 border-grantify-green/20 dark:border-gray-800 rounded-2xl p-6 transition-all duration-300 hover:shadow-2xl hover:border-grantify-green hover:-translate-y-1 overflow-hidden"
+                  ref={(el) => { if (provider.id != null) providerCardRefs.current[String(provider.id)] = el; }}
+                  className={`group relative bg-white dark:bg-gray-900 border-2 rounded-2xl p-6 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 overflow-hidden ${highlightProviderId && String(provider.id || '') === highlightProviderId ? 'border-grantify-gold ring-4 ring-grantify-gold/30 shadow-2xl -translate-y-1' : 'border-grantify-green/20 dark:border-gray-800 hover:border-grantify-green'}`}
                 >
                   <div className="absolute top-0 right-0 bg-grantify-green text-white text-[10px] font-black px-3 py-1 rounded-bl-lg uppercase tracking-widest">
                     Featured
@@ -629,7 +670,8 @@ export const LoanProviders: React.FC = () => {
               {providers.filter(p => !p.isRecommended).map((provider, index) => (
                 <div 
                   key={provider.id || index} 
-                  className="bg-white dark:bg-gray-900 hover:bg-gray-50/50 dark:hover:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-6 transition-all duration-200 hover:shadow-lg flex flex-col h-full group"
+                  ref={(el) => { if (provider.id != null) providerCardRefs.current[String(provider.id)] = el; }}
+                  className={`bg-white dark:bg-gray-900 hover:bg-gray-50/50 dark:hover:bg-gray-900 border rounded-2xl p-6 transition-all duration-200 hover:shadow-lg flex flex-col h-full group ${highlightProviderId && String(provider.id || '') === highlightProviderId ? 'border-grantify-gold ring-4 ring-grantify-gold/30 shadow-xl' : 'border-gray-100 dark:border-gray-800'}`}
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-grow flex items-start gap-3">
