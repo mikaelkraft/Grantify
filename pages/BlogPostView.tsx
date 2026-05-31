@@ -182,6 +182,26 @@ const injectInlineRecommendations = (html: string, recs: BlogPost[], title: stri
 
   return output;
 };
+const buildDiscussionPrompts = (post: BlogPost | null) => {
+  const title = String(post?.title || '').trim();
+  const category = String(post?.category || '').trim();
+  const coreTopic = category || 'this topic';
+
+  const cleanedTitle = title
+    .replace(/\s+/g, ' ')
+    .replace(/^Nigeria\s*[:\-–]\s*/i, '')
+    .replace(/^Nigerian\s*/i, '')
+    .trim();
+
+  return [
+    `What is the biggest practical challenge you see with ${coreTopic.toLowerCase()} right now?`,
+    cleanedTitle
+      ? `Which part of the article feels most relevant to your own experience with “${cleanedTitle}”?`
+      : `Which example or takeaway here feels most relevant to your own experience?`,
+    `What would you add or change for people trying to apply this advice this week?`,
+    `If you have seen this work in a real business, what detail would help others do it better?`,
+  ];
+};
 
 export const BlogPostView: React.FC = () => {
   const { slugOrId } = useParams<{ slugOrId: string }>();
@@ -320,6 +340,7 @@ export const BlogPostView: React.FC = () => {
       isPlaceholder: !derived,
     };
   }, [post?.id, post?.image, post?.content, post?.title]);
+  const discussionPrompts = useMemo(() => buildDiscussionPrompts(post), [post?.id, post?.title, post?.category]);
 
   useEffect(() => {
     if (!effectiveId) return;
@@ -818,6 +839,33 @@ export const BlogPostView: React.FC = () => {
               >
                 {opt.label}
               </button>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-3xl border border-gray-100 dark:border-gray-800 bg-gradient-to-br from-white to-gray-50 dark:from-gray-950 dark:to-gray-900 p-5 md:p-6 shadow-sm">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <h4 className="text-base font-black text-gray-900 dark:text-gray-100">Discussion prompts</h4>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                These are conversation starters for real readers, not synthetic comments.
+              </p>
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-[0.28em] text-gray-400 dark:text-gray-500">
+              Ask, don’t fake
+            </span>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {discussionPrompts.map((prompt, index) => (
+              <div
+                key={index}
+                className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-950/60 px-4 py-4 text-sm text-gray-700 dark:text-gray-200 shadow-sm"
+              >
+                <span className="block text-[10px] font-black uppercase tracking-[0.28em] text-grantify-green mb-2">
+                  Prompt {index + 1}
+                </span>
+                {prompt}
+              </div>
             ))}
           </div>
         </div>
