@@ -149,6 +149,12 @@ const buildCacheKey = (req) => {
   return `list:${category || 'all'}:${adminKey}`;
 };
 
+const isDraftPost = (row) => {
+  const sourceUrl = toStr(row?.source_url).trim().toLowerCase();
+  const tags = Array.isArray(row?.tags) ? row.tags.map((t) => String(t || '').toLowerCase()) : [];
+  return sourceUrl === 'autodraft' || tags.includes('autodraft');
+};
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, PUT, OPTIONS');
@@ -185,6 +191,9 @@ export default async function handler(req, res) {
         if (postRes.rows.length === 0) return res.status(404).json({ error: 'Not found' });
 
         const post = postRes.rows[0];
+        if (!isAdminRequest && isDraftPost(post)) {
+          return res.status(404).json({ error: 'Not found' });
+        }
         const commentsSort = toStr(req.query?.commentsSort).trim().toLowerCase();
         const includeHidden = toStr(req.query?.includeHidden).trim() === '1';
 
@@ -252,6 +261,8 @@ export default async function handler(req, res) {
         // Exclude autodraft posts from public summaries unless admin request
         if (!isAdminRequest) {
           params.push('autodraft');
+          where += `${where ? ' AND' : ' WHERE'} COALESCE(source_url, '') <> $${params.length}`;
+          params.push('autodraft');
           where += `${where ? ' AND' : ' WHERE'} NOT (tags @> ARRAY[$${params.length}]::text[])`;
         }
         if (excludeId) {
@@ -301,6 +312,8 @@ export default async function handler(req, res) {
         whereParts.push(`category = $${params.length}`);
       }
       if (!isAdminRequest) {
+        params.push('autodraft');
+        whereParts.push(`COALESCE(source_url, '') <> $${params.length}`);
         params.push('autodraft');
         whereParts.push(`NOT (tags @> ARRAY[$${params.length}]::text[])`);
       }

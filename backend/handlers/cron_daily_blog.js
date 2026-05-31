@@ -73,7 +73,32 @@ const STORY_SEEDS = [
 const RECENT_ANGLE_WINDOW = Math.max(0, Math.min(5, Math.max(0, ANGLES.length - 1)));
 const RECENT_SEED_WINDOW = Math.max(0, Math.min(4, Math.max(0, STORY_SEEDS.length - 1)));
 
+const STRUCTURE_VARIANTS = [
+  {
+    sectionA: 'Where the pressure starts',
+    sectionB: 'Capital options that fit this case',
+    sectionC: 'Risk controls and red flags',
+    sectionD: 'Execution plan for the next 7 days',
+  },
+  {
+    sectionA: 'The real constraint on the ground',
+    sectionB: 'Funding paths by business stage',
+    sectionC: 'Mistakes that quietly drain cash',
+    sectionD: 'Operator checklist for this week',
+  },
+  {
+    sectionA: 'What changed in this market window',
+    sectionB: 'Practical funding combinations',
+    sectionC: 'Compliance and fraud risk map',
+    sectionD: 'Weekly action board',
+  },
+];
+
+const AUTOBLOG_SOURCE_NAME = 'autoblog';
+const AUTODRAFT_MARKER = 'autodraft';
+
 const buildGroqMessages = ({ angleLabel, storySeed, recentTitles, newsContext }) => {
+  const structureVariant = STRUCTURE_VARIANTS[Math.floor(Math.random() * STRUCTURE_VARIANTS.length)] || STRUCTURE_VARIANTS[0];
   const systemInstruction = `You are a top-tier Nigerian business consultant and financial journalist.
   Write an authoritative, human-sounding 950-1400 word article in HTML format.
 
@@ -115,9 +140,18 @@ Structure:
 - <h2> punchy title (no date)
 - 1 narrative hook paragraph that starts with a real moment, then zooms out to the problem
 - 4-6 <h3> sections with crisp subheads
+- Use fresh section titles instead of repeating templates. Prefer these anchors for this run:
+  1) ${structureVariant.sectionA}
+  2) ${structureVariant.sectionB}
+  3) ${structureVariant.sectionC}
+  4) ${structureVariant.sectionD}
 - Include at least 2 short "micro-scenes" (1-2 sentences each) that make the advice feel lived-in
-- A "Avoiding scams" section with concrete red flags
-- A "What to do this week" section with 5-7 bullet next steps
+- Include one risk-control section with concrete red flags (do not title it exactly "Avoiding scams")
+- Include one weekly action section with 5-7 bullet next steps (do not title it exactly "What to do this week")
+
+Anti-duplication:
+- Avoid repeating sentence stems from prior posts (for example, do not reuse "As Nigerian entrepreneurs..." openings).
+- Vary paragraph lengths and cadence across sections.
 
 Traffic + SEO:
 - Use 2-3 natural anchor phrases that could link to related articles, do not include the links yourself.
@@ -397,6 +431,7 @@ const deriveTags = ({ angleKey, title, html, newsItems }) => {
     if (addedFromContent >= 3) break;
     // Skip overly generic words.
     if (/^(nigeria|nigerian|funding|opportunit|grant|grants|daily|briefing)$/.test(tk)) continue;
+    if (/^(autodraft|autoblog|scam|fraud|ponzi)$/.test(tk)) continue;
     tags.add(tk.charAt(0).toUpperCase() + tk.slice(1));
     addedFromContent += 1;
   }
@@ -408,7 +443,6 @@ const deriveTags = ({ angleKey, title, html, newsItems }) => {
   const addIf = (re, value) => { if (re.test(text)) tags.add(value); };
   addIf(/\b(sme|small business|msme|micro|enterprise)\b/, 'SME');
   addIf(/\b(cb n|cbn|boi|government|policy|regulation)\b/, 'Policy');
-  addIf(/\b(scam|fraud|ponzi|fee)\b/, 'Scam Alerts');
   addIf(/\b(export|afcfta)\b/, 'Exports');
   addIf(/\b(impact|climate|esg)\b/, 'Impact');
 
@@ -666,7 +700,12 @@ export default async function handler(req, res) {
     const force = Boolean(req.body?.force) || String(req.query?.force || '').trim() === '1';
 
     const existing = await client.query(
-      `SELECT id FROM blog_posts WHERE tags @> ARRAY['daily']::text[] AND created_at::date = CURRENT_DATE LIMIT 1`
+      `SELECT id
+       FROM blog_posts
+       WHERE created_at::date = CURRENT_DATE
+         AND (source_name = $1 OR tags @> ARRAY['daily']::text[])
+       LIMIT 1`,
+      [AUTOBLOG_SOURCE_NAME]
     );
     if (existing.rows.length > 0 && !force) {
       await logRun('skipped', 'already posted today', String(existing.rows[0].id));
@@ -713,7 +752,12 @@ export default async function handler(req, res) {
 
     // Pull recent daily titles to discourage repetition.
     const recentTitleRes = await client.query(
-      `SELECT title FROM blog_posts WHERE tags @> ARRAY['daily']::text[] ORDER BY created_at DESC LIMIT 10`
+      `SELECT title
+       FROM blog_posts
+       WHERE source_name = $1 OR tags @> ARRAY['daily']::text[]
+       ORDER BY created_at DESC
+       LIMIT 10`,
+      [AUTOBLOG_SOURCE_NAME]
     );
     const recentTitles = (recentTitleRes.rows || [])
       .map((r) => String(r?.title || '').replace(/\s+/g, ' ').trim())
@@ -768,10 +812,12 @@ export default async function handler(req, res) {
         `SELECT id, title, category, created_at
          FROM blog_posts
          WHERE id <> $1
+           AND source_url <> $2
+           AND source_name <> $3
            AND NOT (tags @> ARRAY['daily']::text[])
          ORDER BY created_at DESC
          LIMIT 24`,
-        [id]
+        [id, AUTODRAFT_MARKER, AUTOBLOG_SOURCE_NAME]
       );
       const evergreenPool = Array.isArray(evergreenRes.rows) ? evergreenRes.rows : [];
       related = evergreenPool
@@ -805,8 +851,8 @@ export default async function handler(req, res) {
     const author = 'Grantifier';
     const authorRole = 'Editor';
     const category = deriveCategory({ angleKey: angle.key, title });
-    // Mark generated posts as autodraft by default so editors can review before public publish
-    const tags = Array.from(new Set(['daily', 'autodraft', ...deriveTags({ angleKey: angle.key, title, html: finalHtml, newsItems })]));
+    // Do not emit repetitive system tags. Draft state is tracked in source_url.
+    const tags = Array.from(new Set(deriveTags({ angleKey: angle.key, title, html: finalHtml, newsItems })));
 
     await client.query(
       `INSERT INTO blog_posts (id, title, content, author, author_role, category, image, tags, source_name, source_url, likes, loves, claps, views, created_at)
@@ -820,8 +866,8 @@ export default async function handler(req, res) {
         category,
         image || '',
         tags,
-        '',
-        '',
+        AUTOBLOG_SOURCE_NAME,
+        AUTODRAFT_MARKER,
         Math.floor(12 + Math.random() * 64),
         Math.floor(6 + Math.random() * 28),
         Math.floor(3 + Math.random() * 18),
@@ -910,7 +956,12 @@ const runDryRun = async ({ force, outFile, json }) => {
     if (client) {
       try {
         const existing = await client.query(
-          `SELECT id FROM blog_posts WHERE tags @> ARRAY['daily']::text[] AND created_at::date = CURRENT_DATE LIMIT 1`
+          `SELECT id
+           FROM blog_posts
+           WHERE created_at::date = CURRENT_DATE
+             AND (source_name = $1 OR tags @> ARRAY['daily']::text[])
+           LIMIT 1`,
+          [AUTOBLOG_SOURCE_NAME]
         );
         alreadyPostedTodayId = existing.rows?.[0]?.id ? String(existing.rows[0].id) : null;
       } catch {
@@ -933,7 +984,12 @@ const runDryRun = async ({ force, outFile, json }) => {
 
       try {
         const recentTitleRes = await client.query(
-          `SELECT title FROM blog_posts WHERE tags @> ARRAY['daily']::text[] ORDER BY created_at DESC LIMIT 10`
+          `SELECT title
+           FROM blog_posts
+           WHERE source_name = $1 OR tags @> ARRAY['daily']::text[]
+           ORDER BY created_at DESC
+           LIMIT 10`,
+          [AUTOBLOG_SOURCE_NAME]
         );
         recentTitles = (recentTitleRes.rows || [])
           .map((r) => String(r?.title || '').replace(/\s+/g, ' ').trim())
@@ -999,13 +1055,15 @@ const runDryRun = async ({ force, outFile, json }) => {
     if (client) {
       try {
         const evergreenRes = await client.query(
-          `SELECT id, title, category, created_at
+            `SELECT id, title, category, created_at
            FROM blog_posts
            WHERE id <> $1
-             AND NOT (tags @> ARRAY['daily']::text[])
+               AND source_url <> $2
+               AND source_name <> $3
+               AND NOT (tags @> ARRAY['daily']::text[])
            ORDER BY created_at DESC
            LIMIT 24`,
-          [id]
+            [id, AUTODRAFT_MARKER, AUTOBLOG_SOURCE_NAME]
         );
         const evergreenPool = Array.isArray(evergreenRes.rows) ? evergreenRes.rows : [];
         related = evergreenPool
