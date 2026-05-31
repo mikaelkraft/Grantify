@@ -2771,8 +2771,8 @@ export const Admin: React.FC = () => {
                             />
                          </div>
  
-                         <div className="flex flex-wrap items-center gap-3 mt-4">
-                           <button type="submit" disabled={isSavingPost} className={`${isEditingPost ? 'bg-blue-600 hover:bg-blue-800' : 'bg-grantify-green hover:bg-green-800'} inline-flex items-center justify-center min-h-11 text-white font-bold py-3 leading-none rounded transition shadow-lg relative z-10 px-4 whitespace-nowrap`}>
+                         <div className="flex flex-wrap items-start gap-3 mt-4">
+                           <button type="submit" disabled={isSavingPost} className={`${isEditingPost ? 'bg-blue-600 hover:bg-blue-800' : 'bg-grantify-green hover:bg-green-800'} inline-flex items-center justify-center min-h-11 text-white font-bold py-3 leading-tight rounded transition shadow-lg relative z-10 px-4 whitespace-normal text-center`}>
                              {isSavingPost ? "Saving..." : (isEditingPost ? "Update Publication" : "Publish Article to Community")}
                            </button>
                            {isEditingPost && (
@@ -2800,9 +2800,9 @@ export const Admin: React.FC = () => {
                                    setIsSavingPost(false);
                                  }
                                }}
-                               className="inline-flex items-center justify-center min-h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 leading-none px-4 rounded transition shadow-md whitespace-nowrap"
+                               className="inline-flex items-center justify-center min-h-11 max-w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 leading-tight px-4 rounded transition shadow-md whitespace-normal text-center"
                              >
-                               Approve & Publish
+                               Approve and publish post
                              </button>
                            )}
                          </div>
