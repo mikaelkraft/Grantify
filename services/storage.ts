@@ -87,19 +87,47 @@ const uploadToOneDriveSession = async (uploadUrl: string, file: File): Promise<a
   throw new Error('Failed to upload image');
 };
 
-const uploadToGDriveSession = async (uploadUrl: string, file: File): Promise<any> => {
-  // Google Drive resumable upload: a single PUT with the file completes the upload.
-  const res = await fetch(uploadUrl, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': file.type,
-    },
-    body: file,
-  });
+const uploadToGDriveSession = async (uploadUrl: string, file: File, adminHeader: string): Promise<any> => {
+  // Google Drive resumable upload: try direct browser PUT first, then fallback to backend proxy.
+  const doDirectUpload = async () => {
+    const res = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': file.type,
+      },
+      body: file,
+    });
 
-  if (!res.ok) throw new Error('Failed to upload image');
-  const data = await res.json().catch(() => ({}));
-  return data;
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(text || `Failed to upload image (${res.status})`);
+    }
+
+    return await res.json().catch(() => ({}));
+  };
+
+  try {
+    return await doDirectUpload();
+  } catch (directErr: any) {
+    const bodyBuffer = await file.arrayBuffer();
+    const proxyRes = await fetch(`${API_URL}/api/uploads/gdrive/proxy-put`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': file.type || 'application/octet-stream',
+        'X-Admin-Session': adminHeader,
+        'X-Upload-Url': uploadUrl,
+      },
+      body: bodyBuffer,
+    });
+
+    if (!proxyRes.ok) {
+      const proxyMsg = await decodeUploadError(proxyRes);
+      const directMsg = String(directErr?.message || 'Direct upload failed');
+      throw new Error(`${directMsg}. Fallback failed: ${proxyMsg}`);
+    }
+
+    return await proxyRes.json().catch(() => ({}));
+  }
 };
 
 const getOrCreateAnonUserId = (): string => {
@@ -319,7 +347,7 @@ export const ApiService = {
     if (!uploadUrl) throw new Error('Invalid upload response');
 
     if (provider === 'gdrive') {
-      const item = await uploadToGDriveSession(uploadUrl, file);
+      const item = await uploadToGDriveSession(uploadUrl, file, adminHeader);
       const fileId = String(item?.id || '').trim();
       if (!fileId) throw new Error('Google Drive upload succeeded but file id is missing');
 
