@@ -8,9 +8,9 @@ import { BlogTicker } from '../components/BlogTicker';
 import { BlogSlider } from '../components/BlogSlider';
 import { matchGrantNetwork, GRANT_NETWORKS } from '../utils/grantMatcher';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
-import { derivePostImage } from '../utils/blogImage';
+import { derivePostImage, withImageCacheBuster } from '../utils/blogImage';
 import { makeBlogPath } from '../utils/blogRouting';
-import { LoanType, ApplicationStatus, LoanApplication, Testimonial, AdConfig, BlogPost, GrantNetwork } from '../types';
+import { LoanType, ApplicationStatus, LoanApplication, Testimonial, AdConfig, BlogPost, GrantNetwork, UserRole } from '../types';
 import { 
   Calculator, CheckCircle, AlertCircle, ArrowRight, Share2, Copy, 
   Info, Loader2, MessageSquarePlus, Send, Zap, Landmark, 
@@ -34,10 +34,14 @@ export const Home: React.FC = () => {
   const [matchedNetwork, setMatchedNetwork] = useState<GrantNetwork | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isLoadingBlogPosts, setIsLoadingBlogPosts] = useState(true);
 
   const [partnerRegionFilter, setPartnerRegionFilter] = useState<'all' | GrantNetwork['region']>('all');
+  const [showPartnerRevenue, setShowPartnerRevenue] = useState(false);
+  const [sponsoredTiersCount, setSponsoredTiersCount] = useState<number | null>(null);
+  const [activeSponsoredCount, setActiveSponsoredCount] = useState<number | null>(null);
+  const [sponsoredListings, setSponsoredListings] = useState<Array<any> | null>(null);
   
   // Data State
   const [ads, setAds] = useState<AdConfig | null>(null);
@@ -49,38 +53,129 @@ export const Home: React.FC = () => {
   const [referralData] = useState(ApiService.getMyReferralData());
 
   useEffect(() => {
+    let cancelled = false;
+
+    const withTimeout = async <T,>(p: Promise<T>, ms: number, label: string): Promise<T> => {
+      return await Promise.race([
+        p,
+        new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`${label} timed out`)), ms))
+      ]);
+    };
+
     // 1. Fetch Ads Immediately for speed
     const loadAds = async () => {
       try {
         const fetchedAds = await ApiService.getAds();
-        setAds(fetchedAds);
+        if (!cancelled) setAds(fetchedAds);
       } catch (e) {
         console.warn("Failed to load ads early", e);
       }
     };
     loadAds();
 
-    // 2. Fetch other content
-    const loadData = async () => {
+    // 2. Load blog posts independently (so the main page renders immediately)
+    const BLOG_CACHE_KEY = 'grantify_home_blog_posts_v1';
+    try {
+      const raw = localStorage.getItem(BLOG_CACHE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) setBlogPosts(parsed);
+      }
+    } catch {
+      // no-op
+    }
+
+    let didRetryBlog = false;
+    const loadBlogPosts = async () => {
+      setIsLoadingBlogPosts(true);
       try {
-        const [fetchedTestimonials, fetchedRecentApplicants, fetchedBlog, fetchedAppStats] = await Promise.all([
-          ApiService.getTestimonials(),
-          ApiService.getRecentApplicantsTicker(),
-          ApiService.getBlogPosts(),
-          ApiService.getApplicationStats()
-        ]);
-        setAllTestimonials(fetchedTestimonials);
-        setRecentApplicants(fetchedRecentApplicants);
-        setBlogPosts(fetchedBlog); // Take all for the slider and other sections
-        setApplicationStats(fetchedAppStats);
+        const posts = await withTimeout(ApiService.getBlogPosts(), 9000, 'Blog posts');
+        if (cancelled) return;
+        const safe = Array.isArray(posts) ? posts : [];
+        setBlogPosts(safe);
+        try {
+          localStorage.setItem(BLOG_CACHE_KEY, JSON.stringify(safe.slice(0, 20)));
+        } catch {
+          // no-op
+        }
       } catch (e) {
-        console.error("Failed to load home data", e);
-        setError('Failed to load data. Please check your connection.');
+        if (cancelled) return;
+        console.warn('Failed to load blog posts', e);
+        if (!didRetryBlog) {
+          didRetryBlog = true;
+          window.setTimeout(() => {
+            if (!cancelled) void loadBlogPosts();
+          }, 1400);
+        } else {
+          setError(prev => prev || 'Some content failed to load. Please refresh.');
+        }
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoadingBlogPosts(false);
       }
     };
-    loadData();
+    void loadBlogPosts();
+
+    // 3. Fetch other content
+    const loadData = async () => {
+      try {
+        const results = await Promise.allSettled([
+          withTimeout(ApiService.getTestimonials(), 6500, 'Testimonials'),
+          withTimeout(ApiService.getRecentApplicantsTicker(), 6500, 'Recent applicants'),
+          withTimeout(ApiService.getApplicationStats(), 6500, 'Application stats'),
+        ]);
+
+        if (cancelled) return;
+
+        const [t, a, s] = results;
+        if (t.status === 'fulfilled') setAllTestimonials(t.value);
+        if (a.status === 'fulfilled') setRecentApplicants(a.value);
+        if (s.status === 'fulfilled') setApplicationStats(s.value);
+
+        const anyRejected = results.some(r => r.status === 'rejected');
+        if (anyRejected) {
+          console.warn('Some home data failed to load', results);
+          setError(prev => prev || 'Some content failed to load. Please refresh.');
+        }
+      } catch (e) {
+        if (!cancelled) {
+          console.error("Failed to load home data", e);
+          setError(prev => prev || 'Failed to load data. Please check your connection.');
+        }
+      }
+    };
+    void loadData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('admin_session');
+      if (!raw) return setShowPartnerRevenue(false);
+      const parsed = JSON.parse(raw);
+      // Only show partner revenue to super-admins
+      setShowPartnerRevenue(Boolean(parsed && parsed.role === UserRole.SUPER_ADMIN));
+      // If super-admin, fetch a couple of lightweight sponsored metrics
+      if (parsed && parsed.role === UserRole.SUPER_ADMIN) {
+        (async () => {
+          try {
+            const pricing = await ApiService.getSponsoredPricing().catch(() => null);
+            const listings = await ApiService.getActiveSponsoredListings().catch(() => null);
+            if (pricing && Array.isArray(pricing)) setSponsoredTiersCount(pricing.length);
+            if (listings && Array.isArray(listings)) {
+              setActiveSponsoredCount(listings.length);
+              setSponsoredListings(listings);
+            }
+          } catch (e) {
+            // ignore metric errors for now
+          }
+        })();
+      }
+    } catch {
+      setShowPartnerRevenue(false);
+    }
   }, []);
 
   const handlePurposeChange = (val: string) => {
@@ -162,15 +257,6 @@ export const Home: React.FC = () => {
       setIsSubmitting(false);
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-[500px] flex flex-col items-center justify-center text-grantify-green">
-        <Loader2 className="animate-spin w-12 h-12 mb-4" />
-        <p className="font-bold tracking-widest uppercase text-xs">Calibrating Grant Matcher...</p>
-      </div>
-    );
-  }
 
   if (submitted) {
     return (
@@ -293,6 +379,82 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
+      {/* Monetization / Partner Section (admin-only OR active sponsored listings visible to public) */}
+      {(showPartnerRevenue || (sponsoredListings && sponsoredListings.length > 0)) && (
+      <section className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 pb-12">
+        <div className="rounded-[2.5rem] border border-gray-100 dark:border-gray-800 bg-gradient-to-br from-emerald-950 via-gray-950 to-gray-900 text-white p-6 md:p-10 shadow-2xl relative overflow-hidden">
+          <div className="absolute -top-16 -right-16 w-48 h-48 bg-grantify-gold/10 rounded-full blur-3xl"></div>
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+            {showPartnerRevenue ? (
+              <>
+                <div className="max-w-2xl">
+                  <p className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-gold mb-3">Partner Revenue</p>
+                  <h2 className="text-2xl md:text-3xl font-black leading-tight mb-3">Turn the audience into sponsor revenue.</h2>
+                  <p className="text-sm md:text-base text-white/80 leading-relaxed">
+                    Offer lenders, fintechs, and service brands a clear path to featured placement, lead generation, and branded visibility across the home page, blog, and provider directory.
+                  </p>
+                  {typeof sponsoredTiersCount === 'number' || typeof activeSponsoredCount === 'number' ? (
+                    <div className="mt-4 text-sm text-white/70">
+                      <div className="flex gap-4">
+                        {typeof sponsoredTiersCount === 'number' && (
+                          <div className="bg-white/5 px-3 py-2 rounded-md">Pricing tiers: <strong className="ml-2">{sponsoredTiersCount}</strong></div>
+                        )}
+                        {typeof activeSponsoredCount === 'number' && (
+                          <div className="bg-white/5 px-3 py-2 rounded-md">Active listings: <strong className="ml-2">{activeSponsoredCount}</strong></div>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+                <div className="flex gap-3 w-full lg:w-auto">
+                  <Link to="/admin?tab=sponsored" className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all w-full lg:w-auto">
+                    Manage Sponsored Listings <ExternalLink size={16} />
+                  </Link>
+                  <Link to="/contact" className="inline-flex items-center justify-center gap-2 border border-white/10 text-white font-black px-4 py-3 rounded-xl hover:bg-white/5 transition-all">
+                    Request a Media Kit
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <div className="max-w-2xl">
+                <p className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-gold mb-3">Sponsored</p>
+                <h2 className="text-2xl md:text-3xl font-black leading-tight mb-3">Sponsored Listings</h2>
+                <p className="text-sm md:text-base text-white/80 leading-relaxed">Paid featured listings currently active on Grantify.</p>
+              </div>
+            )}
+          </div>
+          <div className="relative z-10 grid gap-4 md:grid-cols-3 mt-6">
+            {sponsoredListings && sponsoredListings.length > 0 ? (
+              sponsoredListings.slice(0, 3).map((s: any) => (
+                <Link
+                  key={s.id}
+                  to={`/loan-providers?highlight=${encodeURIComponent(String(s.provider_id || ''))}`}
+                  className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm block transition-all hover:bg-white/10 hover:border-white/20 hover:-translate-y-0.5"
+                >
+                  <div className="text-sm font-black uppercase tracking-widest text-grantify-gold mb-2">{String(s.tier_name || 'Sponsored')}</div>
+                  <div className="text-lg font-bold text-white mb-2 hover:underline">{String(s.provider_name || s.provider_id || 'Provider')}</div>
+                  <div className="text-sm text-white/75 leading-relaxed">Status: <span className="font-bold">{String(s.payment_status || 'pending')}</span></div>
+                  {s.start_at && <div className="text-xs text-white/60 mt-2">Starts: {new Date(s.start_at).toLocaleDateString()}</div>}
+                  {s.end_at && <div className="text-xs text-white/60">Ends: {new Date(s.end_at).toLocaleDateString()}</div>}
+                </Link>
+              ))
+            ) : (
+              [
+                { title: 'Featured Provider Slots', copy: 'Sell premium placement in the loan provider grid and above-the-fold discovery blocks.' },
+                { title: 'Sponsored Articles', copy: 'Publish clearly labeled editorial sponsorships that educate while converting qualified traffic.' },
+                { title: 'Lead Packages', copy: 'Charge for qualified enquiries from visitors already comparing funding options.' },
+              ].map((item) => (
+                <div key={item.title} className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+                  <div className="text-sm font-black uppercase tracking-widest text-grantify-gold mb-2">{item.title}</div>
+                  <p className="text-sm text-white/75 leading-relaxed">{item.copy}</p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </section>
+      )}
+
       {/* Blog Slider for Engagement */}
       <BlogSlider posts={blogPosts} />
 
@@ -407,19 +569,27 @@ export const Home: React.FC = () => {
                     { key: 'international' as const, label: 'International' }
                   ]
                 ).map(opt => (
-                  <button
-                    key={opt.key}
-                    type="button"
-                    onClick={() => setPartnerRegionFilter(opt.key)}
-                    className={
-                      partnerRegionFilter === opt.key
-                        ? 'px-3 py-1.5 rounded-xl bg-grantify-green text-white text-[10px] font-black uppercase tracking-widest'
-                        : 'px-3 py-1.5 rounded-xl bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-200 text-[10px] font-black uppercase tracking-widest hover:border-grantify-green/30'
-                    }
-                    aria-pressed={partnerRegionFilter === opt.key}
-                  >
-                    {opt.label}
-                  </button>
+                  partnerRegionFilter === opt.key ? (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      onClick={() => setPartnerRegionFilter(opt.key)}
+                      className="px-3 py-1.5 rounded-xl bg-grantify-green text-white text-[10px] font-black uppercase tracking-widest"
+                      aria-pressed="true"
+                    >
+                      {opt.label}
+                    </button>
+                  ) : (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      onClick={() => setPartnerRegionFilter(opt.key)}
+                      className="px-3 py-1.5 rounded-xl bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-200 text-[10px] font-black uppercase tracking-widest hover:border-grantify-green/30"
+                      aria-pressed="false"
+                    >
+                      {opt.label}
+                    </button>
+                  )
                 ))}
               </div>
 
@@ -489,35 +659,51 @@ export const Home: React.FC = () => {
             </Link>
           </div>
           
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 gap-4">
-            {blogPosts.slice(0, 4).map(post => (
-              <Link key={post.id} to={makeBlogPath(post)} className="group bg-white dark:bg-gray-900 rounded-3xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-xl transition-all duration-300">
-                <div className="h-48 bg-gray-200 dark:bg-gray-950 relative overflow-hidden">
-                  <img
-                    src={derivePostImage(post) || getBlogPlaceholderImage(post.title)}
-                    alt={post.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    loading="lazy"
-                  />
-                  <div className="absolute top-4 left-4 bg-white/20 backdrop-blur-md text-white text-[10px] font-black px-2 py-1 rounded uppercase">
-                    {post.category}
-                  </div>
-                </div>
-                <div className="p-6">
-                  <h3 className="font-bold text-gray-800 dark:text-gray-100 group-hover:text-grantify-green transition-colors line-clamp-2 min-h-[3rem]">
-                    {post.title}
-                  </h3>
-                  <div className="mt-4 flex items-center justify-between text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
-                    <span>{post.author}</span>
-                    <span className="flex items-center gap-3">
-                      <span className="flex items-center gap-1"><Eye size={12} /> {Number(post.views || 0).toLocaleString()}</span>
-                      <span className="flex items-center gap-1"><ThumbsUp size={12} /> {Number((post.likes || 0) + (post.loves || 0) + (post.claps || 0)).toLocaleString()}</span>
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
+          {blogPosts.length === 0 ? (
+            <div className="text-sm text-gray-500 dark:text-gray-400 font-bold flex items-center gap-2">
+              {isLoadingBlogPosts ? <Loader2 size={16} className="animate-spin" /> : null}
+              {isLoadingBlogPosts ? 'Loading publications…' : (error ? error : 'No publications yet.')}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 gap-4">
+              {blogPosts.slice(0, 4).map(post => {
+                const derived = derivePostImage(post);
+                const src = derived
+                  ? withImageCacheBuster(derived, post.updatedAt || post.id)
+                  : getBlogPlaceholderImage(post.title);
+
+                return (
+                  <Link key={post.id} to={makeBlogPath(post)} className="group bg-white dark:bg-gray-900 rounded-3xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-xl transition-all duration-300">
+                    <div className="h-48 bg-gray-200 dark:bg-gray-950 relative overflow-hidden">
+                      <img
+                        src={src}
+                        alt={post.title}
+                        className={derived
+                          ? 'w-full h-full object-cover group-hover:scale-105 transition-transform duration-500'
+                          : 'w-full h-full object-contain p-6'}
+                        loading="lazy"
+                      />
+                      <div className="absolute top-4 left-4 bg-white/20 backdrop-blur-md text-white text-[10px] font-black px-2 py-1 rounded uppercase">
+                        {post.category}
+                      </div>
+                    </div>
+                    <div className="p-6">
+                      <h3 className="font-bold text-gray-800 dark:text-gray-100 group-hover:text-grantify-green transition-colors line-clamp-2 min-h-[3rem]">
+                        {post.title}
+                      </h3>
+                      <div className="mt-4 flex items-center justify-between text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+                        <span>{post.author}</span>
+                        <span className="flex items-center gap-3">
+                          <span className="flex items-center gap-1"><Eye size={12} /> {Number(post.views || 0).toLocaleString()}</span>
+                          <span className="flex items-center gap-1"><ThumbsUp size={12} /> {Number((post.likes || 0) + (post.loves || 0) + (post.claps || 0)).toLocaleString()}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
 
           {blogPosts.length > 4 && (
             <div className="mt-4 text-sm text-gray-500 dark:text-gray-400 font-bold">

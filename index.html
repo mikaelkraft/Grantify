@@ -35,7 +35,6 @@
         }
       })();
     </script>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5375979347378755" crossorigin="anonymous"></script>
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <script>
       tailwind.config = {
@@ -74,6 +73,10 @@
         animation: ticker-marquee 30s linear infinite;
         will-change: transform;
       }
+      .ticker-marquee-fast {
+        animation: ticker-marquee 18s linear infinite;
+        will-change: transform;
+      }
 
       /* Blog post / AI article HTML styling (ReactQuill output) */
       .quill-content {
@@ -81,6 +84,7 @@
         word-break: normal;
         -webkit-hyphens: auto;
         hyphens: auto;
+        -webkit-hyphenate-character: '-';
         hyphenate-character: '-';
         line-height: 1.8;
       }
@@ -199,6 +203,7 @@
         top: 0;
         z-index: 40;
         background: #ffffff;
+        overflow-x: auto;
       }
       .admin-quill .ql-toolbar.ql-snow,
       .admin-quill .ql-container.ql-snow {

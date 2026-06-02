@@ -6,13 +6,12 @@ import { Loader2, ThumbsUp, Heart, Hand, MessageSquare, ArrowLeft, Send, Calenda
 import { AdSlot } from '../components/AdSlot';
 import { FacebookShareButton, TwitterShareButton, WhatsappShareButton, LinkedinShareButton, FacebookIcon, WhatsappIcon, LinkedinIcon } from 'react-share';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
-import { derivePostImage } from '../utils/blogImage';
+import { derivePostImage, withImageCacheBuster } from '../utils/blogImage';
 import { makeBlogSlug, parseBlogParam } from '../utils/blogRouting';
 
-const XShareIcon: React.FC<{ size?: number; round?: boolean; bgStyle?: React.CSSProperties; iconFillColor?: string }> = ({
+const XShareIcon: React.FC<{ size?: number; round?: boolean; iconFillColor?: string }> = ({
   size = 32,
   round = false,
-  bgStyle,
   iconFillColor = '#ffffff'
 }) => {
   const r = round ? size / 2 : 6;
@@ -23,7 +22,6 @@ const XShareIcon: React.FC<{ size?: number; round?: boolean; bgStyle?: React.CSS
       viewBox="0 0 32 32"
       role="img"
       aria-label="X"
-      style={bgStyle}
     >
       <rect x="0" y="0" width="32" height="32" rx={r} fill="#000000" />
       {/* Simple X mark approximating the X logo */}
@@ -56,14 +54,153 @@ const plainTextToHtml = (value: string) => {
   const trimmed = text.trim();
   if (!trimmed) return '';
 
-  // Split into paragraphs on blank lines.
-  const paragraphs = trimmed.split(/\n\s*\n+/g);
+  // Prefer splitting on blank lines first (typical paragraph breaks).
+  let paragraphs = trimmed.split(/\n\s*\n+/g);
+
+  // If there's only a single paragraph but the text contains single newlines
+  // (many AI outputs use single-line breaks), treat each single newline as
+  // a paragraph separator so we can reliably inject inline cards.
+  if (paragraphs.length === 1 && trimmed.includes('\n')) {
+    paragraphs = trimmed.split(/\n+/g);
+  }
+
   return paragraphs
     .map((p) => {
       const safe = escapeHtml(p).replace(/\n/g, '<br />');
       return `<p>${safe}</p>`;
     })
     .join('\n');
+};
+
+const stripLeadingDuplicateH2 = (html: string, title: string) => {
+  const input = String(html || '').trim();
+  if (!input) return '';
+
+  const m = input.match(/^<h2\b[^>]*>([\s\S]*?)<\/h2>\s*/i);
+  if (!m) return input;
+
+  const h2Text = String(m[1] || '').replace(/<[^>]+>/g, ' ').replace(/&nbsp;|\u00A0/g, ' ').replace(/\s+/g, ' ').trim();
+  const tText = String(title || '').replace(/&nbsp;|\u00A0/g, ' ').replace(/\s+/g, ' ').trim();
+
+  // If it looks like the title (or it’s at least non-empty), remove it because the page already renders <h1>.
+  if (!h2Text) return input.replace(m[0], '');
+  if (tText && h2Text.toLowerCase() === tText.toLowerCase()) return input.replace(m[0], '');
+  return input.replace(m[0], '');
+};
+
+const stripTrailingAlsoReadBlocks = (html: string) => {
+  let input = String(html || '');
+  input = input.replace(/<h3\b[^>]*>\s*(Also read|Also reads|Related reads|Related posts|Sources)\s*<\/h3>\s*(<ul[\s\S]*?<\/ul>)?/gi, '');
+  input = input.replace(/<p[^>]*>\s*<strong[^>]*>\s*(Also read|Also reads|Related reads|Related posts|Sources)\s*:?.*?<\/p>/gi, '');
+
+  const parts = input.split(/(?=<p\b|<h[1-6]\b|<ul\b|<ol\b|<blockquote\b)/i);
+  if (parts.length === 0) return input;
+
+  const isTailLabel = (fragment: string) => {
+    const text = fragment
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;|&#160;|\u00A0/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+
+    return text.startsWith('also read:') || text.startsWith('sources:');
+  };
+
+  let end = parts.length;
+  while (end > 0) {
+    const current = parts[end - 1].trim();
+    if (!isTailLabel(current)) break;
+    end -= 1;
+  }
+
+  input = parts.slice(0, end).join('');
+  return input;
+};
+
+const extractParagraphHtml = (html: string) => {
+  const matches = String(html || '').match(/<p\b[^>]*>[\s\S]*?<\/p>/gi);
+  return matches || [];
+};
+
+const buildInlineAlsoReadHtml = (rec: BlogPost) => {
+  const title = String(rec.title || '').trim();
+  const href = `/blog/${makeBlogSlug(title, rec.id)}`;
+  const category = String(rec.category || '').trim();
+  return `
+    <div class="my-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 px-4 py-4 shadow-sm">
+      <p class="m-0 text-[10px] font-black uppercase tracking-[0.28em] text-gray-400 dark:text-gray-500">Also read</p>
+      <a href="${href}" class="mt-2 block text-base font-bold text-grantify-green hover:underline transition-colors">
+        ${escapeHtml(title)}
+      </a>
+      ${category ? `<p class="m-0 mt-1 text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">${escapeHtml(category)}</p>` : ''}
+    </div>
+  `;
+};
+
+const injectInlineRecommendations = (html: string, recs: BlogPost[], title: string) => {
+  const cleaned = stripTrailingAlsoReadBlocks(String(html || ''));
+  let paragraphs: string[] = extractParagraphHtml(cleaned);
+
+  // If there are no <p> elements (content may be plain text with headings),
+  // split on heading boundaries and wrap text fragments as paragraphs so
+  // we can reliably inject inline callouts.
+  if (!paragraphs || paragraphs.length === 0) {
+    const parts = String(cleaned || '').split(/(?=<h[1-6]\b)/i).filter(Boolean);
+    paragraphs = parts.map((part) => (part.trim().startsWith('<h') ? part : `<p>${part}</p>`));
+  }
+  const links = (Array.isArray(recs) ? recs : [])
+    .filter((rec) => String(rec?.id || '') && String(rec?.title || '').trim())
+    .filter((rec) => String(rec.title || '').trim().toLowerCase() !== String(title || '').trim().toLowerCase())
+    .slice(0, 4);
+
+  if (paragraphs.length === 0 || links.length === 0) return cleaned;
+
+  const slotCount = Math.min(3, links.length, paragraphs.length);
+  const slots = new Set<number>();
+  for (let i = 0; i < slotCount; i += 1) {
+    const idx = Math.floor(((i + 1) * paragraphs.length) / (slotCount + 1));
+    slots.add(Math.min(Math.max(idx, 0), paragraphs.length - 1));
+  }
+
+  let output = '';
+  let used = 0;
+
+  for (let i = 0; i < paragraphs.length; i += 1) {
+    output += paragraphs[i];
+    if (slots.has(i) && used < links.length) {
+      output += buildInlineAlsoReadHtml(links[used]);
+      used += 1;
+    }
+  }
+
+  // If for some reason the slotting didn't insert anything but we have links,
+  // ensure at least one inline card appears after the first paragraph.
+  if (output === cleaned && links.length > 0 && paragraphs.length > 0) {
+    return paragraphs[0] + buildInlineAlsoReadHtml(links[0]) + paragraphs.slice(1).join('');
+  }
+
+  return output;
+};
+const buildDiscussionPrompts = (post: BlogPost | null) => {
+  const title = String(post?.title || '').trim();
+  const category = String(post?.category || '').trim();
+  const coreTopic = category || 'this topic';
+
+  const cleanedTitle = title
+    .replace(/\s+/g, ' ')
+    .replace(/^Nigeria\s*[:\-–]\s*/i, '')
+    .replace(/^Nigerian\s*/i, '')
+    .trim();
+
+  return [
+    `What is the biggest practical challenge you see with ${coreTopic.toLowerCase()} right now?`,
+    cleanedTitle
+      ? `Which part of the article feels most relevant to your own experience with “${cleanedTitle}”?`
+      : `Which example or takeaway here feels most relevant to your own experience?`,
+    `What would you add or change for people trying to apply this advice this week?`,
+    `If you have seen this work in a real business, what detail would help others do it better?`,
+  ];
 };
 
 export const BlogPostView: React.FC = () => {
@@ -119,8 +256,13 @@ export const BlogPostView: React.FC = () => {
     const raw = String(post?.content || '').replace(/\u00ad/g, '');
     if (!raw.trim()) return '';
     const normalized = looksLikeHtml(raw) ? raw : plainTextToHtml(raw);
-    return normalized;
-  }, [post?.content]);
+    return stripLeadingDuplicateH2(normalized, String(post?.title || ''));
+  }, [post?.content, post?.title]);
+
+  const articleHtml = useMemo(() => {
+    if (!post) return '';
+    return injectInlineRecommendations(postHtml, recommendedPosts, String(post.title || ''));
+  }, [post, postHtml, recommendedPosts]);
 
   useEffect(() => {
     if (!post) return;
@@ -145,21 +287,101 @@ export const BlogPostView: React.FC = () => {
       setMeta('meta[name="twitter:title"]', 'content', safeTitle);
       setMeta('meta[name="twitter:description"]', 'content', description);
       setMeta('meta[name="twitter:image"]', 'content', image);
+
+      const schemaId = 'grantify-article-schema';
+      const prev = document.getElementById(schemaId);
+      if (prev) prev.remove();
+
+      const schema = {
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: safeTitle,
+        description,
+        datePublished: String(post.createdAt || post.updatedAt || new Date().toISOString()),
+        dateModified: String(post.updatedAt || post.createdAt || new Date().toISOString()),
+        author: {
+          '@type': 'Person',
+          name: normalizeNbsp(post.author || 'Grantify')
+        },
+        publisher: {
+          '@type': 'Organization',
+          name: 'Grantify',
+          logo: {
+            '@type': 'ImageObject',
+            url: '/logo.png'
+          }
+        },
+        mainEntityOfPage: `${window.location.origin}${window.location.pathname}`,
+        image: image ? [image] : undefined,
+      };
+
+      const script = document.createElement('script');
+      script.id = schemaId;
+      script.type = 'application/ld+json';
+      script.textContent = JSON.stringify(schema);
+      document.head.appendChild(script);
+
+      return () => {
+        const current = document.getElementById(schemaId);
+        if (current) current.remove();
+      };
     } catch {
       // no-op
     }
   }, [post?.id]);
 
   const heroImage = useMemo(() => {
-    if (!post) return '';
-    return derivePostImage(post) || getBlogPlaceholderImage(post.title);
+    if (!post) return { src: '', isPlaceholder: true };
+    const derived = derivePostImage(post);
+    return {
+      src: derived
+        ? withImageCacheBuster(derived, post.updatedAt || post.id)
+        : getBlogPlaceholderImage(post.title),
+      isPlaceholder: !derived,
+    };
   }, [post?.id, post?.image, post?.content, post?.title]);
+  const discussionPrompts = useMemo(() => buildDiscussionPrompts(post), [post?.id, post?.title, post?.category]);
 
   useEffect(() => {
     if (!effectiveId) return;
     fetchPost(effectiveId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveId, commentsSort]);
+
+  useEffect(() => {
+    if (!post?.id) return;
+    let canceled = false;
+
+    // Load non-critical data in the background so the article renders ASAP.
+    ApiService.getBlogRecommendations({
+      excludeId: String(post.id),
+      limit: 4,
+      category: post.category || undefined,
+    })
+      .then((recs) => {
+        if (canceled) return;
+        const filtered = (Array.isArray(recs) ? recs : []).filter(p => String(p.id) !== String(post.id));
+        setRecommendedPosts(filtered.slice(0, 4));
+      })
+      .catch(() => {
+        if (canceled) return;
+        setRecommendedPosts([]);
+      });
+
+    ApiService.getAds()
+      .then((adData) => {
+        if (canceled) return;
+        setAds(adData);
+      })
+      .catch(() => {
+        if (canceled) return;
+        setAds(null);
+      });
+
+    return () => {
+      canceled = true;
+    };
+  }, [post?.id]);
 
   useEffect(() => {
     if (!post || !slugOrId) return;
@@ -208,13 +430,6 @@ export const BlogPostView: React.FC = () => {
         setMyReaction(null);
       }
       
-      // Fetch recommended posts (excluding current one)
-      const allPosts = await ApiService.getBlogPosts();
-      setRecommendedPosts(allPosts.filter(p => String(p.id) !== String(data.id)).slice(0, 3));
-
-      // Fetch ads
-      const adData = await ApiService.getAds();
-      setAds(adData);
     } catch (e) {
       console.error(e);
       navigate('/blog');
@@ -399,16 +614,16 @@ export const BlogPostView: React.FC = () => {
       <article className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm mb-12">
         <div className="overflow-hidden rounded-t-3xl">
           <img
-            src={heroImage}
+            src={heroImage.src}
             alt={post.title}
-            className="w-full h-80 object-cover"
+            className={heroImage.isPlaceholder ? 'w-full h-80 object-contain p-8' : 'w-full h-80 object-cover'}
             loading="lazy"
           />
         </div>
         
         <div className="p-6 sm:p-8 md:p-12">
           <div className="flex flex-wrap items-center gap-2 text-gray-500 dark:text-gray-400 text-xs mb-6 font-bold">
-            <span className="bg-grantify-gold/20 text-grantify-green px-3 py-1 rounded-full uppercase tracking-widest">{post.category}</span>
+            <span className="inline-flex items-center bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-200 px-3 py-1 rounded-full uppercase tracking-widest">{post.category}</span>
             <span className="inline-flex items-center gap-1 bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 px-3 py-1 rounded-full">
               <Calendar size={14} /> {new Date(post.createdAt).toLocaleDateString()}
             </span>
@@ -450,7 +665,7 @@ export const BlogPostView: React.FC = () => {
               (() => {
                 // Since content is now HTML from ReactQuill
                 // We'll try to split by the first paragraph ending
-                const content = postHtml;
+                const content = articleHtml;
                 const splitIndex = content.indexOf('</p>');
                 
                 if (splitIndex !== -1) {
@@ -474,7 +689,24 @@ export const BlogPostView: React.FC = () => {
                 return <div dangerouslySetInnerHTML={{ __html: content }} />;
               })()
             ) : (
-              <div dangerouslySetInnerHTML={{ __html: postHtml }} />
+              <div>
+                <div dangerouslySetInnerHTML={{ __html: articleHtml }} />
+
+                {post?.tags && Array.isArray(post.tags) && post.tags.length > 0 && (
+                  <div className="mt-6">
+                    <div className="flex items-center gap-3">
+                      <h4 className="font-bold text-sm text-gray-600 dark:text-gray-400 mr-2">Tags:</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {post.tags.map((t) => (
+                          <span key={t} className="text-sm font-bold text-grantify-green bg-grantify-green/10 px-2 py-1 rounded-full">
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
@@ -537,26 +769,43 @@ export const BlogPostView: React.FC = () => {
         </div>
       </article>
 
+      {/* Tailwind safelist: ensure dynamic/injected classes are present in builds */}
+      <div aria-hidden className="hidden">
+        <span className="text-grantify-green bg-grantify-green bg-grantify-green/10 bg-grantify-gold/20 border-grantify-green/30 text-grantify-gold text-[10px] font-black uppercase tracking-[0.28em] rounded-2xl shadow-sm" />
+        <span className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 px-4 py-4 shadow-sm" />
+        <span className="text-[10px] font-black uppercase tracking-[0.28em] text-gray-400 dark:text-gray-500" />
+        <span className="text-base font-bold hover:underline transition-colors" />
+      </div>
+
       {/* Recommended Posts */}
       {recommendedPosts.length > 0 && (
         <section className="mb-16">
-          <h3 className="text-2xl font-black font-heading text-gray-900 dark:text-gray-100 mb-6">You Might Also Like</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 gap-4">
+          <h3 className="text-2xl font-black font-heading text-gray-900 dark:text-gray-100 mb-2">You May Also Like</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">More posts that connect to this story.</p>
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {recommendedPosts.slice(0, 4).map(rec => (
-              <Link key={rec.id} to={`/blog/${makeBlogSlug(rec.title, rec.id)}`} className="group bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm hover:shadow-md transition-all">
+              <Link key={rec.id} to={`/blog/${makeBlogSlug(rec.title, rec.id)}`} className="group bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm hover:shadow-md transition-all min-w-0">
                 <div className="h-32 bg-gray-100 dark:bg-gray-950 relative">
+                  {(() => {
+                    const derived = derivePostImage(rec);
+                    const src = derived || getBlogPlaceholderImage(rec.title);
+                    return (
                   <img
-                    src={derivePostImage(rec) || getBlogPlaceholderImage(rec.title)}
+                    src={src}
                     alt={rec.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    className={derived
+                      ? 'w-full h-full object-cover group-hover:scale-105 transition-transform duration-500'
+                      : 'w-full h-full object-contain p-4'}
                     loading="lazy"
                   />
+                    );
+                  })()}
                 </div>
                 <div className="p-4">
-                  <span className="text-[10px] bg-grantify-gold/20 text-grantify-green px-2 py-0.5 rounded font-bold uppercase mb-2 inline-block">
+                  <span className="text-[10px] bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-200 px-2 py-0.5 rounded font-bold uppercase mb-2 inline-block">
                     {rec.category}
                   </span>
-                  <h4 className="font-bold text-gray-800 dark:text-gray-100 leading-tight group-hover:text-grantify-green transition-colors line-clamp-2">
+                  <h4 className="font-bold text-gray-800 dark:text-gray-100 leading-tight group-hover:text-grantify-green transition-colors line-clamp-2 text-pretty">
                     {normalizeNbsp(rec.title).replace(/\s+/g, ' ').trim()}
                   </h4>
                 </div>
@@ -590,6 +839,33 @@ export const BlogPostView: React.FC = () => {
               >
                 {opt.label}
               </button>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-3xl border border-gray-100 dark:border-gray-800 bg-gradient-to-br from-white to-gray-50 dark:from-gray-950 dark:to-gray-900 p-5 md:p-6 shadow-sm">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <h4 className="text-base font-black text-gray-900 dark:text-gray-100">Discussion prompts</h4>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                These are conversation starters for real readers, not synthetic comments.
+              </p>
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-[0.28em] text-gray-400 dark:text-gray-500">
+              Ask, don’t fake
+            </span>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {discussionPrompts.map((prompt, index) => (
+              <div
+                key={index}
+                className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-950/60 px-4 py-4 text-sm text-gray-700 dark:text-gray-200 shadow-sm"
+              >
+                <span className="block text-[10px] font-black uppercase tracking-[0.28em] text-grantify-green mb-2">
+                  Prompt {index + 1}
+                </span>
+                {prompt}
+              </div>
             ))}
           </div>
         </div>

@@ -2,25 +2,33 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ApiService } from '../services/storage';
 import { BlogPost } from '../types';
-import { Loader2, MessageSquare, ThumbsUp, Heart, Hand, Calendar, ChevronRight, Eye } from 'lucide-react';
+import { Loader2, MessageSquare, ThumbsUp, Heart, Hand, Calendar, ChevronRight, ChevronLeft, Eye, ExternalLink, Zap } from 'lucide-react';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
-import { derivePostImage } from '../utils/blogImage';
+import { derivePostImage, withImageCacheBuster } from '../utils/blogImage';
 import { makeBlogPath } from '../utils/blogRouting';
 
 export const Blog: React.FC = () => {
+  const PAGE_SIZE = 9;
   const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPosts, setTotalPosts] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [myReactions, setMyReactions] = useState<Record<string, 'likes' | 'loves' | 'claps' | null>>({});
 
   useEffect(() => {
     const fetchPosts = async () => {
+      setIsLoading(true);
+      setError('');
       try {
-        const data = await ApiService.getBlogPosts();
-        setPosts(data);
+        const data = await ApiService.getBlogPostsPage({ page, pageSize: PAGE_SIZE });
+        setPosts(Array.isArray(data.items) ? data.items : []);
+        setTotalPosts(Number(data.total || 0));
+        setTotalPages(Math.max(1, Number(data.totalPages || 1)));
         try {
           const next: Record<string, 'likes' | 'loves' | 'claps' | null> = {};
-          for (const p of data) {
+          for (const p of (Array.isArray(data.items) ? data.items : [])) {
             const stored = localStorage.getItem(`grantify_blog_reaction_${p.id}`);
             next[p.id] = (stored === 'likes' || stored === 'loves' || stored === 'claps') ? stored : null;
           }
@@ -35,7 +43,13 @@ export const Blog: React.FC = () => {
       }
     };
     fetchPosts();
-  }, []);
+  }, [page]);
+
+  useEffect(() => {
+    if (page > 1) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [page]);
 
   const handleReact = async (postId: string, reactionType: 'likes' | 'loves' | 'claps') => {
     try {
@@ -70,7 +84,46 @@ export const Blog: React.FC = () => {
         <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
           Expert insights on Nigerian grants, business strategies, and financial management to help you grow.
         </p>
+        {totalPosts > 0 && (
+          <p className="mt-3 text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+            {`Page ${page} of ${totalPages} • ${totalPosts.toLocaleString()} posts`}
+          </p>
+        )}
       </div>
+
+      <div className="mb-10 rounded-[2rem] border border-gray-100 dark:border-gray-800 bg-gradient-to-br from-gray-900 via-gray-950 to-gray-900 text-white p-6 md:p-8 shadow-2xl relative overflow-hidden">
+        <div className="absolute -top-12 -right-12 w-32 h-32 bg-grantify-gold/10 rounded-full blur-3xl"></div>
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+          <div className="max-w-2xl">
+            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-gold mb-3 flex items-center gap-2"><Zap size={12} /> Media Kit</p>
+            <h2 className="text-2xl md:text-3xl font-black leading-tight mb-3">Sponsor an article, category, or newsletter mention.</h2>
+            <p className="text-sm md:text-base text-white/80 leading-relaxed">
+              This page attracts readers who are actively searching for funding, providers, and business guidance. Sponsored posts and content partnerships can be clearly labeled while still driving qualified traffic.
+            </p>
+          </div>
+          <Link to="/contact" className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all w-full lg:w-auto">
+            Advertise With Us <ExternalLink size={16} />
+          </Link>
+        </div>
+
+        <div className="relative z-10 grid gap-4 md:grid-cols-3 mt-6">
+          {[
+            'Sponsored article placement',
+            'Category sponsorship and pinned visibility',
+            'Newsletter / homepage shoutout packages',
+          ].map((item) => (
+            <div key={item} className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm text-sm text-white/80 leading-relaxed">
+              {item}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {error && (
+        <div className="mb-6 text-center py-4 bg-red-50 dark:bg-red-950/30 rounded-xl border border-red-100 dark:border-red-900">
+          <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
+        </div>
+      )}
 
       {posts.length === 0 ? (
         <div className="text-center py-20 bg-gray-50 dark:bg-gray-900 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-800">
@@ -98,14 +151,26 @@ export const Blog: React.FC = () => {
               className="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col"
             >
               <div className="aspect-video bg-gray-100 dark:bg-gray-950 overflow-hidden relative">
+                {(() => {
+                  const derived = derivePostImage(post);
+                  const src = derived
+                    ? withImageCacheBuster(derived, post.updatedAt || post.id)
+                    : getBlogPlaceholderImage(post.title);
+                  return (
                 <img
-                  src={derivePostImage(post) || getBlogPlaceholderImage(post.title)}
+                  src={src}
                   alt={post.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  className={derived
+                    ? 'w-full h-full object-cover group-hover:scale-105 transition-transform duration-500'
+                    : 'w-full h-full object-contain p-6'}
                   loading="lazy"
                 />
-                <div className="absolute top-4 left-4 bg-grantify-gold text-grantify-green text-[10px] font-black px-2 py-1 rounded uppercase tracking-wider">
-                  {post.category}
+                  );
+                })()}
+                <div className="absolute top-4 left-4">
+                  <span className="bg-gray-50/90 dark:bg-gray-950/80 backdrop-blur-sm border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-200 text-[10px] font-black px-2 py-1 rounded uppercase tracking-wider">
+                    {post.category}
+                  </span>
                 </div>
               </div>
               
@@ -174,6 +239,34 @@ export const Blog: React.FC = () => {
               );
             })()
           ))}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page <= 1 || isLoading}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed hover:border-grantify-green/50"
+            aria-label="Previous page"
+          >
+            <ChevronLeft size={16} /> Previous
+          </button>
+
+          <span className="text-sm font-bold text-gray-500 dark:text-gray-300 min-w-[110px] text-center">
+            {`${page} / ${totalPages}`}
+          </span>
+
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages || isLoading}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed hover:border-grantify-green/50"
+            aria-label="Next page"
+          >
+            Next <ChevronRight size={16} />
+          </button>
         </div>
       )}
     </div>

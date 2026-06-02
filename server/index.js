@@ -1,203 +1,51 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const { Pool } = require('pg');
+import express from 'express';
+import cors from 'cors';
+
+import apiRouter from '../api/index.js';
 
 const app = express();
-const port = process.env.PORT || 3001;
+const port = Number(process.env.PORT || 3001);
 
-// Middleware
 app.use(cors());
-app.use(express.json());
 
-// Database Connection
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false } // Required for Neon
+// Most handlers expect JSON bodies.
+app.use(express.json({ limit: '10mb' }));
+
+app.get('/healthz', (_req, res) => res.status(200).json({ ok: true }));
+
+// Vercel rewrites: /api/* -> /api/index?path=*
+// For local dev, emulate that by populating req.query.path.
+app.all(/^\/api\/(.*)/, async (req, res) => {
+  const proxiedReq = Object.create(req);
+  Object.defineProperty(proxiedReq, 'query', {
+    value: { ...(req.query || {}), path: req.params[0] },
+    writable: true,
+    configurable: true,
+    enumerable: true,
+  });
+  return apiRouter(proxiedReq, res);
 });
 
-// --- HELPER TO MAP DB ROWS TO FRONTEND TYPES ---
-const toCamelCase = (row) => {
-  const newRow = {};
-  for (const key in row) {
-    const newKey = key.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
-    newRow[newKey] = row[key];
-  }
-  return newRow;
-};
+app.listen(port, () => {
+  // eslint-disable-next-line no-console
+  console.log(`Server running at http://localhost:${port}`);
 
-// --- ROUTES ---
-
-// 1. Applications
-app.get('/api/applications', async (req, res) => {
+  // Safety: warn when autoblog or offsite uploads are enabled in non-production
   try {
-    const result = await pool.query('SELECT * FROM applications ORDER BY created_at DESC');
-    res.json(result.rows.map(toCamelCase));
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/applications', async (req, res) => {
-  const { id, fullName, phoneNumber, email, country, amount, purpose, type, repaymentAmount, durationMonths, status, dateApplied, referralCode } = req.body;
-  try {
-    await pool.query(
-      `INSERT INTO applications (id, full_name, phone_number, email, country, amount, purpose, type, repayment_amount, duration_months, status, date_applied, referral_code)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
-      [id, fullName, phoneNumber, email, country, amount, purpose, type, repaymentAmount, durationMonths, status, dateApplied, referralCode]
-    );
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// 2. Testimonials
-app.get('/api/testimonials', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM testimonials ORDER BY created_at DESC');
-    res.json(result.rows.map(toCamelCase));
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.put('/api/testimonials/:id', async (req, res) => {
-  const { id } = req.params;
-  const { likes, loves, claps, name, content, amount, status, image, date } = req.body;
-  try {
-    await pool.query(
-      `UPDATE testimonials SET likes=$1, loves=$2, claps=$3, name=$4, content=$5, amount=$6, status=$7, image=$8, date=$9 WHERE id=$10`,
-      [likes, loves, claps, name, content, amount, status || null, image, date, id]
-    );
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Bulk Save Testimonials (Wipe and Replace - Simple sync pattern)
-app.post('/api/testimonials', async (req, res) => {
-  const items = req.body; // Array
-  if (!Array.isArray(items)) return res.status(400).json({error: "Expected array"});
-  
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    await client.query('DELETE FROM testimonials');
-    for (const t of items) {
-      await client.query(
-        `INSERT INTO testimonials (id, name, image, amount, content, likes, loves, claps, date, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-        [t.id, t.name, t.image, t.amount, t.content, t.likes, t.loves, t.claps, t.date, t.status || null]
-      );
+    const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
+    const autoblog = String(process.env.AUTOBLOG_ENABLED || '').toLowerCase() === 'true';
+    const uploads = String(process.env.OFFSITE_UPLOADS_ENABLED || '').toLowerCase() === 'true';
+    if (!isProd && autoblog) {
+      console.warn('WARNING: AUTOBLOG_ENABLED=true in non-production. This can publish daily posts locally.');
     }
-    await client.query('COMMIT');
-    res.json({ success: true });
-  } catch (err) {
-    await client.query('ROLLBACK');
-    res.status(500).json({ error: err.message });
-  } finally {
-    client.release();
-  }
-});
-
-// 3. Qualified Persons
-app.get('/api/qualified', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM qualified_persons');
-    res.json(result.rows.map(toCamelCase));
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Bulk Save Qualified
-app.post('/api/qualified', async (req, res) => {
-  const items = req.body;
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    await client.query('DELETE FROM qualified_persons');
-    for (const q of items) {
-      await client.query(
-        `INSERT INTO qualified_persons (id, name, amount, status, notes) VALUES ($1, $2, $3, $4, $5)`,
-        [q.id, q.name, q.amount, q.status, q.notes]
-      );
+    if (!isProd && uploads) {
+      console.warn('WARNING: OFFSITE_UPLOADS_ENABLED=true in non-production. This can upload files to offsite storage.');
     }
-    await client.query('COMMIT');
-    res.json({ success: true });
-  } catch (err) {
-    await client.query('ROLLBACK');
-    res.status(500).json({ error: err.message });
-  } finally {
-    client.release();
+  } catch (e) {
+    /* ignore */
   }
 });
-
-// 4. Ads (Single Row ID=1)
-app.get('/api/ads', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM ads WHERE id=1');
-    if (result.rows.length > 0) res.json(toCamelCase(result.rows[0]));
-    else res.json({});
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/ads', async (req, res) => {
-  const { head, header, body, sidebar, footer, promo1Link, promo1Text, promo2Link, promo2Text } = req.body;
-  try {
-    // Ensure columns exist (Safeguard migration for local DB)
-    await pool.query(`
-      ALTER TABLE ads 
-      ADD COLUMN IF NOT EXISTS promo1_link TEXT,
-      ADD COLUMN IF NOT EXISTS promo1_text TEXT,
-      ADD COLUMN IF NOT EXISTS promo2_link TEXT,
-      ADD COLUMN IF NOT EXISTS promo2_text TEXT
-    `);
-
-    await pool.query(
-      `INSERT INTO ads (id, head, header, body, sidebar, footer, promo1_link, promo1_text, promo2_link, promo2_text)
-       VALUES (1, $1, $2, $3, $4, $5, $6, $7, $8, $9)
-       ON CONFLICT (id) DO UPDATE SET
-       head = EXCLUDED.head, 
-       header = EXCLUDED.header, 
-       body = EXCLUDED.body, 
-       sidebar = EXCLUDED.sidebar, 
-       footer = EXCLUDED.footer,
-       promo1_link = EXCLUDED.promo1_link,
-       promo1_text = EXCLUDED.promo1_text,
-       promo2_link = EXCLUDED.promo2_link,
-       promo2_text = EXCLUDED.promo2_text`,
-      [head, header, body, sidebar, footer, promo1Link, promo1Text, promo2Link, promo2Text]
-    );
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// 5. Admins
-app.get('/api/admins', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT id, username, role, name, password_hash FROM admin_users');
-    res.json(result.rows.map(r => ({
-      id: r.id,
-      username: r.username,
-      role: r.role,
-      name: r.name,
-      passwordHash: r.password_hash // We send this back to match frontend types (In prod, never send hash)
-    })));
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/admins', async (req, res) => {
-  const items = req.body;
-  const client = await pool.connect();
+/*
   try {
     const bcrypt = await import('bcryptjs').then(m => m.default);
     const saltRounds = 10;
@@ -543,3 +391,4 @@ app.post('/api/ai', async (req, res) => {
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
+*/

@@ -70,10 +70,95 @@ const extractFirstImageSrcFromHtml = (html) => {
   return src.trim();
 };
 
+const stripDataImagesFromHtml = (html) => {
+  const s = String(html ?? '');
+  if (!s) return '';
+  // Remove <img> tags whose src is a data: URL (base64 embeds).
+  return s.replace(/<img\b[^>]*\bsrc\s*=\s*(?:"\s*data:[^"]*"|'\s*data:[^']*'|\s*data:[^\s>]+)[^>]*>/gi, '');
+};
+
+const isBadImageUrl = (value) => {
+  const s = String(value ?? '').trim();
+  if (!s) return true;
+  if (s.startsWith('data:')) return true;
+  // Avoid pathological URLs that can bloat payloads or break rendering.
+  if (s.length > 2048) return true;
+  return false;
+};
+
 const deriveFeaturedImage = (explicitImage, content) => {
   const direct = String(explicitImage ?? '').trim();
-  if (direct) return direct;
-  return extractFirstImageSrcFromHtml(content) || '';
+  if (direct && !isBadImageUrl(direct)) return direct;
+  const extracted = extractFirstImageSrcFromHtml(content) || '';
+  return extracted && !isBadImageUrl(extracted) ? extracted : '';
+};
+
+// Reduce write amplification for view counters under traffic.
+// (In-memory; best-effort in serverless, but still helps.)
+const VIEW_TTL_MS = 10 * 60 * 1000;
+const viewBucket = new Map();
+const shouldCountView = (req, postId) => {
+  const ip = getClientIp(req) || 'unknown';
+  const key = `${ip}:${String(postId)}`;
+  const now = Date.now();
+  const last = viewBucket.get(key);
+  if (last && (now - last) < VIEW_TTL_MS) return false;
+  viewBucket.set(key, now);
+  // Opportunistic cleanup.
+  if (viewBucket.size > 20000) {
+    for (const [k, t] of viewBucket.entries()) {
+      if (!t || (now - t) > (VIEW_TTL_MS * 2)) viewBucket.delete(k);
+    }
+  }
+  return true;
+};
+
+const BLOG_CACHE_TTL_MS = 30 * 1000;
+const blogCache = new Map();
+
+const getCacheEntry = (key) => {
+  const entry = blogCache.get(key);
+  if (!entry) return null;
+  if ((Date.now() - entry.at) > BLOG_CACHE_TTL_MS) {
+    blogCache.delete(key);
+    return null;
+  }
+  return entry.value;
+};
+
+const setCacheEntry = (key, value) => {
+  blogCache.set(key, { at: Date.now(), value });
+};
+
+const clearBlogCache = () => {
+  blogCache.clear();
+};
+
+const buildCacheKey = (req) => {
+  const id = toStr(req?.query?.id).trim();
+  const category = toStr(req?.query?.category).trim();
+  const summary = toStr(req?.query?.summary).trim();
+  const paginated = toStr(req?.query?.paginated).trim();
+  const page = toStr(req?.query?.page).trim();
+  const pageSize = toStr(req?.query?.pageSize).trim();
+  const excludeId = toStr(req?.query?.excludeId).trim();
+  const limit = toStr(req?.query?.limit).trim();
+  const commentsSort = toStr(req?.query?.commentsSort).trim();
+  const includeHidden = toStr(req?.query?.includeHidden).trim();
+  const isAdminRequest = Boolean(String(req?.headers?.['x-admin-session'] || '').trim());
+  const adminKey = isAdminRequest ? 'admin:1' : 'admin:0';
+  if (id) return `id:${id}:sort:${commentsSort}:hidden:${includeHidden}:${adminKey}`;
+  if (summary === '1') return `summary:${category || 'all'}:exclude:${excludeId || ''}:limit:${limit || ''}:${adminKey}`;
+  if (paginated === '1') {
+    return `list:paged:${category || 'all'}:page:${page || '1'}:size:${pageSize || '9'}:${adminKey}`;
+  }
+  return `list:${category || 'all'}:${adminKey}`;
+};
+
+const isDraftPost = (row) => {
+  const sourceUrl = toStr(row?.source_url).trim().toLowerCase();
+  const tags = Array.isArray(row?.tags) ? row.tags.map((t) => String(t || '').toLowerCase()) : [];
+  return sourceUrl === 'autodraft' || tags.includes('autodraft');
 };
 
 export default async function handler(req, res) {
@@ -88,16 +173,33 @@ export default async function handler(req, res) {
     await ensureBlogCommentSchema(client);
 
     if (req.method === 'GET') {
+      const cacheKey = buildCacheKey(req);
+      const cached = getCacheEntry(cacheKey);
+      if (cached) {
+        return res.status(200).json(cached);
+      }
+        // Determine whether requester is an admin (X-Admin-Session header present).
+        const isAdminRequest = Boolean(String(req.headers['x-admin-session'] || '').trim());
+
       const { id, category } = req.query;
 
       if (id) {
-        const postRes = await client.query(
-          'UPDATE blog_posts SET views = COALESCE(views, 0) + 1 WHERE id = $1 RETURNING *',
-          [id]
-        );
+        const countView = shouldCountView(req, id);
+        const postRes = countView
+          ? await client.query(
+            'UPDATE blog_posts SET views = COALESCE(views, 0) + 1 WHERE id = $1 RETURNING *',
+            [id]
+          )
+          : await client.query(
+            'SELECT * FROM blog_posts WHERE id = $1',
+            [id]
+          );
         if (postRes.rows.length === 0) return res.status(404).json({ error: 'Not found' });
 
         const post = postRes.rows[0];
+        if (!isAdminRequest && isDraftPost(post)) {
+          return res.status(404).json({ error: 'Not found' });
+        }
         const commentsSort = toStr(req.query?.commentsSort).trim().toLowerCase();
         const includeHidden = toStr(req.query?.includeHidden).trim() === '1';
 
@@ -119,7 +221,7 @@ export default async function handler(req, res) {
           [id]
         );
 
-        return res.status(200).json({
+        const payload = {
           ...post,
           id: post.id,
           title: post.title,
@@ -145,19 +247,108 @@ export default async function handler(req, res) {
             userId: c.user_id || undefined,
             createdAt: c.created_at
           }))
-        });
+        };
+        setCacheEntry(cacheKey, payload);
+        return res.status(200).json(payload);
+      }
+
+      const isSummary = toStr(req.query?.summary).trim() === '1';
+      const isPaginated = toStr(req.query?.paginated).trim() === '1';
+      const excludeId = toStr(req.query?.excludeId).trim();
+      const limitRaw = Number.parseInt(toStr(req.query?.limit).trim() || '0', 10);
+      const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 50) : 0;
+      const pageRaw = Number.parseInt(toStr(req.query?.page).trim() || '1', 10);
+      const pageSizeRaw = Number.parseInt(toStr(req.query?.pageSize).trim() || '9', 10);
+      const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
+      const pageSize = Number.isFinite(pageSizeRaw) && pageSizeRaw > 0 ? Math.min(pageSizeRaw, 30) : 9;
+
+      if (isSummary) {
+        const params = [];
+        let where = '';
+        if (category) {
+          params.push(category);
+          where += `${where ? ' AND' : ' WHERE'} category = $${params.length}`;
+        }
+        // Exclude autodraft posts from public summaries unless admin request
+        if (!isAdminRequest) {
+          params.push('autodraft');
+          where += `${where ? ' AND' : ' WHERE'} COALESCE(source_url, '') <> $${params.length}`;
+          params.push('autodraft');
+          where += `${where ? ' AND' : ' WHERE'} NOT (tags @> ARRAY[$${params.length}]::text[])`;
+        }
+        if (excludeId) {
+          params.push(excludeId);
+          where += `${where ? ' AND' : ' WHERE'} id <> $${params.length}`;
+        }
+
+        const limSql = limit ? ` LIMIT ${limit}` : '';
+        const result = await client.query(
+          `SELECT id, title, author, author_role, category, image, tags, source_name, source_url,
+                  COALESCE(likes, 0) as likes, COALESCE(loves, 0) as loves, COALESCE(claps, 0) as claps, COALESCE(views, 0) as views,
+                  created_at, updated_at,
+                  (SELECT COUNT(*) FROM blog_comments WHERE post_id = blog_posts.id) as comments_count
+           FROM blog_posts
+           ${where}
+           ORDER BY created_at DESC${limSql}`,
+          params
+        );
+
+        const payload = result.rows.map(row => ({
+          id: row.id,
+          title: row.title,
+          content: '',
+          author: row.author,
+          authorRole: row.author_role,
+          image: row.image,
+          category: row.category,
+          tags: row.tags,
+          sourceName: row.source_name,
+          sourceUrl: row.source_url,
+          likes: row.likes ?? 0,
+          loves: row.loves ?? 0,
+          claps: row.claps ?? 0,
+          views: row.views ?? 0,
+          commentsCount: parseInt(row.comments_count),
+          createdAt: row.created_at,
+          updatedAt: row.updated_at
+        }));
+        setCacheEntry(cacheKey, payload);
+        return res.status(200).json(payload);
+      }
+
+      const whereParts = [];
+      const params = [];
+      if (category) {
+        params.push(category);
+        whereParts.push(`category = $${params.length}`);
+      }
+      if (!isAdminRequest) {
+        params.push('autodraft');
+        whereParts.push(`COALESCE(source_url, '') <> $${params.length}`);
+        params.push('autodraft');
+        whereParts.push(`NOT (tags @> ARRAY[$${params.length}]::text[])`);
       }
 
       let query = 'SELECT *, (SELECT COUNT(*) FROM blog_comments WHERE post_id = blog_posts.id) as comments_count FROM blog_posts';
-      const params = [];
-      if (category) {
-        query += ' WHERE category = $1';
-        params.push(category);
+      if (whereParts.length > 0) {
+        query += ` WHERE ${whereParts.join(' AND ')}`;
       }
       query += ' ORDER BY created_at DESC';
 
+      let total = 0;
+      if (isPaginated) {
+        let countQuery = 'SELECT COUNT(*)::int AS total FROM blog_posts';
+        if (whereParts.length > 0) {
+          countQuery += ` WHERE ${whereParts.join(' AND ')}`;
+        }
+        const countRes = await client.query(countQuery, params);
+        total = Number(countRes.rows?.[0]?.total || 0);
+        const offset = (page - 1) * pageSize;
+        query += ` LIMIT ${pageSize} OFFSET ${offset}`;
+      }
+
       const result = await client.query(query, params);
-      return res.status(200).json(result.rows.map(row => ({
+      const items = result.rows.map(row => ({
         id: row.id,
         title: row.title,
         content: row.content,
@@ -175,7 +366,23 @@ export default async function handler(req, res) {
         commentsCount: parseInt(row.comments_count),
         createdAt: row.created_at,
         updatedAt: row.updated_at
-      })));
+      }));
+
+      if (isPaginated) {
+        const totalPages = total > 0 ? Math.ceil(total / pageSize) : 1;
+        const payload = {
+          items,
+          total,
+          page,
+          pageSize,
+          totalPages,
+        };
+        setCacheEntry(cacheKey, payload);
+        return res.status(200).json(payload);
+      }
+
+      setCacheEntry(cacheKey, items);
+      return res.status(200).json(items);
     }
 
     if (req.method === 'POST') {
@@ -363,13 +570,16 @@ export default async function handler(req, res) {
       const seededClaps = typeof claps === 'number' ? claps : Math.floor(3 + Math.random() * 18);
       const seededViews = typeof views === 'number' ? views : Math.floor(120 + Math.random() * 900);
 
-      const featuredImage = deriveFeaturedImage(image, content);
+      const cleanedContent = stripDataImagesFromHtml(content);
+      const featuredImage = deriveFeaturedImage(image, cleanedContent);
 
       await client.query(
         `INSERT INTO blog_posts (id, title, content, author, author_role, category, image, tags, source_name, source_url, likes, loves, claps, views, created_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, COALESCE($15, CURRENT_TIMESTAMP))`,
-        [id, title, content, author, authorRole, category, featuredImage, tags || [], sourceName, sourceUrl, seededLikes, seededLoves, seededClaps, seededViews, createdAt || null]
+        [id, title, cleanedContent, author, authorRole, category, featuredImage, tags || [], sourceName, sourceUrl, seededLikes, seededLoves, seededClaps, seededViews, createdAt || null]
       );
+
+      clearBlogCache();
 
       return res.status(200).json({ success: true, id });
     }
@@ -377,7 +587,8 @@ export default async function handler(req, res) {
     if (req.method === 'PUT') {
       const { id, title, content, author, authorRole, category, image, tags, sourceName, sourceUrl, views, createdAt, likes, loves, claps } = req.body;
 
-      const featuredImage = deriveFeaturedImage(image, content);
+      const cleanedContent = stripDataImagesFromHtml(content);
+      const featuredImage = deriveFeaturedImage(image, cleanedContent);
       await client.query(
         `UPDATE blog_posts
          SET title = $1,
@@ -393,8 +604,10 @@ export default async function handler(req, res) {
              created_at = COALESCE($11, created_at),
              updated_at = CURRENT_TIMESTAMP
          WHERE id = $12`,
-        [title, content, author, authorRole, category, featuredImage, tags || [], sourceName, sourceUrl, typeof views === 'number' ? views : null, createdAt || null, id]
+        [title, cleanedContent, author, authorRole, category, featuredImage, tags || [], sourceName, sourceUrl, typeof views === 'number' ? views : null, createdAt || null, id]
       );
+
+      clearBlogCache();
 
       if (typeof likes === 'number' || typeof loves === 'number' || typeof claps === 'number') {
         await client.query(
@@ -413,6 +626,7 @@ export default async function handler(req, res) {
     if (req.method === 'DELETE') {
       const { id } = req.query;
       await client.query('DELETE FROM blog_posts WHERE id = $1', [id]);
+      clearBlogCache();
       return res.status(200).json({ success: true });
     }
 

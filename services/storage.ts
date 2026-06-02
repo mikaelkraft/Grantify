@@ -21,9 +21,13 @@ import {
 
 // --- CONFIGURATION ---
 // For Vercel deployment: API routes are automatically available at /api/* (same origin)
-// For local development: set VITE_API_URL to your local server (e.g., http://localhost:3000)
-// When deployed to Vercel, leave VITE_API_URL empty to use same-origin API routes
-const API_URL = import.meta.env.VITE_API_URL || ''; 
+// For local development on localhost, use the local API server directly.
+// In production, fall back to VITE_API_URL or same-origin API routes.
+const IS_LOCALHOST = typeof window !== 'undefined' && /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
+// Prefer an explicit VITE_API_URL when provided (useful for local verification against production API).
+const API_URL = (import.meta.env.VITE_API_URL && String(import.meta.env.VITE_API_URL).trim())
+  ? String(import.meta.env.VITE_API_URL).trim()
+  : (IS_LOCALHOST ? 'http://localhost:3001' : '');
 
 const getAdminSessionHeader = (): string | null => {
   try {
@@ -83,6 +87,49 @@ const uploadToOneDriveSession = async (uploadUrl: string, file: File): Promise<a
   throw new Error('Failed to upload image');
 };
 
+const uploadToGDriveSession = async (uploadUrl: string, file: File, adminHeader: string): Promise<any> => {
+  // Google Drive resumable upload: try direct browser PUT first, then fallback to backend proxy.
+  const doDirectUpload = async () => {
+    const res = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': file.type,
+      },
+      body: file,
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(text || `Failed to upload image (${res.status})`);
+    }
+
+    return await res.json().catch(() => ({}));
+  };
+
+  try {
+    return await doDirectUpload();
+  } catch (directErr: any) {
+    const bodyBuffer = await file.arrayBuffer();
+    const proxyRes = await fetch(`${API_URL}/api/uploads/gdrive/proxy-put`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': file.type || 'application/octet-stream',
+        'X-Admin-Session': adminHeader,
+        'X-Upload-Url': uploadUrl,
+      },
+      body: bodyBuffer,
+    });
+
+    if (!proxyRes.ok) {
+      const proxyMsg = await decodeUploadError(proxyRes);
+      const directMsg = String(directErr?.message || 'Direct upload failed');
+      throw new Error(`${directMsg}. Fallback failed: ${proxyMsg}`);
+    }
+
+    return await proxyRes.json().catch(() => ({}));
+  }
+};
+
 const getOrCreateAnonUserId = (): string => {
   try {
     const key = 'grantify_uid';
@@ -101,6 +148,14 @@ const getOrCreateAnonUserId = (): string => {
 };
 
 export const getAnonUserId = (): string => getOrCreateAnonUserId();
+
+export type BlogPostsPage = {
+  items: BlogPost[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
 
 // Initial Seed Data (Used for Mock Mode if API fails or is empty)
 const initialTestimonials: Testimonial[] = [
@@ -299,6 +354,31 @@ export const ApiService = {
     const publicUrl = String(presign?.publicUrl || '');
     if (!uploadUrl) throw new Error('Invalid upload response');
 
+    if (provider === 'gdrive') {
+      const item = await uploadToGDriveSession(uploadUrl, file, adminHeader);
+      const fileId = String(item?.id || '').trim();
+      if (!fileId) throw new Error('Google Drive upload succeeded but file id is missing');
+
+      const finalizeRes = await fetch(`${API_URL}/api/uploads/gdrive/finalize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Session': adminHeader,
+        },
+        body: JSON.stringify({ fileId }),
+      });
+
+      if (!finalizeRes.ok) {
+        const msg = await decodeUploadError(finalizeRes);
+        throw new Error(msg);
+      }
+
+      const fin = await finalizeRes.json();
+      const finUrl = String(fin?.publicUrl || '');
+      if (!finUrl) throw new Error('Missing Google Drive publicUrl');
+      return finUrl;
+    }
+
     if (provider === 'onedrive') {
       const item = await uploadToOneDriveSession(uploadUrl, file);
       const itemId = String(item?.id || '').trim();
@@ -336,22 +416,25 @@ export const ApiService = {
     return publicUrl;
   },
 
-  getOneDriveStatus: async (): Promise<{ enabled: boolean; provider: string; connected: boolean }> => {
+  getDriveStatus: async (): Promise<{ enabled: boolean; provider: string; connected: boolean; needsReconnect?: boolean; error?: string; configured?: boolean }> => {
     const adminHeader = getAdminSessionHeader();
     if (!adminHeader) throw new Error('Admin session missing');
 
-    const res = await fetch(`${API_URL}/api/uploads/onedrive/status`, {
+    const res = await fetch(`${API_URL}/api/uploads/status`, {
       method: 'GET',
       headers: {
         'X-Admin-Session': adminHeader,
       },
     });
-    if (!res.ok) throw new Error('Failed to fetch OneDrive status');
+    if (!res.ok) throw new Error('Failed to fetch Drive status');
     const data = await res.json();
     return {
       enabled: Boolean(data?.enabled),
       provider: String(data?.provider || ''),
       connected: Boolean(data?.connected),
+      needsReconnect: Boolean(data?.needsReconnect),
+      error: data?.error ? String(data.error) : undefined,
+      configured: typeof data?.configured === 'boolean' ? Boolean(data.configured) : undefined,
     };
   },
 
@@ -505,6 +588,38 @@ export const ApiService = {
     return null;
   },
 
+  updateMyProfile: async (data: {
+    name: string;
+    username: string;
+    currentPassword?: string;
+    newPassword?: string;
+  }): Promise<AdminUser> => {
+    const adminHeader = getAdminSessionHeader();
+    if (!adminHeader) throw new Error('Admin session missing');
+
+    const res = await fetch(`${API_URL}/api/admins?action=updateProfile`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Session': adminHeader,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+      let message = 'Failed to update profile';
+      try {
+        const payload = await res.json();
+        if (payload?.error) message = String(payload.error);
+      } catch {
+        // ignore
+      }
+      throw new Error(message);
+    }
+
+    return await res.json();
+  },
+
   // -- Referral (generates new code per session - no localStorage) --
   getMyReferralData: (): ReferralData => {
     return {
@@ -562,11 +677,106 @@ export const ApiService = {
     if (!res.ok) throw new Error('Failed to update submission status');
   },
 
+  // -- Sponsored Listings / Pricing --
+  getSponsoredPricing: async (): Promise<Array<{ id: number; tierName: string; priceCents: number; durationDays: number; description: string }>> => {
+    const res = await fetch(`${API_URL}/api/sponsored?what=pricing`);
+    if (!res.ok) throw new Error('Failed to fetch sponsored pricing');
+    return await res.json();
+  },
+
+  createSponsoredPurchase: async (providerId: number, tierId: number, payerInfo?: any): Promise<{ id: number; paymentUrl: string | null; amountCents: number }> => {
+    const res = await fetch(`${API_URL}/api/sponsored?action=create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ providerId, tierId, payerInfo })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.error || 'Failed to create sponsored purchase');
+    }
+    return await res.json();
+  },
+
+  adminMarkSponsoredPaid: async (id: number): Promise<void> => {
+    const adminHeader = getAdminSessionHeader();
+    if (!adminHeader) throw new Error('Admin session missing');
+    const res = await fetch(`${API_URL}/api/sponsored?action=mark_paid`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Session': adminHeader },
+      body: JSON.stringify({ id })
+    });
+    if (!res.ok) {
+      const payload = await res.json().catch(() => null);
+      throw new Error(payload?.error || 'Failed to mark sponsored purchase as paid');
+    }
+  },
+
+  adminDownloadSponsoredCSV: async (opts?: { status?: string; startDate?: string; endDate?: string }): Promise<void> => {
+    const adminHeader = getAdminSessionHeader();
+    if (!adminHeader) throw new Error('Admin session missing');
+    const qs = new URLSearchParams({ what: 'listings', action: 'export_csv' });
+    if (opts?.status) qs.set('status', opts.status);
+    if (opts?.startDate) qs.set('startDate', opts.startDate);
+    if (opts?.endDate) qs.set('endDate', opts.endDate);
+    const res = await fetch(`${API_URL}/api/sponsored?${qs.toString()}`, {
+      headers: { 'X-Admin-Session': adminHeader }
+    });
+    if (!res.ok) {
+      const payload = await res.text().catch(() => null);
+      throw new Error(payload || 'Failed to download CSV');
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sponsored_listings.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
+
+  updateSponsoredInvoice: async (id: number, payload: { invoiceNumber?: string; billingInfo?: any; offlinePaymentMethod?: string; invoiceIssuedAt?: string; invoiceDueDate?: string; adminNote?: string }): Promise<void> => {
+    const adminHeader = getAdminSessionHeader();
+    if (!adminHeader) throw new Error('Admin session missing');
+    const res = await fetch(`${API_URL}/api/sponsored?action=update_invoice`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Session': adminHeader },
+      body: JSON.stringify({ id, ...payload })
+    });
+    if (!res.ok) {
+      const payloadErr = await res.json().catch(() => null);
+      throw new Error(payloadErr?.error || 'Failed to update invoice');
+    }
+  },
+
+  getActiveSponsoredListings: async (): Promise<any[]> => {
+    const res = await fetch(`${API_URL}/api/sponsored?what=listings&active=1`);
+    if (!res.ok) throw new Error('Failed to fetch active sponsored listings');
+    return await res.json();
+  },
+
   // -- Blog --
   getBlogPosts: async (category?: string): Promise<BlogPost[]> => {
     const url = category ? `${API_URL}/api/blog?category=${category}` : `${API_URL}/api/blog`;
-    const res = await fetch(url);
+    const adminHeader = getAdminSessionHeader();
+    const headers: Record<string,string> | undefined = adminHeader ? { 'X-Admin-Session': adminHeader } : undefined;
+    const res = await fetch(url, { headers });
     if (!res.ok) throw new Error('Failed to fetch blog posts');
+    return await res.json();
+  },
+
+  getBlogPostsPage: async (opts?: { category?: string; page?: number; pageSize?: number }): Promise<BlogPostsPage> => {
+    const qs = new URLSearchParams();
+    qs.set('paginated', '1');
+    qs.set('page', String(Math.max(1, Number(opts?.page) || 1)));
+    qs.set('pageSize', String(Math.min(30, Math.max(1, Number(opts?.pageSize) || 9))));
+    if (opts?.category) qs.set('category', String(opts.category));
+
+    const adminHeader = getAdminSessionHeader();
+    const headers: Record<string,string> | undefined = adminHeader ? { 'X-Admin-Session': adminHeader } : undefined;
+    const res = await fetch(`${API_URL}/api/blog?${qs.toString()}`, { headers });
+    if (!res.ok) throw new Error('Failed to fetch paginated blog posts');
     return await res.json();
   },
 
@@ -577,6 +787,82 @@ export const ApiService = {
     const res = await fetch(`${API_URL}/api/blog?${qs.toString()}`);
     if (!res.ok) throw new Error('Failed to fetch blog post');
     return await res.json();
+  },
+
+  getBlogRecommendations: async (opts: { excludeId: string; limit?: number; category?: string }): Promise<BlogPost[]> => {
+    const qs = new URLSearchParams({ summary: '1' });
+    if (opts?.excludeId) qs.set('excludeId', String(opts.excludeId));
+    if (opts?.limit) qs.set('limit', String(opts.limit));
+    if (opts?.category) qs.set('category', String(opts.category));
+
+    const res = await fetch(`${API_URL}/api/blog?${qs.toString()}`);
+    if (!res.ok) throw new Error('Failed to fetch recommended posts');
+    const data = await res.json();
+
+    // Post-process recommendations: prefer same-category and recent posts,
+    // and add a deterministic rotation to diversify picks slightly.
+    const postProcess = (items: any[]) => {
+      const list = Array.isArray(items) ? items.slice() : [];
+      // Remove excluded id
+      const filtered = list.filter(p => String(p.id) !== String(opts?.excludeId));
+
+      // Score: category match first, then createdAt recency.
+      const score = (p: any) => {
+        let s = 0;
+        try {
+          if (opts?.category && p?.category && String(p.category).toLowerCase() === String(opts.category).toLowerCase()) s += 1000;
+        } catch {}
+        // Tag overlap bonus: count shared tags between opts.tags and post.tags
+        try {
+          const optTags = (opts as any)?.tags;
+          if (Array.isArray(optTags) && Array.isArray(p?.tags)) {
+            const mine = optTags.map((t: any) => String(t || '').toLowerCase());
+            const theirs = p.tags.map((t: any) => String(t || '').toLowerCase());
+            const overlap = mine.filter((t: string) => theirs.includes(t)).length;
+            if (overlap > 0) s += overlap * 500; // each shared tag is valuable but less than category match
+          }
+        } catch {}
+        try {
+          const t = Date.parse(p?.createdAt || p?.created_at || p?.updatedAt || p?.updated_at || '');
+          if (!Number.isNaN(t)) {
+            // newer posts get higher score (unix ms)
+            s += Math.floor(t / 1000);
+          }
+        } catch {}
+        return s;
+      };
+
+      filtered.sort((a, b) => score(b) - score(a));
+
+      // Deterministic rotation based on excludeId to diversify when many matches
+      if (filtered.length > 1 && opts?.excludeId) {
+        const seed = 0;
+        const hash = String(opts.excludeId).split('').reduce((h, ch) => ((h * 31) + ch.charCodeAt(0)) >>> 0, seed);
+        const start = hash % filtered.length;
+        const rotated = filtered.slice(start).concat(filtered.slice(0, start));
+        return rotated.slice(0, opts?.limit || 4);
+      }
+
+      return filtered.slice(0, opts?.limit || 4);
+    };
+
+    if (!Array.isArray(data) || data.length === 0) {
+      try {
+        // Try a broader recent posts fetch (summary) without filters.
+        const fallbackQs = new URLSearchParams({ summary: '1' });
+        const fallbackRes = await fetch(`${API_URL}/api/blog?${fallbackQs.toString()}`);
+        if (fallbackRes.ok) {
+          const fallbackData = await fallbackRes.json();
+          return postProcess(Array.isArray(fallbackData) ? fallbackData : []);
+        }
+      } catch {
+        // ignore and fall through to empty list
+      }
+
+      return [];
+    }
+
+    return postProcess(Array.isArray(data) ? data : []);
   },
 
   submitBlogAction: async (data: any): Promise<any> => {
@@ -729,5 +1015,41 @@ export const ApiService = {
     const res = await fetch(`${API_URL}/api/contact?limit=${encodeURIComponent(String(safeLimit))}`);
     if (!res.ok) throw new Error('Failed to fetch contact messages');
     return await res.json();
+  },
+
+  deleteContactMessage: async (id: string): Promise<void> => {
+    const adminHeader = getAdminSessionHeader();
+    if (!adminHeader) throw new Error('Admin session missing');
+
+    const res = await fetch(`${API_URL}/api/contact?id=${encodeURIComponent(String(id))}`, {
+      method: 'DELETE',
+      headers: {
+        'X-Admin-Session': adminHeader,
+      },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.error || 'Failed to delete contact message');
+    }
+  },
+
+  triggerDailyBlogCron: async (opts?: { force?: boolean }): Promise<{ success: boolean; id?: string; skipped?: boolean; reason?: string; title?: string }> => {
+    const adminHeader = getAdminSessionHeader();
+    if (!adminHeader) throw new Error('Admin session missing');
+
+    const res = await fetch(`${API_URL}/api/cron/daily-blog`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Session': adminHeader,
+      },
+      body: JSON.stringify({ force: Boolean(opts?.force) }),
+    });
+
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(String(payload?.error || 'Failed to trigger daily cron'));
+    }
+    return payload;
   }
 };

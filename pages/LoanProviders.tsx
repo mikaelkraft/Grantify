@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { ExternalLink, AlertTriangle, ShieldCheck, Info, Loader2, Star, CheckCircle, Zap, Award, Smartphone, MessageCircle, X, Send, CornerDownRight, ThumbsUp, ThumbsDown, Flag } from 'lucide-react';
 import { ApiService } from '../services/storage';
 import { AdSlot } from '../components/AdSlot';
 import { AdConfig, LoanProvider, ProviderReview } from '../types';
 
 export const LoanProviders: React.FC = () => {
+  const location = useLocation();
   const [providers, setProviders] = useState<LoanProvider[]>([]);
   const [ads, setAds] = useState<AdConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [highlightProviderId, setHighlightProviderId] = useState<string>('');
 
   // User submission (suggest a provider/app)
   const [showSuggestForm, setShowSuggestForm] = useState(false);
@@ -38,6 +41,8 @@ export const LoanProviders: React.FC = () => {
   const replyTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const myUserIdRef = useRef<string>('');
+  const providerCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const highlightTimeoutRef = useRef<number | null>(null);
   if (!myUserIdRef.current) {
     try {
       const key = 'grantify_uid';
@@ -66,6 +71,42 @@ export const LoanProviders: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    try {
+      const qs = new URLSearchParams(location.search || '');
+      const highlight = String(qs.get('highlight') || '').trim();
+      setHighlightProviderId(highlight);
+    } catch {
+      setHighlightProviderId('');
+    }
+  }, [location.search]);
+
+  useEffect(() => {
+    if (!highlightProviderId || isLoading || providers.length === 0) return;
+
+    const match = providers.find((p) => String(p.id || '') === highlightProviderId);
+    if (!match) return;
+
+    const key = String(match.id || '');
+    const el = providerCardRefs.current[key];
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    if (highlightTimeoutRef.current) {
+      window.clearTimeout(highlightTimeoutRef.current);
+    }
+    highlightTimeoutRef.current = window.setTimeout(() => {
+      setHighlightProviderId('');
+    }, 3500);
+
+    return () => {
+      if (highlightTimeoutRef.current) {
+        window.clearTimeout(highlightTimeoutRef.current);
+      }
+    };
+  }, [highlightProviderId, isLoading, providers]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -298,6 +339,39 @@ export const LoanProviders: React.FC = () => {
           </div>
         </div>
 
+        <div className="mb-12 rounded-[2rem] border border-gray-100 dark:border-gray-800 bg-gradient-to-br from-gray-900 via-gray-950 to-gray-900 text-white p-6 md:p-8 shadow-2xl relative overflow-hidden">
+          <div className="absolute -top-16 -right-16 w-40 h-40 bg-grantify-gold/10 rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-16 -left-16 w-40 h-40 bg-white/5 rounded-full blur-3xl"></div>
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+            <div className="max-w-2xl">
+              <p className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-gold mb-3">Partner With Grantify</p>
+              <h2 className="text-2xl md:text-3xl font-black leading-tight mb-3">Monetize your audience with featured placement, leads, and sponsored editorial.</h2>
+              <p className="text-sm md:text-base text-white/80 leading-relaxed max-w-xl">
+                Lenders and fintech brands can buy visibility where users are already comparing options. We offer featured listings, lead packages, and sponsored content placements that stay clearly labeled.
+              </p>
+            </div>
+            <Link
+              to="/contact"
+              className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all w-full lg:w-auto"
+            >
+              Get Featured <ExternalLink size={16} />
+            </Link>
+          </div>
+
+          <div className="relative z-10 grid gap-4 md:grid-cols-3 mt-6">
+            {[
+              { title: 'Featured Listing', copy: 'Top placement in the provider grid, badge styling, and priority discovery on high-intent traffic.' },
+              { title: 'Qualified Leads', copy: 'Pay for real enquiries from users who are actively comparing lenders and ready to apply.' },
+              { title: 'Sponsored Content', copy: 'Run labeled editorial placements in the blog and home page to build trust before the click.' },
+            ].map((item) => (
+              <div key={item.title} className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+                <div className="text-sm font-black uppercase tracking-widest text-grantify-gold mb-2">{item.title}</div>
+                <p className="text-sm text-white/75 leading-relaxed">{item.copy}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Suggest a Loan App */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm mb-12">
           <div className="p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -359,6 +433,8 @@ export const LoanProviders: React.FC = () => {
                     value={suggestForm.name || ''}
                     onChange={(e) => setSuggestForm(prev => ({ ...prev, name: e.target.value }))}
                     required
+                    placeholder="e.g. QuickCash Nigeria"
+                    title="App or provider name"
                   />
                 </div>
 
@@ -455,6 +531,8 @@ export const LoanProviders: React.FC = () => {
                     className="w-full p-3 rounded-xl bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 outline-none focus:ring-2 focus:ring-grantify-green"
                     value={Number(suggestForm.rating || 0)}
                     onChange={(e) => setSuggestForm(prev => ({ ...prev, rating: parseFloat(e.target.value) }))}
+                    placeholder="e.g. 4.5"
+                    title="Rating from 0 to 5"
                   />
                 </div>
 
@@ -496,17 +574,21 @@ export const LoanProviders: React.FC = () => {
           <section className="mb-16">
             <div className="flex items-center gap-2 mb-8 border-b pb-4">
               <Award className="text-grantify-gold" size={28} />
-              <h2 className="text-2xl font-black text-gray-800 dark:text-gray-100 uppercase tracking-tighter">Highly Recommended</h2>
+              <div>
+                <h2 className="text-2xl font-black text-gray-800 dark:text-gray-100 uppercase tracking-tighter">Highly Recommended</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-bold mt-1">Premium or featured placements can occupy this section.</p>
+              </div>
             </div>
             
             <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
               {providers.filter(p => p.isRecommended).map((provider, index) => (
                 <div 
                   key={provider.id || `rec-${index}`} 
-                  className="group relative bg-white dark:bg-gray-900 border-2 border-grantify-green/20 dark:border-gray-800 rounded-2xl p-6 transition-all duration-300 hover:shadow-2xl hover:border-grantify-green hover:-translate-y-1 overflow-hidden"
+                  ref={(el) => { if (provider.id != null) providerCardRefs.current[String(provider.id)] = el; }}
+                  className={`group relative bg-white dark:bg-gray-900 border-2 rounded-2xl p-6 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 overflow-hidden ${highlightProviderId && String(provider.id || '') === highlightProviderId ? 'border-grantify-gold ring-4 ring-grantify-gold/30 shadow-2xl -translate-y-1' : 'border-grantify-green/20 dark:border-gray-800 hover:border-grantify-green'}`}
                 >
                   <div className="absolute top-0 right-0 bg-grantify-green text-white text-[10px] font-black px-3 py-1 rounded-bl-lg uppercase tracking-widest">
-                    Top Pick
+                    Featured
                   </div>
 
                   <div className="flex items-center justify-between mb-4">
@@ -588,7 +670,8 @@ export const LoanProviders: React.FC = () => {
               {providers.filter(p => !p.isRecommended).map((provider, index) => (
                 <div 
                   key={provider.id || index} 
-                  className="bg-white dark:bg-gray-900 hover:bg-gray-50/50 dark:hover:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-6 transition-all duration-200 hover:shadow-lg flex flex-col h-full group"
+                  ref={(el) => { if (provider.id != null) providerCardRefs.current[String(provider.id)] = el; }}
+                  className={`bg-white dark:bg-gray-900 hover:bg-gray-50/50 dark:hover:bg-gray-900 border rounded-2xl p-6 transition-all duration-200 hover:shadow-lg flex flex-col h-full group ${highlightProviderId && String(provider.id || '') === highlightProviderId ? 'border-grantify-gold ring-4 ring-grantify-gold/30 shadow-xl' : 'border-gray-100 dark:border-gray-800'}`}
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-grow flex items-start gap-3">
@@ -705,6 +788,21 @@ export const LoanProviders: React.FC = () => {
           <p className="text-gray-400 text-[10px] font-black uppercase tracking-[0.2em]">
             Information last updated: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} • Grantify Data Engine
           </p>
+        </div>
+
+        <div className="mt-12 rounded-[2rem] border border-gray-100 dark:border-gray-800 bg-gray-900 text-white p-6 md:p-8 shadow-2xl">
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+            <div className="max-w-2xl">
+              <p className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-gold mb-3">Monetize This Directory</p>
+              <h2 className="text-2xl md:text-3xl font-black leading-tight mb-3">Buy placement where users are actively choosing a lender.</h2>
+              <p className="text-sm md:text-base text-white/80 leading-relaxed">
+                Upgrade to a featured slot, run a sponsored listing, or capture lead-intent traffic from people comparing offers in real time.
+              </p>
+            </div>
+            <Link to="/contact" className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all w-full lg:w-auto">
+              Request Pricing <ExternalLink size={16} />
+            </Link>
+          </div>
         </div>
       </div>
 

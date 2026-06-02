@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { BlogPost } from '../types';
 import { ThumbsUp, ChevronRight, Eye } from 'lucide-react';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
-import { derivePostImage } from '../utils/blogImage';
+import { derivePostImage, withImageCacheBuster } from '../utils/blogImage';
 import { makeBlogPath } from '../utils/blogRouting';
 
 interface Props {
@@ -45,14 +45,24 @@ export const BlogSlider: React.FC<Props> = ({ posts }) => {
                 className="block h-full bg-gray-50 dark:bg-gray-900 rounded-[2rem] border border-gray-100 dark:border-gray-800 overflow-hidden hover:shadow-2xl transition-all duration-500 group/card hover:-translate-y-2"
               >
                 <div className="h-40 relative overflow-hidden">
+                  {(() => {
+                    const derived = derivePostImage(post);
+                    const src = derived
+                      ? withImageCacheBuster(derived, post.updatedAt || post.id)
+                      : getBlogPlaceholderImage(post.title);
+                    return (
                   <img
-                    src={derivePostImage(post) || getBlogPlaceholderImage(post.title)}
+                    src={src}
                     alt={post.title}
-                    className="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-700"
+                    className={derived
+                      ? 'w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-700'
+                      : 'w-full h-full object-contain p-6'}
                     loading="lazy"
                   />
+                    );
+                  })()}
                   <div className="absolute top-4 left-4">
-                    <span className="bg-white/90 backdrop-blur-sm text-grantify-green text-[9px] font-black px-2 py-1 rounded-full uppercase tracking-tighter">
+                    <span className="bg-gray-50/90 dark:bg-gray-950/80 backdrop-blur-sm border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-200 text-[9px] font-black px-2 py-1 rounded-full uppercase tracking-tighter">
                       {post.category}
                     </span>
                   </div>

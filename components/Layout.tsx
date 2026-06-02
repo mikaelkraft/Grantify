@@ -259,11 +259,11 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   };
 
   const navLinks = [
-    { to: "/", label: "Home" },
-    { to: "/blog", label: "Blog Intel" },
-    { to: "/loan-providers", label: "Instant Loans" },
-    { to: "/contact", label: "Contact Us" },
-    { to: "/admin", label: "Admin Login" },
+    { to: "/", label: "Home", shortLabel: "Home" },
+    { to: "/blog", label: "Blog Intel", shortLabel: "Blog" },
+    { to: "/loan-providers", label: "Instant Loans", shortLabel: "Loans" },
+    { to: "/contact", label: "Contact Us", shortLabel: "Contact" },
+    { to: "/admin", label: "Admin Login", shortLabel: "Admin" },
   ];
 
   return (
@@ -396,7 +396,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             <img
               src="/logo.svg"
               alt="Grantify"
-              className="w-8 h-8"
+              className="w-7 h-7"
               loading="eager"
               decoding="async"
             />
@@ -419,7 +419,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                     void ensureSearchIndex();
                   }}
                   placeholder="Search blog, loans, grants…"
-                  className="w-[280px] lg:w-[360px] bg-transparent outline-none text-sm placeholder:text-white/70"
+                  className="w-[160px] md:w-[220px] lg:w-[300px] bg-transparent outline-none text-sm placeholder:text-white/70"
                   aria-label="Search"
                 />
                 {Boolean(searchQuery.trim()) && (
@@ -457,27 +457,14 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                     <div className="max-h-[360px] overflow-y-auto">
                       {searchResults.map((r) => (
                         <div key={r.key} className="border-b border-gray-50 dark:border-gray-900 last:border-b-0">
-                          {r.type === 'grant' ? (
-                            <a
-                              href={r.href}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900"
-                              onClick={() => setIsSearchOpen(false)}
-                            >
-                              <div className="text-sm font-black text-grantify-green">{r.title}</div>
-                              {r.subtitle && <div className="text-xs text-gray-500 dark:text-gray-400 font-bold">{r.subtitle}</div>}
-                            </a>
-                          ) : (
-                            <Link
-                              to={r.to}
-                              className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900"
-                              onClick={() => setIsSearchOpen(false)}
-                            >
-                              <div className="text-sm font-black text-grantify-green">{r.title}</div>
-                              {r.subtitle && <div className="text-xs text-gray-500 dark:text-gray-400 font-bold">{r.subtitle}</div>}
-                            </Link>
-                          )}
+                          <Link
+                            to={r.to}
+                            className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900"
+                            onClick={() => setIsSearchOpen(false)}
+                          >
+                            <div className="text-sm font-black text-grantify-green">{r.title}</div>
+                            {r.subtitle && <div className="text-xs text-gray-500 dark:text-gray-400 font-bold">{r.subtitle}</div>}
+                          </Link>
                         </div>
                       ))}
                     </div>
@@ -486,14 +473,15 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               )}
             </div>
 
-            <nav className="flex gap-6 items-center">
+            <nav className="flex gap-4 md:gap-6 items-center text-sm">
             {navLinks.map(link => (
               <Link 
                 key={link.to} 
                 to={link.to} 
-                className={`hover:text-grantify-gold transition-colors font-medium ${location.pathname === link.to ? 'text-grantify-gold border-b-2 border-grantify-gold' : ''}`}
+                className={`hover:text-grantify-gold transition-colors font-medium px-2 py-1 rounded-sm ${location.pathname === link.to ? 'text-grantify-gold border-b-2 border-grantify-gold' : ''}`}
               >
-                {link.label}
+                <span className="sm:hidden">{link.shortLabel}</span>
+                <span className="hidden sm:inline">{link.label}</span>
               </Link>
             ))}
 
@@ -511,7 +499,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           </div>
 
           {/* Mobile actions */}
-          <div className="md:hidden flex items-center gap-2">
+          <div className="md:hidden flex items-center gap-2 text-sm">
             <button
               type="button"
               onClick={() => {
@@ -535,7 +523,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             </button>
 
             <button 
-              className="text-white p-2"
+              className="text-white p-1"
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
@@ -583,31 +571,18 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                   <div className="p-4 text-sm text-gray-500 dark:text-gray-400">No results found.</div>
                 ) : (
                   <div className="max-h-[320px] overflow-y-auto">
-                    {searchResults.map((r) => (
-                      <div key={r.key} className="border-b border-gray-50 dark:border-gray-900 last:border-b-0">
-                        {r.type === 'grant' ? (
-                          <a
-                            href={r.href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900"
-                            onClick={() => setIsSearchOpen(false)}
-                          >
-                            <div className="text-sm font-black text-grantify-green">{r.title}</div>
-                            {r.subtitle && <div className="text-xs text-gray-500 dark:text-gray-400 font-bold">{r.subtitle}</div>}
-                          </a>
-                        ) : (
-                          <Link
-                            to={r.to}
-                            className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900"
-                            onClick={() => setIsSearchOpen(false)}
-                          >
-                            <div className="text-sm font-black text-grantify-green">{r.title}</div>
-                            {r.subtitle && <div className="text-xs text-gray-500 dark:text-gray-400 font-bold">{r.subtitle}</div>}
-                          </Link>
-                        )}
-                      </div>
-                    ))}
+                        {searchResults.map((r) => (
+                          <div key={r.key} className="border-b border-gray-50 dark:border-gray-900 last:border-b-0">
+                            <Link
+                              to={r.to}
+                              className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900"
+                              onClick={() => setIsSearchOpen(false)}
+                            >
+                              <div className="text-sm font-black text-grantify-green">{r.title}</div>
+                              {r.subtitle && <div className="text-xs text-gray-500 dark:text-gray-400 font-bold">{r.subtitle}</div>}
+                            </Link>
+                          </div>
+                        ))}
                   </div>
                 )}
               </div>

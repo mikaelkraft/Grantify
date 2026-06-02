@@ -1,6 +1,7 @@
 import {
   Shield,
   LogOut,
+  User,
   Plus,
   Save,
   MessageSquare,
@@ -17,7 +18,7 @@ import {
   Flag,
   X,
 } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useTransition } from 'react';
 import { ApiService } from '../services/storage';
 import { AdminUser, LoanApplication, Testimonial, AdConfig, UserRole, RepaymentContent, LoanProvider, LoanProviderSubmission, BlogPost, ProviderReview, ContactMessage, ContentFlag } from '../types';
 import ReactQuill from 'react-quill-new';
@@ -40,6 +41,15 @@ export const Admin: React.FC = () => {
   });
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  const [profileForm, setProfileForm] = useState({
+    name: '',
+    username: '',
+    currentPassword: '',
+    newPassword: '',
+    confirmNewPassword: '',
+  });
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
   
   const [activeTab, setActiveTab] = useState('applications');
   const [isLoading, setIsLoading] = useState(false);
@@ -55,13 +65,39 @@ export const Admin: React.FC = () => {
   const [autoblogLastSuccessRun, setAutoblogLastSuccessRun] = useState<any>(null);
   const [autoblogLastErrorRun, setAutoblogLastErrorRun] = useState<any>(null);
   const [isSavingAutoblog, setIsSavingAutoblog] = useState(false);
+  const [isRunningDailyCron, setIsRunningDailyCron] = useState(false);
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loanProviders, setLoanProviders] = useState<LoanProvider[]>([]);
   const [loanProviderSubmissions, setLoanProviderSubmissions] = useState<LoanProviderSubmission[]>([]);
   const [allReviews, setAllReviews] = useState<ProviderReview[]>([]);
   const [includeHiddenReviews, setIncludeHiddenReviews] = useState(false);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [selectedBlogPostIds, setSelectedBlogPostIds] = useState<Set<string>>(new Set());
+
+  const categoryOptions = React.useMemo(() => {
+    const base = [
+      'Funding','Grants','Loans','Technology','Finance','Agriculture','Energy','Manufacturing','Health','Education','Creative Economy','Women & Youth','Policy','Strategy'
+    ];
+    const seen = new Set<string>(base.map(s => s.trim()));
+    const extras: string[] = [];
+    for (const p of blogPosts) {
+      const c = String(p.category || '').trim();
+      if (!c) continue;
+      if (!seen.has(c)) {
+        seen.add(c);
+        extras.push(c);
+      }
+    }
+    // Keep base first, then extras alphabetically
+    extras.sort((a,b) => a.localeCompare(b));
+    return base.concat(extras);
+  }, [blogPosts]);
   const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
+
+  // Sponsored listings state
+  const [sponsoredPricing, setSponsoredPricing] = useState<Array<any>>([]);
+  const [sponsoredListingsAdmin, setSponsoredListingsAdmin] = useState<Array<any>>([]);
+  const [isLoadingSponsored, setIsLoadingSponsored] = useState(false);
 
   // Smart Writer helpers
   const [smartWriteInstructions, setSmartWriteInstructions] = useState('');
@@ -105,8 +141,14 @@ export const Admin: React.FC = () => {
   const [isEditingPost, setIsEditingPost] = useState(false);
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [autoLinkUrls, setAutoLinkUrls] = useState(true);
-  const [oneDriveStatus, setOneDriveStatus] = useState<{ enabled: boolean; provider: string; connected: boolean } | null>(null);
+  const [oneDriveStatus, setOneDriveStatus] = useState<{ enabled: boolean; provider: string; connected: boolean; needsReconnect?: boolean; error?: string } | null>(null);
   const oneDriveStatusRef = useRef<typeof oneDriveStatus>(null);
+
+  const [isUploadingFeaturedImage, setIsUploadingFeaturedImage] = useState(false);
+  const [featuredImageLocalPreview, setFeaturedImageLocalPreview] = useState<string>('');
+
+  const [isHydratingSelectedPost, setIsHydratingSelectedPost] = useState(false);
+  const [, startTransition] = useTransition();
 
   const formatCronSource = (run: any) => (run?.is_vercel_cron ? 'vercel' : 'manual');
 
@@ -115,19 +157,57 @@ export const Admin: React.FC = () => {
   }, [oneDriveStatus]);
 
   useEffect(() => {
+    if (!user) return;
+    setProfileForm({
+      name: user.name || '',
+      username: user.username || '',
+      currentPassword: '',
+      newPassword: '',
+      confirmNewPassword: '',
+    });
+  }, [user?.id]);
+
+  useEffect(() => {
     let canceled = false;
     let intervalId: number | null = null;
+
+    // If URL contains ?tab=sponsored (or other tab), open that tab on mount
+    try {
+      const qs = new URLSearchParams(window.location.search || '');
+      const requested = qs.get('tab');
+      if (requested && !canceled) setActiveTab(requested);
+    } catch {}
 
     const fetchStatus = async () => {
       if (!user) return;
       if (activeTab !== 'blog') return;
       try {
-        const status = await ApiService.getOneDriveStatus();
+        const status = await ApiService.getDriveStatus();
         if (!canceled) setOneDriveStatus(status);
       } catch {
         if (!canceled) setOneDriveStatus(null);
       }
     };
+
+    // Load sponsored data when this tab is active
+    const loadSponsored = async () => {
+      if (!user || activeTab !== 'sponsored') return;
+      setIsLoadingSponsored(true);
+      try {
+        const pricing = await ApiService.getSponsoredPricing();
+        setSponsoredPricing(pricing || []);
+        const listings = await ApiService.getActiveSponsoredListings();
+        setSponsoredListingsAdmin(listings || []);
+      } catch (err) {
+        console.warn('Failed to load sponsored data', err);
+      } finally {
+        setIsLoadingSponsored(false);
+      }
+    };
+
+    if (user && activeTab === 'sponsored') {
+      loadSponsored();
+    }
 
     const onFocus = () => {
       fetchStatus();
@@ -141,7 +221,7 @@ export const Admin: React.FC = () => {
       intervalId = window.setInterval(() => {
         const s = oneDriveStatusRef.current;
         if (!s) return;
-        if (s.enabled && s.provider === 'onedrive' && !s.connected) {
+        if (s.enabled && s.provider === 'gdrive' && !s.connected) {
           fetchStatus();
         }
       }, 8000);
@@ -218,6 +298,68 @@ export const Admin: React.FC = () => {
       return html;
     }
   };
+
+    // Client-side sanitizer to mirror backend: remove Sources/Related reads
+    // blocks and strip anecdotal first-person sentences from paragraphs.
+    const sanitizeEditorHtml = (html: string): string => {
+      if (!html || typeof html !== 'string') return html;
+      try {
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+
+        // Remove <h3>Sources</h3> + following <ul>
+        const h3s = Array.from(doc.querySelectorAll('h3'));
+        for (const h of h3s) {
+          const txt = (h.textContent || '').trim().toLowerCase();
+          if (txt === 'sources' || txt.startsWith('related')) {
+            const next = h.nextElementSibling;
+            if (next && (next.tagName === 'UL' || next.tagName === 'P')) next.remove();
+            h.remove();
+          }
+        }
+
+        // Remove inline "Also read" strong anchors
+        const strongs = Array.from(doc.querySelectorAll('strong'));
+        for (const s of strongs) {
+          if ((s.textContent || '').toLowerCase().includes('also read')) {
+            s.remove();
+          }
+        }
+
+        const paras = Array.from(doc.querySelectorAll('p'));
+        for (const p of paras) {
+          const text = p.textContent || '';
+          const sentences = String(text).split(/(?<=[.!?])\s+/);
+          const filtered = sentences.filter((sent) => {
+            const s = String(sent || '').trim();
+            const low = s.toLowerCase();
+            if (/^as\s+(i|we|she|he|they|you)\b/i.test(s)) return false;
+            if (/\b(i\s+(was|met|visited|spent|joined|accompanied)\b|we\s+(visited|met|were|spent)\b)/i.test(s)) return false;
+            if (/\b(today i|yesterday i|this morning i|this afternoon i|i was with|i met with|we met with|we were with|i spent the day|i visited)\b/i.test(low)) return false;
+            if (/^as\s+[A-Za-z]+/i.test(s)) return false;
+            return true;
+          });
+          let out = filtered.join(' ');
+          // Limit repeated 'Nigeria' mentions
+          const country = 'Nigeria';
+          const parts = out.split(new RegExp(`(${country})`, 'gi'));
+          if (parts.length > 3) {
+            let seen = 0;
+            out = parts.map(p => {
+              if (p.toLowerCase() === country.toLowerCase()) {
+                seen += 1;
+                return seen === 1 ? p : 'the country';
+              }
+              return p;
+            }).join('');
+          }
+          p.textContent = out;
+        }
+
+        return doc.body.innerHTML;
+      } catch {
+        return html;
+      }
+    };
 
   const quillRef = React.useRef<any>(null);
   const inlineImageInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -300,6 +442,12 @@ export const Admin: React.FC = () => {
       return;
     }
 
+    const supportedTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+    if (!supportedTypes.has(file.type)) {
+      alert("Unsupported image type. Please use JPG, PNG, WEBP, or GIF. (HEIC/HEIF from iPhone galleries won't display.)");
+      return;
+    }
+
     try {
       const url = await ApiService.uploadImage(file, { folder: 'blog-images' });
       insertQuillEmbed('image', url);
@@ -310,7 +458,7 @@ export const Admin: React.FC = () => {
 
       if (connectUrl) {
         try { window.open(connectUrl, '_blank', 'noopener,noreferrer'); } catch {}
-        alert('OneDrive is not connected yet. A OneDrive consent page was opened; complete it, then retry the upload.');
+        alert('Cloud storage is not connected yet. A consent page was opened; complete it, then retry the upload.');
         return;
       }
 
@@ -319,18 +467,10 @@ export const Admin: React.FC = () => {
         return;
       }
 
-      // Fallback: embed as base64 (keeps editor usable if storage is temporarily unavailable).
-      console.warn('Offsite image upload failed; falling back to base64', err);
+      console.warn('Offsite inline image upload failed', err);
+      alert(String(err?.message || 'Failed to upload image. Please try again.'));
+      return;
     }
-
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result || ''));
-      reader.onerror = () => reject(new Error('Failed to read image file'));
-      reader.readAsDataURL(file);
-    });
-
-    insertQuillEmbed('image', dataUrl);
   };
 
   const quillModules = {
@@ -465,6 +605,42 @@ export const Admin: React.FC = () => {
     }
   };
 
+  const handleRunDailyCron = async (force: boolean) => {
+    const ok = window.confirm(force
+      ? 'Run the daily autoblog now (FORCE)? This will publish even if a daily post already exists today.'
+      : 'Run the daily autoblog now? This may skip if today\'s daily post already exists.'
+    );
+    if (!ok) return;
+
+    setIsRunningDailyCron(true);
+    try {
+      const res = await ApiService.triggerDailyBlogCron({ force });
+      if (res?.skipped) {
+        alert(res?.reason ? `Skipped: ${res.reason}` : 'Skipped');
+      } else if (res?.id) {
+        alert(`Posted. ID: ${res.id}${res?.title ? `\nTitle: ${res.title}` : ''}`);
+      } else {
+        alert('Triggered.');
+      }
+      void refreshData();
+    } catch (e: any) {
+      alert(e?.message || 'Failed to run daily cron');
+    } finally {
+      setIsRunningDailyCron(false);
+    }
+  };
+
+  const handleDeleteContactMessage = async (id: string) => {
+    const ok = window.confirm('Delete this contact message? This cannot be undone.');
+    if (!ok) return;
+    try {
+      await ApiService.deleteContactMessage(String(id));
+      setContactMessages(prev => prev.filter(m => String(m.id) !== String(id)));
+    } catch (e: any) {
+      alert(e?.message || 'Failed to delete contact message');
+    }
+  };
+
   const refreshFlagsInbox = async () => {
     setIsLoading(true);
     try {
@@ -497,6 +673,58 @@ export const Admin: React.FC = () => {
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem('admin_session');
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    const wantsPasswordChange = Boolean(profileForm.newPassword || profileForm.confirmNewPassword);
+    if (wantsPasswordChange) {
+      if (!profileForm.currentPassword) {
+        alert('Enter your current password to change your password.');
+        return;
+      }
+      if (!profileForm.newPassword) {
+        alert('Enter a new password.');
+        return;
+      }
+      if (profileForm.newPassword !== profileForm.confirmNewPassword) {
+        alert('New passwords do not match.');
+        return;
+      }
+      if (profileForm.newPassword.length < 6) {
+        alert('New password must be at least 6 characters.');
+        return;
+      }
+    }
+
+    setIsSavingProfile(true);
+    try {
+      const updated = await ApiService.updateMyProfile({
+        name: profileForm.name,
+        username: profileForm.username,
+        currentPassword: wantsPasswordChange ? profileForm.currentPassword : undefined,
+        newPassword: wantsPasswordChange ? profileForm.newPassword : undefined,
+      });
+
+      setUser(updated);
+      localStorage.setItem('admin_session', JSON.stringify(updated));
+      setAdmins(prev => prev.map(a => (a.id === updated.id ? { ...a, ...updated } : a)));
+
+      setProfileForm(prev => ({
+        ...prev,
+        currentPassword: '',
+        newPassword: '',
+        confirmNewPassword: '',
+      }));
+
+      alert('Profile updated.');
+    } catch (e: any) {
+      alert(e?.message || 'Failed to update profile');
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
   const exportApplicationsCSV = () => {
@@ -809,7 +1037,53 @@ export const Admin: React.FC = () => {
     }
   };
 
+  const isAutodraftPost = (post: BlogPost) => Array.isArray(post.tags) && post.tags.map(String).some(t => t.toLowerCase() === 'autodraft');
+
+  const handleBulkApproveBlogPosts = async () => {
+    const ids = Array.from(selectedBlogPostIds);
+    if (ids.length === 0) return;
+    const ok = window.confirm(`Approve and publish ${ids.length} post(s)? This removes the autodraft tag.`);
+    if (!ok) return;
+
+    setIsSavingPost(true);
+    try {
+      for (const id of ids) {
+        const post = blogPosts.find(p => String(p.id) === String(id));
+        if (!post) continue;
+        const nextTags = (Array.isArray(post.tags) ? post.tags.filter(t => String(t).toLowerCase() !== 'autodraft') : []);
+        await ApiService.submitBlogAction({
+          action: 'update',
+          id: String(post.id),
+          title: post.title,
+          content: post.content,
+          author: post.author,
+          authorRole: post.authorRole,
+          category: post.category,
+          image: post.image || '',
+          tags: nextTags,
+          sourceName: post.sourceName || '',
+          sourceUrl: post.sourceUrl || '',
+          views: post.views,
+          likes: post.likes,
+          loves: post.loves,
+          claps: post.claps,
+          createdAt: post.createdAt
+        });
+      }
+
+      setSelectedBlogPostIds(new Set());
+      await refreshData();
+      alert('Selected posts approved and published.');
+    } catch (e: any) {
+      alert(e?.message || 'Failed to approve selected posts');
+    } finally {
+      setIsSavingPost(false);
+    }
+  };
+
   const [pendingEditPostId, setPendingEditPostId] = useState<string | null>(null);
+  const [featuredImageUploadKey, setFeaturedImageUploadKey] = useState(0);
+  const [featuredImagePreviewNonce, setFeaturedImagePreviewNonce] = useState(0);
 
   useEffect(() => {
     try {
@@ -847,9 +1121,41 @@ export const Admin: React.FC = () => {
       return;
     }
 
+    const supportedTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+    if (!supportedTypes.has(file.type)) {
+      alert("Unsupported image type. Please use JPG, PNG, WEBP, or GIF. (HEIC/HEIF from iPhone galleries won't display.)");
+      return;
+    }
+
+    const localPreviewUrl = (() => {
+      try {
+        return URL.createObjectURL(file);
+      } catch {
+        return '';
+      }
+    })();
+
+    if (localPreviewUrl) {
+      setFeaturedImageLocalPreview((prev) => {
+        try { if (prev) URL.revokeObjectURL(prev); } catch {}
+        return localPreviewUrl;
+      });
+      setFeaturedImagePreviewNonce((n) => n + 1);
+    }
+
+    setIsUploadingFeaturedImage(true);
+
     try {
       const url = await ApiService.uploadImage(file, { folder: 'blog-images' });
       setNewPost(prev => ({ ...prev, image: url }));
+      setFeaturedImageLocalPreview((prev) => {
+        try { if (prev) URL.revokeObjectURL(prev); } catch {}
+        return '';
+      });
+      // Ensure the preview refreshes even on aggressive mobile caches.
+      setFeaturedImagePreviewNonce((n) => n + 1);
+      // Reset file input so selecting the same file again re-triggers onChange.
+      setFeaturedImageUploadKey((k) => k + 1);
       return;
     } catch (err: any) {
       const connectUrl = String(err?.connectUrl || '').trim();
@@ -857,7 +1163,7 @@ export const Admin: React.FC = () => {
 
       if (connectUrl) {
         try { window.open(connectUrl, '_blank', 'noopener,noreferrer'); } catch {}
-        alert('OneDrive is not connected yet. A OneDrive consent page was opened; complete it, then retry the upload.');
+        alert('Cloud storage is not connected yet. A consent page was opened; complete it, then retry the upload.');
         return;
       }
 
@@ -866,17 +1172,22 @@ export const Admin: React.FC = () => {
         return;
       }
 
-      console.warn('Offsite featured image upload failed; falling back to base64', err);
+      console.warn('Offsite featured image upload failed', err);
+      alert(String(err?.message || 'Failed to upload image. Please try again.'));
+      // Keep the current URL unchanged. Avoid base64 fallback because it produces huge data: URLs
+      // that are unreliable on mobile and can break saving/rendering.
+      // Keep the local preview if the post previously had no image, so the user still sees what they picked.
+      if (String(newPost.image || '').trim()) {
+        setFeaturedImageLocalPreview((prev) => {
+          try { if (prev) URL.revokeObjectURL(prev); } catch {}
+          return '';
+        });
+      }
+      setFeaturedImageUploadKey((k) => k + 1);
+      return;
+    } finally {
+      setIsUploadingFeaturedImage(false);
     }
-
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result || ''));
-      reader.onerror = () => reject(new Error('Failed to read image file'));
-      reader.readAsDataURL(file);
-    });
-
-    setNewPost(prev => ({ ...prev, image: dataUrl }));
   };
 
   const handleAddBlogPost = async (e: React.FormEvent) => {
@@ -884,10 +1195,14 @@ export const Admin: React.FC = () => {
     setIsSavingPost(true);
     setPostSaveNotice(null);
     try {
+      let content = autoLinkUrls ? linkifyHtml(newPost.content) : newPost.content;
+      // sanitize AI output / pasted HTML before submit (defense in depth)
+      content = sanitizeEditorHtml(content);
+
       const payload = {
         ...newPost,
         image: (newPost.image || '').trim(),
-        content: autoLinkUrls ? linkifyHtml(newPost.content) : newPost.content
+        content
       };
 
       if (isEditingPost && newPost.id) {
@@ -984,10 +1299,16 @@ export const Admin: React.FC = () => {
   }, [pendingEditPostId, blogPosts]);
 
   const handleEditBlogPost = (post: BlogPost) => {
+    // On some mobile Chrome builds, deferred/staged hydration can occasionally
+    // result in ReactQuill never receiving the final HTML (appearing "blank").
+    // Prefer setting content synchronously for reliability.
+    setIsHydratingSelectedPost(true);
+    setIsEditingPost(true);
+
     setNewPost({
       id: post.id,
       title: post.title,
-      content: post.content,
+      content: post.content || '',
       author: post.author,
       authorRole: post.authorRole,
       category: post.category,
@@ -1001,8 +1322,9 @@ export const Admin: React.FC = () => {
       claps: post.claps,
       createdAt: post.createdAt
     });
-    setIsEditingPost(true);
+
     document.getElementById('new-post-form')?.scrollIntoView({ behavior: 'smooth' });
+    window.setTimeout(() => setIsHydratingSelectedPost(false), 0);
   };
 
   const handleAiSmartWrite = async () => {
@@ -1121,12 +1443,38 @@ export const Admin: React.FC = () => {
       <div className="flex flex-col md:flex-row h-full flex-grow">
         {/* Sidebar Tabs */}
         <div className="w-full md:w-64 bg-gray-100 dark:bg-gray-950 p-4 space-y-2 border-r border-gray-200 dark:border-gray-800">
-           {[
+           <button
+             type="button"
+             onClick={() => {
+               setActiveTab('admins');
+               window.setTimeout(() => document.getElementById('my-profile')?.scrollIntoView({ behavior: 'smooth' }), 0);
+             }}
+             className={`w-full flex items-center gap-2 p-3 rounded transition ${activeTab === 'admins' ? 'bg-grantify-green text-white shadow-md' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
+             title="Edit your profile"
+           >
+             <User size={18} /> My Profile
+           </button>
+
+           {user.role === UserRole.SUPER_ADMIN && (
+             <button
+               type="button"
+               onClick={() => {
+                 setActiveTab('admins');
+                 window.setTimeout(() => document.getElementById('manage-admins')?.scrollIntoView({ behavior: 'smooth' }), 0);
+               }}
+               className={`w-full flex items-center gap-2 p-3 rounded transition ${activeTab === 'admins' ? 'bg-grantify-green text-white shadow-md' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
+               title="Manage administrator accounts"
+             >
+               <Shield size={18} /> Manage Admins
+             </button>
+           )}
+
+            {[
              {id: 'applications', label: 'Applications'},
              {id: 'testimonials', label: 'Testimonials'},
              {id: 'ads', label: 'Ad Management'},
              {id: 'providers', label: 'Loan Providers'},
-             {id: 'contact', label: 'Contact Messages'},
+             {id: 'sponsored', label: 'Sponsored Listings'},
              {id: 'content', label: 'Page Content'}
            ].map(tab => (
              <button
@@ -1137,6 +1485,8 @@ export const Admin: React.FC = () => {
                {tab.label}
              </button>
            ))}
+
+          {/* Sponsored Listings content loaded when selected */}
 
            {/* Explicit buttons for reviews and blog with icons */}
            <button 
@@ -1168,14 +1518,12 @@ export const Admin: React.FC = () => {
            </button>
 
            {/* Super Admin Only Tab */}
-           {user.role === UserRole.SUPER_ADMIN && (
-             <button
-               onClick={() => setActiveTab('admins')}
-               className={`w-full text-left px-4 py-2 rounded mt-4 border-t border-gray-300 dark:border-gray-800 pt-4 flex items-center gap-2 transition ${activeTab === 'admins' ? 'bg-grantify-green text-white' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
-             >
-               <Shield size={16}/> Manage Admins
-             </button>
-           )}
+           <button
+             onClick={() => setActiveTab('admins')}
+             className={`w-full text-left px-4 py-2 rounded mt-4 border-t border-gray-300 dark:border-gray-800 pt-4 flex items-center gap-2 transition ${activeTab === 'admins' ? 'bg-grantify-green text-white' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
+           >
+             <Shield size={16}/> {user.role === UserRole.SUPER_ADMIN ? 'Admins & Profile' : 'My Profile'}
+           </button>
         </div>
 
         {/* Content Area */}
@@ -1223,12 +1571,13 @@ export const Admin: React.FC = () => {
                           <th className="p-3 text-left">From</th>
                           <th className="p-3 text-left">Subject</th>
                           <th className="p-3 text-left">Message</th>
+                          <th className="p-3 text-left">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                         {contactMessages.length === 0 ? (
                           <tr>
-                            <td className="p-4 text-gray-500" colSpan={4}>No messages yet.</td>
+                            <td className="p-4 text-gray-500" colSpan={5}>No messages yet.</td>
                           </tr>
                         ) : (
                           contactMessages.map((m) => (
@@ -1243,6 +1592,17 @@ export const Admin: React.FC = () => {
                               </td>
                               <td className="p-3 text-xs font-bold text-gray-800 dark:text-gray-100">{m.subject}</td>
                               <td className="p-3 text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{m.message}</td>
+                              <td className="p-3 whitespace-nowrap">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteContactMessage(String(m.id))}
+                                  className="text-red-600 hover:bg-red-100 dark:hover:bg-red-950/30 p-2 rounded"
+                                  title="Delete message"
+                                  aria-label="Delete message"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </td>
                             </tr>
                           ))
                         )}
@@ -1285,7 +1645,7 @@ export const Admin: React.FC = () => {
                               <p className="text-[10px] text-gray-400 line-clamp-1">{app.purpose}</p>
                             </td>
                             <td className="p-3">
-                              <span className="text-xs bg-grantify-gold/20 text-grantify-green font-black px-2 py-0.5 rounded uppercase">
+                              <span className="text-xs bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-200 font-black px-2 py-0.5 rounded uppercase">
                                 {app.matchedNetwork || 'General'}
                               </span>
                             </td>
@@ -1646,20 +2006,37 @@ export const Admin: React.FC = () => {
                         )}
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={handleToggleAutoblog}
-                        disabled={isSavingAutoblog}
-                        className={`flex items-center gap-2 px-3 py-2 rounded text-xs font-black uppercase border transition ${autoblogEnabled
-                          ? 'bg-grantify-green text-white border-green-700 hover:bg-green-800'
-                          : 'bg-gray-100 dark:bg-gray-950 text-gray-800 dark:text-gray-100 border-gray-300 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-900'
-                        } ${isSavingAutoblog ? 'opacity-60 cursor-not-allowed' : ''}`}
-                        aria-label={autoblogEnabled ? 'Disable autoblog' : 'Enable autoblog'}
-                        title={autoblogEnabled ? 'Disable autoblog' : 'Enable autoblog'}
-                      >
-                        {isSavingAutoblog ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
-                        {autoblogEnabled ? 'Enabled' : 'Disabled'}
-                      </button>
+                      <div className="flex flex-col items-end gap-2">
+                        <button
+                          type="button"
+                          onClick={handleToggleAutoblog}
+                          disabled={isSavingAutoblog}
+                          className={`flex items-center gap-2 px-3 py-2 rounded text-xs font-black uppercase border transition ${autoblogEnabled
+                            ? 'bg-grantify-green text-white border-green-700 hover:bg-green-800'
+                            : 'bg-gray-100 dark:bg-gray-950 text-gray-800 dark:text-gray-100 border-gray-300 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-900'
+                          } ${isSavingAutoblog ? 'opacity-60 cursor-not-allowed' : ''}`}
+                          aria-label={autoblogEnabled ? 'Disable autoblog' : 'Enable autoblog'}
+                          title={autoblogEnabled ? 'Disable autoblog' : 'Enable autoblog'}
+                        >
+                          {isSavingAutoblog ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+                          {autoblogEnabled ? 'Enabled' : 'Disabled'}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleRunDailyCron(true)}
+                          disabled={isRunningDailyCron}
+                          className={`flex items-center gap-2 px-3 py-2 rounded text-xs font-black uppercase border transition ${isRunningDailyCron
+                            ? 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-950 text-gray-800 dark:text-gray-100 border-gray-300 dark:border-gray-700'
+                            : 'bg-gray-900 dark:bg-gray-950 text-white border-gray-900 dark:border-gray-700 hover:bg-gray-800'}
+                          `}
+                          aria-label="Run daily autoblog now (force)"
+                          title="Run daily autoblog now (force)"
+                        >
+                          {isRunningDailyCron ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+                          Run Now (Force)
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2084,6 +2461,138 @@ export const Admin: React.FC = () => {
                 </div>
               )}
               {/* Blog Management Tab */}
+              {activeTab === 'sponsored' && (
+                <div className="max-w-4xl mx-auto">
+                  <div className="flex justify-between items-center mb-4">
+                    <div>
+                      <h3 className="text-xl font-bold">Sponsored Listings</h3>
+                      <p className="text-sm text-gray-500">Manage pricing tiers and sponsored purchases. Mark purchases as paid to activate featured listings.</p>
+                    </div>
+                  </div>
+
+                  {isLoadingSponsored ? (
+                    <div className="text-gray-500">Loading sponsored data...</div>
+                  ) : (
+                    <>
+                      <div className="mb-6">
+                        <h4 className="font-bold mb-2">Pricing Tiers</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          {sponsoredPricing.map((p) => (
+                            <div key={p.id} className="p-3 border rounded bg-gray-50 dark:bg-gray-800">
+                              <div className="text-sm font-bold">{p.tierName}</div>
+                              <div className="text-xs text-gray-600 dark:text-gray-300">{p.description}</div>
+                              <div className="mt-2 text-sm font-mono">{(p.priceCents/100).toLocaleString(undefined, {style:'currency', currency:'NGN'})} for {p.durationDays} days</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-bold mb-2">Active / Recent Purchases</h4>
+                          <div className="flex items-center gap-2">
+                            <select id="csvStatusFilter" aria-label="CSV status filter" title="Status filter" className="text-sm p-1 rounded border">
+                              <option value="">All</option>
+                              <option value="pending">Pending</option>
+                              <option value="paid">Paid</option>
+                              <option value="cancelled">Cancelled</option>
+                            </select>
+                            <input id="csvStartDate" type="date" aria-label="CSV start date" title="Start date" className="text-sm p-1 rounded border" />
+                            <input id="csvEndDate" type="date" aria-label="CSV end date" title="End date" className="text-sm p-1 rounded border" />
+                            <button
+                              onClick={async () => {
+                                try {
+                                  setIsLoadingSponsored(true);
+                                  const status = (document.getElementById('csvStatusFilter') as HTMLSelectElement)?.value;
+                                  const startDate = (document.getElementById('csvStartDate') as HTMLInputElement)?.value;
+                                  const endDate = (document.getElementById('csvEndDate') as HTMLInputElement)?.value;
+                                  await ApiService.adminDownloadSponsoredCSV({ status: status || undefined, startDate: startDate || undefined, endDate: endDate || undefined });
+                                } catch (e: any) {
+                                  alert(e?.message || 'Failed to download CSV');
+                                } finally {
+                                  setIsLoadingSponsored(false);
+                                }
+                              }}
+                              className="px-3 py-1 rounded bg-blue-600 text-white text-xs font-bold"
+                              title="Download CSV of sponsored listings"
+                            >
+                              <Download size={14} /> CSV
+                            </button>
+                          </div>
+                        </div>
+                        <table className="w-full text-left text-sm">
+                          <thead>
+                            <tr className="text-xs text-gray-500">
+                              <th className="p-2">ID</th>
+                              <th className="p-2">Provider</th>
+                              <th className="p-2">Tier</th>
+                              <th className="p-2">Status</th>
+                              <th className="p-2">Period</th>
+                              <th className="p-2">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sponsoredListingsAdmin.map((s) => (
+                              <tr key={s.id} className="border-t">
+                                <td className="p-2 align-top">{s.id}</td>
+                                <td className="p-2 align-top">{s.provider_name || s.provider_id}</td>
+                                <td className="p-2 align-top">{s.tier_name || s.tier_id}</td>
+                                <td className="p-2 align-top">{s.payment_status}</td>
+                                <td className="p-2 align-top">{s.start_at ? new Date(s.start_at).toLocaleDateString() : '-'} — {s.end_at ? new Date(s.end_at).toLocaleDateString() : '-'}</td>
+                                <td className="p-2 align-top">
+                                  {s.payment_status !== 'paid' && (
+                                    <button
+                                      onClick={async () => {
+                                        if (!confirm('Mark this purchase as paid and activate the featured listing?')) return;
+                                        try {
+                                          await ApiService.adminMarkSponsoredPaid(s.id);
+                                          const listings = await ApiService.getActiveSponsoredListings();
+                                          setSponsoredListingsAdmin(listings || []);
+                                          alert('Marked as paid and activated');
+                                        } catch (err) {
+                                          alert('Failed to mark as paid');
+                                        }
+                                      }}
+                                      className="px-3 py-1 rounded bg-grantify-green text-white text-xs font-bold"
+                                    >
+                                      Mark Paid
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={async () => {
+                                      try {
+                                        const invoiceNumber = window.prompt('Enter invoice number (leave blank to skip)', s.invoice_number || '');
+                                        if (invoiceNumber === null) return;
+                                        const billingName = window.prompt('Enter billing name (optional)', (s.billing_info && s.billing_info.name) || '');
+                                        if (billingName === null) return;
+                                        const billingEmail = window.prompt('Enter billing email (optional)', (s.billing_info && s.billing_info.email) || '');
+                                        if (billingEmail === null) return;
+
+                                        const billing = { name: billingName || undefined, email: billingEmail || undefined };
+                                        await ApiService.updateSponsoredInvoice(s.id, { invoiceNumber: invoiceNumber || undefined, billingInfo: Object.keys(billing).length ? billing : undefined });
+                                        const listings = await ApiService.getActiveSponsoredListings();
+                                        setSponsoredListingsAdmin(listings || []);
+                                        alert('Invoice info updated');
+                                      } catch (err: any) {
+                                        console.error(err);
+                                        alert(err?.message || 'Failed to update invoice');
+                                      }
+                                    }}
+                                    className="ml-2 px-2 py-1 rounded bg-yellow-600 text-white text-xs font-bold"
+                                    title="Add / update invoice and billing info"
+                                  >
+                                    Invoice
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
               {activeTab === 'blog' && (
                 <div className="max-w-6xl mx-auto">
                    <div className="flex justify-between items-center mb-6">
@@ -2124,26 +2633,47 @@ export const Admin: React.FC = () => {
                       </div>
 
                       {postSaveNotice && (
-                        <div
-                          className={`mb-4 p-3 rounded border text-sm ${postSaveNotice.kind === 'success'
-                            ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-900 text-green-800 dark:text-green-200'
-                            : 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900 text-red-800 dark:text-red-200'
-                          }`}
-                          role={postSaveNotice.kind === 'error' ? 'alert' : 'status'}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="leading-relaxed">{postSaveNotice.message}</div>
-                            <button
-                              type="button"
-                              onClick={() => setPostSaveNotice(null)}
-                              className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/5"
-                              aria-label="Dismiss message"
-                              title="Dismiss"
-                            >
-                              <X size={14} />
-                            </button>
+                        postSaveNotice.kind === 'error' ? (
+                          <div
+                            className={`mb-4 p-3 rounded border text-sm ${
+                              'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900 text-red-800 dark:text-red-200'
+                            }`}
+                            role="alert"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="leading-relaxed">{postSaveNotice.message}</div>
+                              <button
+                                type="button"
+                                onClick={() => setPostSaveNotice(null)}
+                                className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/5"
+                                aria-label="Dismiss message"
+                                title="Dismiss"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
                           </div>
-                        </div>
+                        ) : (
+                          <div
+                            className={`mb-4 p-3 rounded border text-sm ${
+                              'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-900 text-green-800 dark:text-green-200'
+                            }`}
+                            role="status"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="leading-relaxed">{postSaveNotice.message}</div>
+                              <button
+                                type="button"
+                                onClick={() => setPostSaveNotice(null)}
+                                className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/5"
+                                aria-label="Dismiss message"
+                                title="Dismiss"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        )
                       )}
                       
                       <form onSubmit={handleAddBlogPost} className="grid md:grid-cols-2 gap-4">
@@ -2175,23 +2705,27 @@ export const Admin: React.FC = () => {
                            className={inputClassSmall}
                            placeholder="Author"
                            value={newPost.author}
-                           disabled
+                             onChange={e => setNewPost({ ...newPost, author: e.target.value })}
                            aria-label="Author"
-                           title="Author is set from the logged-in admin"
+                             title="Author shown on the post"
                          />
 
-                         <select
-                           className={inputClassSmall}
-                           value={newPost.authorRole}
-                           onChange={e => setNewPost({ ...newPost, authorRole: e.target.value })}
-                           aria-label="Author role"
-                           title="Author role shown on the post"
-                         >
-                           <option value="Chief Strategist">Chief Strategist</option>
-                           <option value="Editor">Editor</option>
-                           <option value="Contributor">Contributor</option>
-                           <option value="Team Member">Team Member</option>
-                         </select>
+                           <input
+                             className={inputClassSmall}
+                             placeholder="Author role"
+                             value={newPost.authorRole}
+                             onChange={e => setNewPost({ ...newPost, authorRole: e.target.value })}
+                             aria-label="Author role"
+                             title="Author role shown on the post"
+                             list="author-role-options"
+                           />
+
+                           <datalist id="author-role-options">
+                             <option value="Chief Strategist" />
+                             <option value="Editor" />
+                             <option value="Contributor" />
+                             <option value="Team Member" />
+                           </datalist>
                          
                          <select 
                            className={inputClassSmall} 
@@ -2199,9 +2733,9 @@ export const Admin: React.FC = () => {
                            onChange={e => setNewPost({...newPost, category: e.target.value})}
                            aria-label="Article Category"
                          >
-                           <option value="Grants">Grants</option>
-                           <option value="Strategy">Strategy</option>
-                           <option value="Financial Growth">Financial Growth</option>
+                           {categoryOptions.map(opt => (
+                             <option key={opt} value={opt}>{opt}</option>
+                           ))}
                          </select>
                          
                          <input 
@@ -2275,9 +2809,17 @@ export const Admin: React.FC = () => {
                            title="Claps"
                          />
 
-                         {oneDriveStatus && oneDriveStatus.enabled && oneDriveStatus.provider === 'onedrive' && (
-                           <div className="md:col-span-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                             OneDrive: {oneDriveStatus.connected ? 'Connected' : 'Not connected'}
+                         {oneDriveStatus && oneDriveStatus.enabled && (
+                           <div
+                             className={
+                               "md:col-span-2 text-[10px] font-bold uppercase tracking-wider " +
+                               (oneDriveStatus.connected
+                                 ? 'text-green-700'
+                                 : (oneDriveStatus.needsReconnect ? 'text-amber-700' : 'text-gray-500'))
+                             }
+                             title={oneDriveStatus.error || ''}
+                           >
+                             Uploads ({String(oneDriveStatus.provider || 'unknown')}): {oneDriveStatus.connected ? 'Ready' : (oneDriveStatus.needsReconnect ? 'Needs reconnect' : 'Not ready')}
                            </div>
                          )}
                          
@@ -2289,29 +2831,42 @@ export const Admin: React.FC = () => {
                              onChange={e => setNewPost({ ...newPost, image: e.target.value })}
                            />
                            <input
+                             key={featuredImageUploadKey}
                              type="file"
-                             accept="image/*"
+                             accept="image/jpeg,image/png,image/webp,image/gif"
                              className={inputClassSmall + " p-1 text-xs"}
                              onChange={(e) => handleFeaturedImageUpload(e.target.files?.[0])}
                              aria-label="Upload featured image"
                            />
                          </div>
 
-                         {newPost.image && (
+                         {(newPost.image || featuredImageLocalPreview) && (
                            <div className="md:col-span-2">
                              <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Featured Image Preview</div>
-                             <div className="bg-white rounded border overflow-hidden">
+                             <div className="bg-white dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-800 overflow-hidden">
                                <img
-                                 src={newPost.image}
+                                 src={(() => {
+                                   if (featuredImageLocalPreview) return featuredImageLocalPreview;
+                                   const raw = String(newPost.image || '').trim();
+                                   if (!raw) return raw;
+                                   if (raw.startsWith('data:')) return raw;
+                                   const join = raw.includes('?') ? '&' : '?';
+                                   return `${raw}${join}v=${featuredImagePreviewNonce}`;
+                                 })()}
                                  alt={newPost.title || 'Featured'}
                                  className="w-full h-48 object-cover"
                                  loading="lazy"
                                />
+                               {isUploadingFeaturedImage && (
+                                 <div className="p-2 text-xs text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
+                                   Uploading image…
+                                 </div>
+                               )}
                              </div>
                            </div>
                          )}
                          
-                         <div className="md:col-span-2 bg-white dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-800 overflow-visible min-h-[300px] flex flex-col">
+                         <div className="md:col-span-2 bg-white dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-800 overflow-visible min-h-[300px] flex flex-col min-w-0 max-w-full">
                             <div className="p-2 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Article Content</div>
                             <div className="px-3 py-2 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between gap-3">
                               <label className="flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-gray-200">
@@ -2358,10 +2913,15 @@ export const Admin: React.FC = () => {
                                 <div className="text-[10px] text-gray-400 hidden md:block">Uncheck for bare plaintext links</div>
                               </div>
                             </div>
+                            {isHydratingSelectedPost && (
+                              <div className="px-3 py-2 text-xs text-gray-500 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center gap-2">
+                                <Loader2 size={14} className="animate-spin" /> Loading post content…
+                              </div>
+                            )}
                             <input
                               ref={inlineImageInputRef}
                               type="file"
-                              accept="image/*"
+                              accept="image/jpeg,image/png,image/webp,image/gif"
                               className="hidden"
                               onChange={handleInlineImagePicked}
                               aria-label="Insert image into post"
@@ -2373,21 +2933,99 @@ export const Admin: React.FC = () => {
                               onChange={(content) => setNewPost(prev => ({ ...prev, content }))}
                               modules={quillModules}
                               formats={quillFormats}
-                              className="flex-grow admin-quill"
+                              className="flex-grow admin-quill min-w-0 max-w-full"
                               placeholder="Write your article here..."
                             />
                          </div>
  
-                         <button type="submit" disabled={isSavingPost} className={`${isEditingPost ? 'bg-blue-600 hover:bg-blue-800' : 'bg-grantify-green hover:bg-green-800'} text-white font-bold py-3 rounded md:col-span-2 transition shadow-lg mt-4 relative z-10`}>
-                           {isSavingPost ? "Saving..." : (isEditingPost ? "Update Publication" : "Publish Article to Community")}
-                         </button>
+                         <div className="flex flex-wrap items-start gap-3 mt-4">
+                           <button type="submit" disabled={isSavingPost} className={`${isEditingPost ? 'bg-blue-600 hover:bg-blue-800' : 'bg-grantify-green hover:bg-green-800'} inline-flex items-center justify-center min-h-11 text-white font-bold py-3 leading-tight rounded transition shadow-lg relative z-10 px-4 whitespace-normal text-center`}>
+                             {isSavingPost ? "Saving..." : (isEditingPost ? "Update Publication" : "Publish Article to Community")}
+                           </button>
+                           {isEditingPost && (
+                             <button
+                               type="button"
+                               disabled={isSavingPost}
+                               onClick={async () => {
+                                 if (!newPost.id) return;
+                                 if (!window.confirm('Approve and publish this post? This will remove the "autodraft" tag and publish.')) return;
+                                 setIsSavingPost(true);
+                                 try {
+                                   const payload = {
+                                     ...newPost,
+                                     tags: (Array.isArray(newPost.tags) ? newPost.tags.filter(t => String(t).toLowerCase() !== 'autodraft') : []),
+                                     content: autoLinkUrls ? linkifyHtml(newPost.content) : newPost.content
+                                   };
+                                   const updated = await ApiService.submitBlogAction({ ...payload, id: String(newPost.id), action: 'update' });
+                                   // update local list
+                                   setBlogPosts(prev => prev.map(p => (String(p.id) === String(newPost.id) ? { ...p, ...payload } : p)));
+                                   alert('Post approved and published.');
+                                   void refreshData();
+                                 } catch (e: any) {
+                                   alert(e?.message || 'Failed to approve and publish');
+                                 } finally {
+                                   setIsSavingPost(false);
+                                 }
+                               }}
+                               className="inline-flex items-center justify-center min-h-11 max-w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 leading-tight px-4 rounded transition shadow-md whitespace-normal text-center"
+                             >
+                               Approve and publish post
+                             </button>
+                           )}
+                         </div>
                       </form>
                     </div>
  
                     <div className="bg-white dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-800 overflow-x-auto">
+                      <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 sticky top-0 z-10">
+                        <div className="text-xs text-gray-500">
+                          {selectedBlogPostIds.size > 0 ? `${selectedBlogPostIds.size} selected` : 'Select drafts to approve in bulk'}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const draftIds = blogPosts.filter(isAutodraftPost).map(p => String(p.id));
+                              setSelectedBlogPostIds(new Set(draftIds));
+                            }}
+                            className="text-xs font-bold px-3 py-2 rounded border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
+                          >
+                            Select drafts
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedBlogPostIds(new Set())}
+                            className="text-xs font-bold px-3 py-2 rounded border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
+                          >
+                            Clear
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleBulkApproveBlogPosts}
+                            disabled={selectedBlogPostIds.size === 0 || isSavingPost}
+                            className="text-xs font-bold px-3 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
+                          >
+                            Approve selected
+                          </button>
+                        </div>
+                      </div>
                       <table className="w-full text-sm min-w-[800px]">
                         <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
                           <tr>
+                            <th className="p-3 text-left w-10">
+                              <input
+                                type="checkbox"
+                                aria-label="Select all drafts"
+                                checked={blogPosts.filter(isAutodraftPost).length > 0 && blogPosts.filter(isAutodraftPost).every(p => selectedBlogPostIds.has(String(p.id)))}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedBlogPostIds(new Set(blogPosts.filter(isAutodraftPost).map(p => String(p.id))));
+                                  } else {
+                                    setSelectedBlogPostIds(new Set());
+                                  }
+                                }}
+                              />
+                            </th>
                             <th className="p-3 text-left">Article</th>
                             <th className="p-3 text-left">Author</th>
                             <th className="p-3 text-left">Category & Tags</th>
@@ -2398,9 +3036,31 @@ export const Admin: React.FC = () => {
                         <tbody className="divide-y">
                           {blogPosts.map(post => (
                             <tr key={post.id} className={newPost.id === post.id ? 'bg-blue-50' : ''}>
+                              <td className="p-3 align-top">
+                                {isAutodraftPost(post) && (
+                                  <input
+                                    type="checkbox"
+                                    aria-label={`Select ${post.title}`}
+                                    checked={selectedBlogPostIds.has(String(post.id))}
+                                    onChange={(e) => {
+                                      setSelectedBlogPostIds(prev => {
+                                        const next = new Set(prev);
+                                        if (e.target.checked) next.add(String(post.id));
+                                        else next.delete(String(post.id));
+                                        return next;
+                                      });
+                                    }}
+                                  />
+                                )}
+                              </td>
                               <td className="p-3">
                                 <span className="font-bold block truncate max-w-[200px]" title={post.title}>{post.title}</span>
                                 <span className="text-[10px] text-gray-400">{new Date(post.createdAt).toLocaleDateString()}</span>
+                                {isAutodraftPost(post) && (
+                                  <div className="mt-1 inline-flex items-center rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest">
+                                    Draft
+                                  </div>
+                                )}
                                 {post.sourceName && (
                                   <div className="flex items-center gap-1 text-[10px] text-blue-500 font-bold mt-1">
                                     <LinkIcon size={10} /> {post.sourceName}
@@ -2412,7 +3072,7 @@ export const Admin: React.FC = () => {
                                 <span className="block text-gray-400 italic">{post.authorRole}</span>
                               </td>
                               <td className="p-3">
-                                <span className="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-black uppercase">{post.category}</span>
+                                <span className="text-[10px] bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-200 px-2 py-0.5 rounded font-black uppercase">{post.category}</span>
                                 <div className="flex flex-wrap gap-1 mt-1">
                                   {post.tags?.map((tag, i) => (
                                     <span key={i} className="text-[9px] text-gray-400 bg-gray-100 px-1 rounded">#{tag}</span>
@@ -2454,10 +3114,86 @@ export const Admin: React.FC = () => {
                 </div>
               )}
 
-              {/* Admin Management Tab (Super Admin Only) */}
-              {activeTab === 'admins' && user.role === UserRole.SUPER_ADMIN && (
+              {/* Admins & Profile Tab */}
+              {activeTab === 'admins' && (
                 <div>
-                    <h3 className="text-xl font-bold mb-6">Manage Administrators</h3>
+                    <h3 id="my-profile" className="text-xl font-bold mb-4">My Profile</h3>
+
+                    <form onSubmit={handleSaveProfile} className="bg-gray-50 dark:bg-gray-900 p-4 rounded border border-gray-200 dark:border-gray-800 mb-8">
+                      <div className="grid md:grid-cols-2 gap-3">
+                        <div>
+                          <label htmlFor="profile-name" className="block text-xs font-bold text-gray-600 dark:text-gray-200 mb-1">Full Name</label>
+                          <input
+                            id="profile-name"
+                            type="text"
+                            className={inputClassSmall}
+                            value={profileForm.name}
+                            onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
+                            autoComplete="name"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="profile-username" className="block text-xs font-bold text-gray-600 dark:text-gray-200 mb-1">Username / Email</label>
+                          <input
+                            id="profile-username"
+                            type="text"
+                            className={inputClassSmall}
+                            value={profileForm.username}
+                            onChange={(e) => setProfileForm(prev => ({ ...prev, username: e.target.value }))}
+                            autoComplete="username"
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="profile-current-password" className="block text-xs font-bold text-gray-600 dark:text-gray-200 mb-1">Current Password (only needed to change password)</label>
+                          <input
+                            id="profile-current-password"
+                            type="password"
+                            className={inputClassSmall}
+                            value={profileForm.currentPassword}
+                            onChange={(e) => setProfileForm(prev => ({ ...prev, currentPassword: e.target.value }))}
+                            autoComplete="current-password"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="profile-new-password" className="block text-xs font-bold text-gray-600 dark:text-gray-200 mb-1">New Password</label>
+                          <input
+                            id="profile-new-password"
+                            type="password"
+                            className={inputClassSmall}
+                            value={profileForm.newPassword}
+                            onChange={(e) => setProfileForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                            autoComplete="new-password"
+                          />
+                          <div className="mt-2">
+                            <label htmlFor="profile-confirm-new-password" className="block text-xs font-bold text-gray-600 dark:text-gray-200 mb-1">Confirm New Password</label>
+                            <input
+                              id="profile-confirm-new-password"
+                              type="password"
+                              className={inputClassSmall}
+                              value={profileForm.confirmNewPassword}
+                              onChange={(e) => setProfileForm(prev => ({ ...prev, confirmNewPassword: e.target.value }))}
+                              autoComplete="new-password"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex items-center gap-3">
+                        <button
+                          type="submit"
+                          disabled={isSavingProfile}
+                          className="bg-grantify-green text-white px-4 py-2 rounded hover:bg-green-700 font-bold disabled:opacity-60"
+                        >
+                          {isSavingProfile ? 'Saving…' : 'Save Profile'}
+                        </button>
+                        <div className="text-xs text-gray-500">Leave password fields blank to keep your current password.</div>
+                      </div>
+                    </form>
+
+                    {user.role === UserRole.SUPER_ADMIN && (
+                      <>
+                        <h3 id="manage-admins" className="text-xl font-bold mb-6">Manage Administrators</h3>
                     
                     {/* Add New Admin */}
                     <div className="bg-gray-100 p-4 rounded mb-8 border">
@@ -2539,6 +3275,8 @@ export const Admin: React.FC = () => {
                         </tbody>
                       </table>
                     </div>
+                      </>
+                    )}
                 </div>
               )}
             </>

@@ -133,3 +133,46 @@ CREATE TABLE IF NOT EXISTS content_flags (
 CREATE INDEX IF NOT EXISTS content_flags_status_created_at_idx ON content_flags (status, created_at DESC);
 CREATE INDEX IF NOT EXISTS content_flags_entity_idx ON content_flags (entity_type, entity_id);
 CREATE UNIQUE INDEX IF NOT EXISTS content_flags_unique_reporter_idx ON content_flags (entity_type, entity_id, reporter_key);
+
+-- ============================================================================
+-- SPONSORED LISTINGS / PRICING
+-- Stores pricing tiers and sponsored purchase records for featured listings
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS sponsored_pricing (
+        id SERIAL PRIMARY KEY,
+        tier_name TEXT NOT NULL,
+        price_cents INTEGER NOT NULL DEFAULT 0,
+        duration_days INTEGER NOT NULL DEFAULT 30,
+        description TEXT DEFAULT '',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sponsored_listings (
+        id SERIAL PRIMARY KEY,
+        provider_id INTEGER REFERENCES loan_providers(id) ON DELETE CASCADE,
+        tier_id INTEGER REFERENCES sponsored_pricing(id) ON DELETE SET NULL,
+        amount_cents INTEGER DEFAULT 0,
+        payer_info JSONB,
+        payment_status TEXT NOT NULL DEFAULT 'pending' CHECK (payment_status IN ('pending','paid','cancelled')),
+        start_at TIMESTAMP,
+        end_at TIMESTAMP,
+    admin_note TEXT,
+    invoice_number TEXT,
+    billing_info JSONB,
+    offline_payment_method TEXT,
+    invoice_issued_at TIMESTAMP,
+    invoice_due_date TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS sponsored_listings_provider_id_idx ON sponsored_listings (provider_id);
+
+-- Insert default tiers if not present
+INSERT INTO sponsored_pricing (tier_name, price_cents, duration_days, description)
+VALUES
+    ('Basic', 500000, 7, 'Basic featured listing for 7 days'),
+    ('Standard', 2500000, 30, 'Standard featured listing for 30 days'),
+    ('Premium', 7000000, 90, 'Premium featured listing for 90 days')
+ON CONFLICT DO NOTHING;
+

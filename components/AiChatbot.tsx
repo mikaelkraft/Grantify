@@ -81,7 +81,7 @@ export const AiChatbot: React.FC = () => {
   }, [messages, isOpen]);
 
   const partsToNodes = useMemo(() => {
-    const urlRegex = /((?:https?:\/\/|www\.)[^\s<]+)|((?:\/blog\/|\/loan-providers|\/blog)\/?[^\s<]*)/gi;
+    const urlRegex = /((?:https?:\/\/|www\.)[^\s<]+)|((?:\/?(?:blog|loan-providers)\/?)[^\s<]*)/gi;
 
     const normalizeInternalHref = (href: string) => {
       const raw = String(href || '').trim();
@@ -89,6 +89,7 @@ export const AiChatbot: React.FC = () => {
 
       // Allow plain internal paths.
       if (raw.startsWith('/')) return raw;
+      if (/^(blog|loan-providers)\b/i.test(raw)) return `/${raw.replace(/^\/+/, '')}`;
 
       // Convert absolute Grantify links into internal SPA routes.
       // Supports both BrowserRouter-style and legacy HashRouter-style URLs.
@@ -211,10 +212,11 @@ export const AiChatbot: React.FC = () => {
             const internal = normalizeInternalHref(href);
 
             if (internal) {
+              const internalHref = internal.startsWith('/') ? internal : `/${internal.replace(/^\/+/, '')}`;
               nodes.push(
                 <Link
                   key={`il_${key++}`}
-                  to={internal}
+                  to={internalHref}
                   className="underline break-words"
                   onClick={() => setIsOpen(false)}
                 >
@@ -383,9 +385,20 @@ export const AiChatbot: React.FC = () => {
   };
 
   const popDirection = pos.y > 560 ? 'up' : 'down';
-  const chatWindowClass = popDirection === 'up'
-    ? 'bottom-[76px] right-0'
-    : 'top-[76px] right-0';
+  const chatWindowClass = '';
+
+  // Compute fixed chat window position clamped to viewport so it never goes off-screen.
+  const chatWindowStyle: React.CSSProperties = (() => {
+    if (typeof window === 'undefined') return {};
+    const cw = window.innerWidth >= 768 ? 384 : 320;
+    const ch = 500;
+    // Prefer placing the chat to the right of the toggle button when possible.
+    const leftCandidate = pos.x + buttonSize + 12;
+    const left = Math.min(Math.max(8, leftCandidate), window.innerWidth - cw - 8);
+    const topCandidate = pos.y;
+    const top = Math.min(Math.max(8, topCandidate), window.innerHeight - ch - 8);
+    return { position: 'fixed', left, top } as React.CSSProperties;
+  })();
 
   return (
     <div
@@ -395,7 +408,8 @@ export const AiChatbot: React.FC = () => {
       {/* Chat Window */}
       {isOpen && (
         <div
-          className={`pointer-events-auto absolute ${chatWindowClass} w-80 md:w-96 h-[500px] bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-800 flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-300`}
+          style={chatWindowStyle}
+          className={`pointer-events-auto w-80 md:w-96 h-[500px] bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-800 flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-300`}
         >
           {/* Header */}
           <div className="p-6 bg-grantify-green text-white flex items-center justify-between">

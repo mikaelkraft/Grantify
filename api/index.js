@@ -17,10 +17,18 @@ import testimonialsIndex from '../backend/handlers/testimonials_index.js';
 import testimonialsId from '../backend/handlers/testimonials_id.js';
 import cronDailyBlog from '../backend/handlers/cron_daily_blog.js';
 import uploads from '../backend/handlers/uploads.js';
+import gDriveConnect from '../backend/handlers/gdrive_connect.js';
+import gDriveCallback from '../backend/handlers/gdrive_callback.js';
+import gDriveFinalize from '../backend/handlers/gdrive_finalize.js';
+import gDriveStatus from '../backend/handlers/gdrive_status.js';
+import gDriveImage from '../backend/handlers/gdrive_image.js';
+import gDriveProxyPut from '../backend/handlers/gdrive_proxy_put.js';
+import uploadsStatus from '../backend/handlers/uploads_status.js';
 import oneDriveConnect from '../backend/handlers/onedrive_connect.js';
 import oneDriveCallback from '../backend/handlers/onedrive_callback.js';
 import oneDriveFinalize from '../backend/handlers/onedrive_finalize.js';
 import oneDriveStatus from '../backend/handlers/onedrive_status.js';
+import sponsored from '../backend/handlers/sponsored.js';
 
 const ensureJsonBody = async (req) => {
   // Vercel may not populate req.body for non-POST methods.
@@ -70,6 +78,28 @@ const getPathSegments = (req) => {
 };
 
 export default async function handler(req, res) {
+  const originalSetHeader = res.setHeader.bind(res);
+  res.setHeader = (name, value) => {
+    if (String(name || '').toLowerCase() === 'access-control-allow-headers') {
+      const existing = String(res.getHeader('Access-Control-Allow-Headers') || '');
+      const nextValues = new Set(
+        `${existing},${String(value || '')}`
+          .split(',')
+          .map((part) => part.trim())
+          .filter(Boolean)
+      );
+      nextValues.add('Content-Type');
+      nextValues.add('X-Admin-Session');
+      nextValues.add('Authorization');
+      return originalSetHeader('Access-Control-Allow-Headers', Array.from(nextValues).join(', '));
+    }
+    return originalSetHeader(name, value);
+  };
+
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.setHeader('Vary', 'Origin');
+
   const segments = getPathSegments(req);
 
   await ensureJsonBody(req);
@@ -110,12 +140,21 @@ export default async function handler(req, res) {
 
     if (root === 'uploads') {
       if (rest.join('/') === 'image') return uploads(req, res);
+      if (rest.join('/') === 'status') return uploadsStatus(req, res);
+      if (rest.join('/') === 'gdrive/connect') return gDriveConnect(req, res);
+      if (rest.join('/') === 'gdrive/callback') return gDriveCallback(req, res);
+      if (rest.join('/') === 'gdrive/finalize') return gDriveFinalize(req, res);
+      if (rest.join('/') === 'gdrive/status') return gDriveStatus(req, res);
+      if (rest.join('/') === 'gdrive/image') return gDriveImage(req, res);
+      if (rest.join('/') === 'gdrive/proxy-put') return gDriveProxyPut(req, res);
       if (rest.join('/') === 'onedrive/connect') return oneDriveConnect(req, res);
       if (rest.join('/') === 'onedrive/callback') return oneDriveCallback(req, res);
       if (rest.join('/') === 'onedrive/finalize') return oneDriveFinalize(req, res);
       if (rest.join('/') === 'onedrive/status') return oneDriveStatus(req, res);
       return res.status(404).json({ error: 'Not found' });
     }
+
+    if (root === 'sponsored') return sponsored(req, res);
 
     return res.status(404).json({ error: 'Not found' });
   } catch (err) {

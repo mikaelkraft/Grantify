@@ -10,8 +10,11 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+# Migration backup files
+.tmp-blog-posts-backup-*.json
 *.local
 .env
+.env-*.example
 
 # Editor directories and files
 .vscode/*
@@ -27,3 +30,6 @@ dist-ssr
 # Copilot/agent scratch
 .agent/
 .agents/
+
+# Dry-run outputs
+.tmp-daily-blog-*.html
