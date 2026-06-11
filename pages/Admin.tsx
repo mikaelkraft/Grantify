@@ -2481,9 +2481,23 @@ export const Admin: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                           {sponsoredPricing.map((p) => (
                             <div key={p.id} className="p-3 border rounded bg-gray-50 dark:bg-gray-800">
-                              <div className="text-sm font-bold">{p.tierName}</div>
-                              <div className="text-xs text-gray-600 dark:text-gray-300">{p.description}</div>
-                              <div className="mt-2 text-sm font-mono">{(p.priceCents/100).toLocaleString(undefined, {style:'currency', currency:'NGN'})} for {p.durationDays} days</div>
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <div className="text-sm font-bold">{p.tierName}</div>
+                                  <div className="text-xs text-gray-600 dark:text-gray-300">{p.description}</div>
+                                  <div className="mt-2 text-sm font-mono">{(p.priceCents/100).toLocaleString(undefined, {style:'currency', currency:'NGN'})} for {p.durationDays} days</div>
+                                </div>
+                                <div className="w-36 text-right">
+                                  <label className="text-xs text-gray-500 block mb-1">Max Slots</label>
+                                  <input type="number" min={0} value={p.max_slots ?? ''} placeholder="e.g. 10" title="Max slots for this tier" aria-label={`Max slots for ${p.tierName}`} onChange={(e) => {
+                                    const v = e.target.value === '' ? null : Number(e.target.value);
+                                    const newPricing = sponsoredPricing.map(x => x.id === p.id ? { ...x, max_slots: v } : x);
+                                    setSponsoredPricing(newPricing);
+                                    // Debounce or immediate save via API
+                                    ApiService.adminUpdateTierSlots(p.id, v).catch(() => alert('Failed to update slot limit'));
+                                  }} className="p-1 rounded border w-full text-sm" />
+                                </div>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -2561,6 +2575,41 @@ export const Admin: React.FC = () => {
                                     </button>
                                   )}
                                   <button
+                                    onClick={async () => {
+                                      if (!confirm('Publish this sponsored listing now (activate immediately)?')) return;
+                                      try {
+                                        await ApiService.adminPublishListingNow(s.id);
+                                        const listings = await ApiService.getActiveSponsoredListings();
+                                        setSponsoredListingsAdmin(listings || []);
+                                        alert('Published');
+                                      } catch (err: any) {
+                                        alert(err?.message || 'Failed to publish');
+                                      }
+                                    }}
+                                    className="ml-2 px-3 py-1 rounded bg-blue-600 text-white text-xs font-bold"
+                                  >
+                                    Publish Now
+                                  </button>
+
+                                  <button
+                                    onClick={async () => {
+                                      const start = window.prompt('Start date (YYYY-MM-DD)', s.start_at ? new Date(s.start_at).toISOString().slice(0,10) : '');
+                                      if (start === null) return;
+                                      const end = window.prompt('End date (YYYY-MM-DD)', s.end_at ? new Date(s.end_at).toISOString().slice(0,10) : '');
+                                      try {
+                                        await ApiService.adminSchedulePublish(s.id, start || null, end || null, undefined);
+                                        const listings = await ApiService.getActiveSponsoredListings();
+                                        setSponsoredListingsAdmin(listings || []);
+                                        alert('Scheduled');
+                                      } catch (err: any) {
+                                        alert(err?.message || 'Failed to schedule');
+                                      }
+                                    }}
+                                    className="ml-2 px-3 py-1 rounded bg-gray-700 text-white text-xs font-bold"
+                                  >
+                                    Schedule
+                                  </button>
+                                  <button
                                     onClick={() => {
                                       setInvoiceForm({
                                         id: s.id,
@@ -2596,25 +2645,25 @@ export const Admin: React.FC = () => {
                     <h3 className="text-lg font-bold mb-3">Edit Invoice</h3>
                     <div className="grid grid-cols-1 gap-2">
                       <label className="text-xs">Invoice Number</label>
-                      <input className="p-2 rounded border" value={invoiceForm.invoiceNumber} onChange={(e) => setInvoiceForm({ ...invoiceForm, invoiceNumber: e.target.value })} />
+                      <input className="p-2 rounded border" title="Invoice number" placeholder="INV-20250101-123" value={invoiceForm.invoiceNumber} onChange={(e) => setInvoiceForm({ ...invoiceForm, invoiceNumber: e.target.value })} />
                       <label className="text-xs">Billing Name</label>
-                      <input className="p-2 rounded border" value={invoiceForm.billingName} onChange={(e) => setInvoiceForm({ ...invoiceForm, billingName: e.target.value })} />
+                      <input className="p-2 rounded border" title="Billing name" placeholder="Full billing name" value={invoiceForm.billingName} onChange={(e) => setInvoiceForm({ ...invoiceForm, billingName: e.target.value })} />
                       <label className="text-xs">Billing Email</label>
-                      <input className="p-2 rounded border" value={invoiceForm.billingEmail} onChange={(e) => setInvoiceForm({ ...invoiceForm, billingEmail: e.target.value })} />
+                      <input className="p-2 rounded border" title="Billing email" placeholder="name@company.com" value={invoiceForm.billingEmail} onChange={(e) => setInvoiceForm({ ...invoiceForm, billingEmail: e.target.value })} />
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className="text-xs">Issued At</label>
-                          <input type="date" className="p-2 rounded border w-full" value={invoiceForm.invoiceIssuedAt} onChange={(e) => setInvoiceForm({ ...invoiceForm, invoiceIssuedAt: e.target.value })} />
+                          <input type="date" title="Invoice issued at" className="p-2 rounded border w-full" value={invoiceForm.invoiceIssuedAt} onChange={(e) => setInvoiceForm({ ...invoiceForm, invoiceIssuedAt: e.target.value })} />
                         </div>
                         <div>
                           <label className="text-xs">Due Date</label>
-                          <input type="date" className="p-2 rounded border w-full" value={invoiceForm.invoiceDueDate} onChange={(e) => setInvoiceForm({ ...invoiceForm, invoiceDueDate: e.target.value })} />
+                          <input type="date" title="Invoice due date" className="p-2 rounded border w-full" value={invoiceForm.invoiceDueDate} onChange={(e) => setInvoiceForm({ ...invoiceForm, invoiceDueDate: e.target.value })} />
                         </div>
                       </div>
                       <label className="text-xs">Offline Payment Method</label>
-                      <input className="p-2 rounded border" value={invoiceForm.offlinePaymentMethod} onChange={(e) => setInvoiceForm({ ...invoiceForm, offlinePaymentMethod: e.target.value })} />
+                      <input className="p-2 rounded border" title="Offline payment method" placeholder="Bank transfer / POS" value={invoiceForm.offlinePaymentMethod} onChange={(e) => setInvoiceForm({ ...invoiceForm, offlinePaymentMethod: e.target.value })} />
                       <label className="text-xs">Admin Note</label>
-                      <textarea className="p-2 rounded border" value={invoiceForm.adminNote} onChange={(e) => setInvoiceForm({ ...invoiceForm, adminNote: e.target.value })} />
+                      <textarea className="p-2 rounded border" title="Admin note" placeholder="Internal note about this invoice" value={invoiceForm.adminNote} onChange={(e) => setInvoiceForm({ ...invoiceForm, adminNote: e.target.value })} />
                       <div className="flex gap-2 justify-end mt-3">
                         <button onClick={() => setInvoiceModalOpen(false)} className="px-3 py-1 rounded border">Cancel</button>
                         <button

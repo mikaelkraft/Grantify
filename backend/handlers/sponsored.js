@@ -155,8 +155,46 @@ export default async function handler(req, res) {
         );
         const id = insert.rows[0].id;
 
-        // In a production flow this would return a Stripe/Paystack checkout URL. For now return a stub and the record id.
-        return res.status(200).json({ id, paymentUrl: null, amountCents: amount });
+        // Build payment URLs for PayPal or OPay
+        let paymentUrl = null;
+        try {
+          const provider = String(payerInfo?.paymentProvider || 'paypal').toLowerCase();
+          const amountUSD = (amount / 100 / 800).toFixed(2); // Rough NGN to USD conversion
+          const baseUrl = String(process.env.VERCEL_PROJECT_PRODUCTION_URL || 'http://localhost:3001');
+          const returnUrl = `${baseUrl}/api/sponsored/webhook?provider=${provider}&listingId=${id}`;
+
+          if (provider === 'opay') {
+            // OPay checkout: redirect to OPay sandbox or live
+            const oPayEnv = process.env.OPAY_MODE === 'live' ? 'api.opaycheckout.com' : 'sandbox.opaycheckout.com';
+            const oPayUrl = new URL(`https://${oPayEnv}/checkout`);
+            oPayUrl.searchParams.set('merchantId', String(process.env.OPAY_MERCHANT_ID || ''));
+            oPayUrl.searchParams.set('amount', String(amount));
+            oPayUrl.searchParams.set('currency', 'NGN');
+            oPayUrl.searchParams.set('reference', `SPO-${id}`);
+            oPayUrl.searchParams.set('returnUrl', returnUrl);
+            oPayUrl.searchParams.set('customerName', payerInfo?.name || 'Customer');
+            oPayUrl.searchParams.set('customerEmail', payerInfo?.email || '');
+            paymentUrl = oPayUrl.toString();
+          } else {
+            // PayPal checkout (default)
+            const ppEnv = process.env.PAYPAL_MODE === 'live' ? 'checkout.paypal.com' : 'sandbox.paypal.com';
+            const ppUrl = new URL(`https://${ppEnv}/cgi-bin/webscr`);
+            ppUrl.searchParams.set('cmd', '_xclick');
+            ppUrl.searchParams.set('business', String(process.env.PAYPAL_EMAIL || process.env.PAYPAL_MERCHANT_ID || ''));
+            ppUrl.searchParams.set('item_name', `Grantify Sponsor: Listing #${id}`);
+            ppUrl.searchParams.set('item_number', `SPO-${id}`);
+            ppUrl.searchParams.set('amount', amountUSD);
+            ppUrl.searchParams.set('currency_code', 'USD');
+            ppUrl.searchParams.set('return', returnUrl);
+            ppUrl.searchParams.set('cancel_return', `${baseUrl}/sponsor?cancelled=1`);
+            ppUrl.searchParams.set('notify_url', `${baseUrl}/api/sponsored/webhook`);
+            paymentUrl = ppUrl.toString();
+          }
+        } catch (e) {
+          console.warn('Failed to build payment URL', e);
+        }
+
+        return res.status(200).json({ id, paymentUrl, amountCents: amount });
       }
 
       // Admin actions to manage tiers and listings
@@ -372,6 +410,34 @@ export default async function handler(req, res) {
         const sql = `UPDATE sponsored_listings SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = $${idx}`;
         await client.query(sql, params);
         return res.status(200).json({ success: true });
+      }
+    }
+
+    // Webhook handlers for payment confirmations
+    if (req.method === 'GET' && req.path?.includes('/webhook')) {
+      const { provider, listingId } = req.query || {};
+      const id = Number(listingId);
+      if (!id) return res.status(400).json({ error: 'listingId required' });
+
+      try {
+        // Mark the listing as paid
+        const r = await client.query('SELECT sl.*, sp.duration_days FROM sponsored_listings sl LEFT JOIN sponsored_pricing sp ON sp.id = sl.tier_id WHERE sl.id = $1', [id]);
+        if (r.rows.length === 0) return res.status(404).json({ error: 'Listing not found' });
+        const listing = r.rows[0];
+        const duration = listing.duration_days || 30;
+
+        await client.query('BEGIN');
+        const invoiceNumber = `INV-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${id}`;
+        await client.query(`UPDATE sponsored_listings SET payment_status = 'paid', start_at = NOW(), end_at = NOW() + ($1 || '1 day')::interval, invoice_number = COALESCE(invoice_number, $3), invoice_issued_at = COALESCE(invoice_issued_at, NOW()), invoice_due_date = COALESCE(invoice_due_date, NOW() + INTERVAL '14 days'), updated_at = CURRENT_TIMESTAMP WHERE id = $2`, [`${duration} days`, id, invoiceNumber]);
+        if (listing.provider_id) {
+          await client.query('UPDATE loan_providers SET is_recommended = TRUE WHERE id = $1', [listing.provider_id]);
+        }
+        await client.query('COMMIT');
+        return res.status(200).json({ success: true, message: 'Listing activated' });
+      } catch (err) {
+        try { await client.query('ROLLBACK'); } catch {}
+        console.error('Webhook handler error', err);
+        return res.status(500).json({ error: 'Failed to activate listing' });
       }
     }
 

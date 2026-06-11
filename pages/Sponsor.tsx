@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ApiService } from '../services/storage';
 import { LoanProvider } from '../types';
-import { ArrowRight, CheckCircle, ExternalLink, Loader2, Sparkles, Zap } from 'lucide-react';
+import { ArrowRight, CheckCircle, ExternalLink, Loader2, Sparkles, Zap, Shield, Lock, RefreshCw } from 'lucide-react';
 
 type PricingTier = { id: number; tierName: string; priceCents: number; durationDays: number; description: string };
 
@@ -22,7 +22,8 @@ export const Sponsor: React.FC = () => {
     email: '',
     company: '',
     website: '',
-    note: ''
+    note: '',
+    paymentProvider: 'paypal'
   });
 
   useEffect(() => {
@@ -93,7 +94,8 @@ export const Sponsor: React.FC = () => {
         company: form.company,
         website: form.website,
         note: form.note,
-        placement: 'sponsor-page'
+        placement: 'sponsor-page',
+        paymentProvider: form.paymentProvider
       };
 
       const result = await ApiService.createSponsoredPurchase(providerId, tierId, payerInfo);
@@ -356,6 +358,20 @@ export const Sponsor: React.FC = () => {
               <textarea className="w-full min-h-[120px] rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3" value={form.note} onChange={(e) => setForm(prev => ({ ...prev, note: e.target.value }))} placeholder="What are you promoting?" />
             </div>
 
+            <div className="md:col-span-2">
+              <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-3">Payment method</label>
+              <div className="flex gap-3 flex-wrap">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="paymentProvider" value="paypal" checked={form.paymentProvider === 'paypal'} onChange={(e) => setForm(prev => ({ ...prev, paymentProvider: e.target.value }))} className="w-4 h-4" />
+                  <span className="text-sm font-bold">PayPal (International)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="paymentProvider" value="opay" checked={form.paymentProvider === 'opay'} onChange={(e) => setForm(prev => ({ ...prev, paymentProvider: e.target.value }))} className="w-4 h-4" />
+                  <span className="text-sm font-bold">OPay (Nigeria)</span>
+                </label>
+              </div>
+            </div>
+
             <div className="md:col-span-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="text-sm text-gray-600 dark:text-gray-300">
                 {message || 'We will create the booking and either open checkout or queue an invoice for confirmation.'}
@@ -365,6 +381,41 @@ export const Sponsor: React.FC = () => {
               </button>
             </div>
           </form>
+        </div>
+
+        {/* Trust badges & Guarantee */}
+        <div className="rounded-[1.75rem] border border-gray-100 dark:border-gray-800 bg-gradient-to-br from-grantify-green/5 to-grantify-gold/5 dark:from-grantify-green/10 dark:to-grantify-gold/10 p-6 md:p-8 shadow-sm lg:col-span-2">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-green mb-2">Trusted</div>
+              <h3 className="text-xl font-black">Your investment is protected</h3>
+            </div>
+            <Shield className="text-grantify-green" size={18} />
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="flex gap-3">
+              <Lock className="text-grantify-green flex-shrink-0" size={20} />
+              <div>
+                <div className="font-black text-sm mb-1">256-bit SSL Encrypted</div>
+                <p className="text-xs text-gray-600 dark:text-gray-400">All payments secured with industry-standard encryption</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <RefreshCw className="text-grantify-green flex-shrink-0" size={20} />
+              <div>
+                <div className="font-black text-sm mb-1">14-Day Guarantee</div>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Not satisfied? Full refund within 14 days of activation</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <CheckCircle className="text-grantify-green flex-shrink-0" size={20} />
+              <div>
+                <div className="font-black text-sm mb-1">50+ Partners</div>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Trusted by lenders, advisors, and fintech providers</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="rounded-[1.75rem] border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 shadow-sm lg:col-span-2">
