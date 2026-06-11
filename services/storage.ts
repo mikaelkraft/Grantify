@@ -684,6 +684,15 @@ export const ApiService = {
     return await res.json();
   },
 
+  getSponsorMeta: async (): Promise<{ tiers: any[]; testimonials: any[]; metrics: any }> => {
+    const res = await fetch(`${API_URL}/api/sponsored?what=meta`);
+    if (!res.ok) {
+      const payload = await res.json().catch(() => null);
+      throw new Error(payload?.error || 'Failed to fetch sponsor meta');
+    }
+    return await res.json();
+  },
+
   createSponsoredPurchase: async (providerId: number, tierId: number, payerInfo?: any): Promise<{ id: number; paymentUrl: string | null; amountCents: number }> => {
     const res = await fetch(`${API_URL}/api/sponsored?action=create`, {
       method: 'POST',
@@ -708,6 +717,48 @@ export const ApiService = {
     if (!res.ok) {
       const payload = await res.json().catch(() => null);
       throw new Error(payload?.error || 'Failed to mark sponsored purchase as paid');
+    }
+  },
+
+  adminUpdateTierSlots: async (id: number, maxSlots: number | null): Promise<void> => {
+    const adminHeader = getAdminSessionHeader();
+    if (!adminHeader) throw new Error('Admin session missing');
+    const res = await fetch(`${API_URL}/api/sponsored?action=update_tier_slots`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Session': adminHeader },
+      body: JSON.stringify({ id, maxSlots })
+    });
+    if (!res.ok) {
+      const payload = await res.json().catch(() => null);
+      throw new Error(payload?.error || 'Failed to update tier slots');
+    }
+  },
+
+  adminPublishListingNow: async (id: number): Promise<void> => {
+    const adminHeader = getAdminSessionHeader();
+    if (!adminHeader) throw new Error('Admin session missing');
+    const res = await fetch(`${API_URL}/api/sponsored?action=publish_now`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Session': adminHeader },
+      body: JSON.stringify({ id })
+    });
+    if (!res.ok) {
+      const payload = await res.json().catch(() => null);
+      throw new Error(payload?.error || 'Failed to publish listing');
+    }
+  },
+
+  adminSchedulePublish: async (id: number, startAt?: string | null, endAt?: string | null, adminNote?: string): Promise<void> => {
+    const adminHeader = getAdminSessionHeader();
+    if (!adminHeader) throw new Error('Admin session missing');
+    const res = await fetch(`${API_URL}/api/sponsored?action=schedule_publish`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Session': adminHeader },
+      body: JSON.stringify({ id, startAt, endAt, adminNote })
+    });
+    if (!res.ok) {
+      const payload = await res.json().catch(() => null);
+      throw new Error(payload?.error || 'Failed to schedule publish');
     }
   },
 
@@ -747,6 +798,20 @@ export const ApiService = {
     if (!res.ok) {
       const payloadErr = await res.json().catch(() => null);
       throw new Error(payloadErr?.error || 'Failed to update invoice');
+    }
+  },
+
+  sendSponsoredInvoice: async (id: number, emailTo?: string): Promise<void> => {
+    const adminHeader = getAdminSessionHeader();
+    if (!adminHeader) throw new Error('Admin session missing');
+    const res = await fetch(`${API_URL}/api/sponsored?action=send_invoice_email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Session': adminHeader },
+      body: JSON.stringify({ id, emailTo })
+    });
+    if (!res.ok) {
+      const payload = await res.json().catch(() => null);
+      throw new Error(payload?.error || 'Failed to send invoice');
     }
   },
 

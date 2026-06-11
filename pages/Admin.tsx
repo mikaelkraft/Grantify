@@ -98,6 +98,8 @@ export const Admin: React.FC = () => {
   const [sponsoredPricing, setSponsoredPricing] = useState<Array<any>>([]);
   const [sponsoredListingsAdmin, setSponsoredListingsAdmin] = useState<Array<any>>([]);
   const [isLoadingSponsored, setIsLoadingSponsored] = useState(false);
+  const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
+  const [invoiceForm, setInvoiceForm] = useState<any>({ id: null, invoiceNumber: '', billingName: '', billingEmail: '', invoiceIssuedAt: '', invoiceDueDate: '', offlinePaymentMethod: '', adminNote: '' });
 
   // Smart Writer helpers
   const [smartWriteInstructions, setSmartWriteInstructions] = useState('');
@@ -2559,27 +2561,21 @@ export const Admin: React.FC = () => {
                                     </button>
                                   )}
                                   <button
-                                    onClick={async () => {
-                                      try {
-                                        const invoiceNumber = window.prompt('Enter invoice number (leave blank to skip)', s.invoice_number || '');
-                                        if (invoiceNumber === null) return;
-                                        const billingName = window.prompt('Enter billing name (optional)', (s.billing_info && s.billing_info.name) || '');
-                                        if (billingName === null) return;
-                                        const billingEmail = window.prompt('Enter billing email (optional)', (s.billing_info && s.billing_info.email) || '');
-                                        if (billingEmail === null) return;
-
-                                        const billing = { name: billingName || undefined, email: billingEmail || undefined };
-                                        await ApiService.updateSponsoredInvoice(s.id, { invoiceNumber: invoiceNumber || undefined, billingInfo: Object.keys(billing).length ? billing : undefined });
-                                        const listings = await ApiService.getActiveSponsoredListings();
-                                        setSponsoredListingsAdmin(listings || []);
-                                        alert('Invoice info updated');
-                                      } catch (err: any) {
-                                        console.error(err);
-                                        alert(err?.message || 'Failed to update invoice');
-                                      }
+                                    onClick={() => {
+                                      setInvoiceForm({
+                                        id: s.id,
+                                        invoiceNumber: s.invoice_number || '',
+                                        billingName: (s.billing_info && s.billing_info.name) || (s.payer_info && s.payer_info.name) || '',
+                                        billingEmail: (s.billing_info && s.billing_info.email) || (s.payer_info && s.payer_info.email) || '',
+                                        invoiceIssuedAt: s.invoice_issued_at ? new Date(s.invoice_issued_at).toISOString().slice(0,10) : '',
+                                        invoiceDueDate: s.invoice_due_date ? new Date(s.invoice_due_date).toISOString().slice(0,10) : '',
+                                        offlinePaymentMethod: s.offline_payment_method || '',
+                                        adminNote: s.admin_note || ''
+                                      });
+                                      setInvoiceModalOpen(true);
                                     }}
                                     className="ml-2 px-2 py-1 rounded bg-yellow-600 text-white text-xs font-bold"
-                                    title="Add / update invoice and billing info"
+                                    title="Edit invoice and billing info"
                                   >
                                     Invoice
                                   </button>
@@ -2591,6 +2587,76 @@ export const Admin: React.FC = () => {
                       </div>
                     </>
                   )}
+                </div>
+              )}
+              {invoiceModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black opacity-50" onClick={() => setInvoiceModalOpen(false)} />
+                  <div className="bg-white dark:bg-gray-900 p-6 rounded shadow-lg z-10 w-full max-w-lg">
+                    <h3 className="text-lg font-bold mb-3">Edit Invoice</h3>
+                    <div className="grid grid-cols-1 gap-2">
+                      <label className="text-xs">Invoice Number</label>
+                      <input className="p-2 rounded border" value={invoiceForm.invoiceNumber} onChange={(e) => setInvoiceForm({ ...invoiceForm, invoiceNumber: e.target.value })} />
+                      <label className="text-xs">Billing Name</label>
+                      <input className="p-2 rounded border" value={invoiceForm.billingName} onChange={(e) => setInvoiceForm({ ...invoiceForm, billingName: e.target.value })} />
+                      <label className="text-xs">Billing Email</label>
+                      <input className="p-2 rounded border" value={invoiceForm.billingEmail} onChange={(e) => setInvoiceForm({ ...invoiceForm, billingEmail: e.target.value })} />
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-xs">Issued At</label>
+                          <input type="date" className="p-2 rounded border w-full" value={invoiceForm.invoiceIssuedAt} onChange={(e) => setInvoiceForm({ ...invoiceForm, invoiceIssuedAt: e.target.value })} />
+                        </div>
+                        <div>
+                          <label className="text-xs">Due Date</label>
+                          <input type="date" className="p-2 rounded border w-full" value={invoiceForm.invoiceDueDate} onChange={(e) => setInvoiceForm({ ...invoiceForm, invoiceDueDate: e.target.value })} />
+                        </div>
+                      </div>
+                      <label className="text-xs">Offline Payment Method</label>
+                      <input className="p-2 rounded border" value={invoiceForm.offlinePaymentMethod} onChange={(e) => setInvoiceForm({ ...invoiceForm, offlinePaymentMethod: e.target.value })} />
+                      <label className="text-xs">Admin Note</label>
+                      <textarea className="p-2 rounded border" value={invoiceForm.adminNote} onChange={(e) => setInvoiceForm({ ...invoiceForm, adminNote: e.target.value })} />
+                      <div className="flex gap-2 justify-end mt-3">
+                        <button onClick={() => setInvoiceModalOpen(false)} className="px-3 py-1 rounded border">Cancel</button>
+                        <button
+                          onClick={async () => {
+                            try {
+                              await ApiService.updateSponsoredInvoice(invoiceForm.id, {
+                                invoiceNumber: invoiceForm.invoiceNumber || undefined,
+                                billingInfo: (invoiceForm.billingName || invoiceForm.billingEmail) ? { name: invoiceForm.billingName || undefined, email: invoiceForm.billingEmail || undefined } : undefined,
+                                offlinePaymentMethod: invoiceForm.offlinePaymentMethod || undefined,
+                                invoiceIssuedAt: invoiceForm.invoiceIssuedAt || undefined,
+                                invoiceDueDate: invoiceForm.invoiceDueDate || undefined,
+                                adminNote: invoiceForm.adminNote || undefined
+                              });
+                              const listings = await ApiService.getActiveSponsoredListings();
+                              setSponsoredListingsAdmin(listings || []);
+                              setInvoiceModalOpen(false);
+                              alert('Invoice updated');
+                            } catch (err: any) {
+                              alert(err?.message || 'Failed to update invoice');
+                            }
+                          }}
+                          className="px-3 py-1 rounded bg-grantify-green text-white"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={async () => {
+                            try {
+                              const email = invoiceForm.billingEmail || window.prompt('Email to send invoice to (leave blank to use billing email)');
+                              await ApiService.sendSponsoredInvoice(invoiceForm.id, email || undefined);
+                              alert('Invoice email sent (queued)');
+                            } catch (err: any) {
+                              alert(err?.message || 'Failed to send invoice');
+                            }
+                          }}
+                          className="px-3 py-1 rounded bg-blue-600 text-white"
+                        >
+                          Send Email
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
               {activeTab === 'blog' && (

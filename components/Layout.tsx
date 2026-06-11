@@ -261,6 +261,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const navLinks = [
     { to: "/", label: "Home", shortLabel: "Home" },
     { to: "/blog", label: "Blog Intel", shortLabel: "Blog" },
+    { to: "/sponsor", label: "Sponsor", shortLabel: "Sponsor" },
     { to: "/loan-providers", label: "Instant Loans", shortLabel: "Loans" },
     { to: "/contact", label: "Contact Us", shortLabel: "Contact" },
     { to: "/admin", label: "Admin Login", shortLabel: "Admin" },
