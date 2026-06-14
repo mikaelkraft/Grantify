@@ -684,7 +684,6 @@ export const ApiService = {
     return await res.json();
   },
 
-<<<<<<< HEAD
   getSponsorMeta: async (): Promise<{ tiers: any[]; testimonials: any[]; metrics: any }> => {
     const res = await fetch(`${API_URL}/api/sponsored?what=meta`);
     if (!res.ok) {
@@ -693,9 +692,6 @@ export const ApiService = {
     }
     return await res.json();
   },
-
-=======
->>>>>>> 87fea6116f9d05541a0d8f6f9e499688217a0a94
   createSponsoredPurchase: async (providerId: number, tierId: number, payerInfo?: any): Promise<{ id: number; paymentUrl: string | null; amountCents: number }> => {
     const res = await fetch(`${API_URL}/api/sponsored?action=create`, {
       method: 'POST',
@@ -723,7 +719,6 @@ export const ApiService = {
     }
   },
 
-<<<<<<< HEAD
   adminUpdateTierSlots: async (id: number, maxSlots: number | null): Promise<void> => {
     const adminHeader = getAdminSessionHeader();
     if (!adminHeader) throw new Error('Admin session missing');
@@ -774,12 +769,6 @@ export const ApiService = {
     if (opts?.startDate) qs.set('startDate', opts.startDate);
     if (opts?.endDate) qs.set('endDate', opts.endDate);
     const res = await fetch(`${API_URL}/api/sponsored?${qs.toString()}`, {
-=======
-  adminDownloadSponsoredCSV: async (): Promise<void> => {
-    const adminHeader = getAdminSessionHeader();
-    if (!adminHeader) throw new Error('Admin session missing');
-    const res = await fetch(`${API_URL}/api/sponsored?what=listings&action=export_csv`, {
->>>>>>> 87fea6116f9d05541a0d8f6f9e499688217a0a94
       headers: { 'X-Admin-Session': adminHeader }
     });
     if (!res.ok) {
@@ -811,7 +800,6 @@ export const ApiService = {
     }
   },
 
-<<<<<<< HEAD
   sendSponsoredInvoice: async (id: number, emailTo?: string): Promise<void> => {
     const adminHeader = getAdminSessionHeader();
     if (!adminHeader) throw new Error('Admin session missing');
@@ -825,9 +813,6 @@ export const ApiService = {
       throw new Error(payload?.error || 'Failed to send invoice');
     }
   },
-
-=======
->>>>>>> 87fea6116f9d05541a0d8f6f9e499688217a0a94
   getActiveSponsoredListings: async (): Promise<any[]> => {
     const res = await fetch(`${API_URL}/api/sponsored?what=listings&active=1`);
     if (!res.ok) throw new Error('Failed to fetch active sponsored listings');
