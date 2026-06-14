@@ -407,6 +407,7 @@ export const Home: React.FC = () => {
                   ) : null}
                 </div>
                 <div className="flex gap-3 w-full lg:w-auto">
+<<<<<<< HEAD
                   <Link to="/sponsor" className="inline-flex items-center justify-center gap-2 bg-grantify-gold text-grantify-green font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all w-full lg:w-auto">
                     Sponsor Content <ExternalLink size={16} />
                   </Link>
@@ -415,6 +416,13 @@ export const Home: React.FC = () => {
                   </Link>
                   <Link to="/sponsor?tier=standard" className="inline-flex items-center justify-center gap-2 border border-white/10 text-white font-black px-4 py-3 rounded-xl hover:bg-white/5 transition-all">
                     Contact Sales
+=======
+                  <Link to="/admin?tab=sponsored" className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all w-full lg:w-auto">
+                    Manage Sponsored Listings <ExternalLink size={16} />
+                  </Link>
+                  <Link to="/contact" className="inline-flex items-center justify-center gap-2 border border-white/10 text-white font-black px-4 py-3 rounded-xl hover:bg-white/5 transition-all">
+                    Request a Media Kit
+>>>>>>> 87fea6116f9d05541a0d8f6f9e499688217a0a94
                   </Link>
                 </div>
               </>
@@ -431,7 +439,11 @@ export const Home: React.FC = () => {
               sponsoredListings.slice(0, 3).map((s: any) => (
                 <Link
                   key={s.id}
+<<<<<<< HEAD
                   to="/sponsor"
+=======
+                  to={`/loan-providers?highlight=${encodeURIComponent(String(s.provider_id || ''))}`}
+>>>>>>> 87fea6116f9d05541a0d8f6f9e499688217a0a94
                   className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm block transition-all hover:bg-white/10 hover:border-white/20 hover:-translate-y-0.5"
                 >
                   <div className="text-sm font-black uppercase tracking-widest text-grantify-gold mb-2">{String(s.tier_name || 'Sponsored')}</div>

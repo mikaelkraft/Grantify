@@ -1,6 +1,9 @@
 import pool from '../db.js';
+<<<<<<< HEAD
 import PDFDocument from 'pdfkit';
 import nodemailer from 'nodemailer';
+=======
+>>>>>>> 87fea6116f9d05541a0d8f6f9e499688217a0a94
 
 const parseAdminSession = (req) => {
   try {
@@ -31,6 +34,7 @@ export default async function handler(req, res) {
         return res.status(200).json(r.rows.map(r => ({ id: r.id, tierName: r.tier_name, priceCents: r.price_cents, durationDays: r.duration_days, description: r.description })));
       }
 
+<<<<<<< HEAD
       if (what === 'meta') {
         // Return availability per tier, recent testimonials (if available), and simple metrics for the Sponsor page
         try {
@@ -98,11 +102,18 @@ export default async function handler(req, res) {
 
         const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
 
+=======
+      if (what === 'listings') {
+>>>>>>> 87fea6116f9d05541a0d8f6f9e499688217a0a94
         const q = `SELECT sl.*, lp.name as provider_name, sp.tier_name, sp.duration_days
                    FROM sponsored_listings sl
                    LEFT JOIN loan_providers lp ON lp.id = sl.provider_id
                    LEFT JOIN sponsored_pricing sp ON sp.id = sl.tier_id
+<<<<<<< HEAD
                    ${whereClause}
+=======
+                   ${active ? "WHERE sl.payment_status='paid' AND (sl.end_at IS NULL OR sl.end_at > NOW())" : ''}
+>>>>>>> 87fea6116f9d05541a0d8f6f9e499688217a0a94
                    ORDER BY sl.created_at DESC`;
         const r = await client.query(q);
 
@@ -155,6 +166,7 @@ export default async function handler(req, res) {
         );
         const id = insert.rows[0].id;
 
+<<<<<<< HEAD
         // Build payment URLs for PayPal or OPay
         let paymentUrl = null;
         try {
@@ -288,6 +300,10 @@ export default async function handler(req, res) {
         if (!id) return res.status(400).json({ error: 'id required' });
         await client.query('DELETE FROM sponsor_testimonials WHERE id = $1', [id]);
         return res.status(200).json({ success: true });
+=======
+        // In a production flow this would return a Stripe/Paystack checkout URL. For now return a stub and the record id.
+        return res.status(200).json({ id, paymentUrl: null, amountCents: amount });
+>>>>>>> 87fea6116f9d05541a0d8f6f9e499688217a0a94
       }
 
       if (action === 'mark_paid') {
@@ -305,12 +321,16 @@ export default async function handler(req, res) {
         const duration = listing.duration_days || 30;
 
         await client.query('BEGIN');
+<<<<<<< HEAD
         // Auto-generate invoice number and set invoice dates if not present
         const invoiceNumber = `INV-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${id}`;
         await client.query(
           `UPDATE sponsored_listings SET payment_status = $1, start_at = NOW(), end_at = NOW() + ($2 || '1 day')::interval, invoice_number = COALESCE(invoice_number, $4), invoice_issued_at = COALESCE(invoice_issued_at, NOW()), invoice_due_date = COALESCE(invoice_due_date, NOW() + INTERVAL '14 days'), updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
           ['paid', `${duration} days`, id, invoiceNumber]
         );
+=======
+        await client.query('UPDATE sponsored_listings SET payment_status = $1, start_at = NOW(), end_at = NOW() + ($2 || "1 day")::interval, updated_at = CURRENT_TIMESTAMP WHERE id = $3', ['paid', `${duration} days`, id]);
+>>>>>>> 87fea6116f9d05541a0d8f6f9e499688217a0a94
 
         // Mark provider as recommended/featured
         if (listing.provider_id) {
@@ -321,6 +341,7 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true });
       }
 
+<<<<<<< HEAD
       if (action === 'generate_invoice_pdf' || action === 'send_invoice_email') {
         // Admin only
         const session = parseAdminSession(req);
@@ -386,6 +407,8 @@ export default async function handler(req, res) {
         return; // response handled in 'end' listener
       }
 
+=======
+>>>>>>> 87fea6116f9d05541a0d8f6f9e499688217a0a94
       if (action === 'update_invoice') {
         // Admin-only: update invoice/billing details for a sponsored listing
         const session = parseAdminSession(req);
@@ -413,6 +436,7 @@ export default async function handler(req, res) {
       }
     }
 
+<<<<<<< HEAD
     // Webhook handlers for payment confirmations
     if (req.method === 'GET' && req.path?.includes('/webhook')) {
       const { provider, listingId } = req.query || {};
@@ -441,6 +465,8 @@ export default async function handler(req, res) {
       }
     }
 
+=======
+>>>>>>> 87fea6116f9d05541a0d8f6f9e499688217a0a94
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (err) {
     try { await client.query('ROLLBACK'); } catch {}
