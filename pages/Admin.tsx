@@ -17,6 +17,12 @@ import {
   Smile,
   Flag,
   X,
+  Edit,
+  Calendar,
+  Check,
+  FileText,
+  DollarSign,
+  ExternalLink,
 } from 'lucide-react';
 import React, { useEffect, useRef, useState, useTransition } from 'react';
 import { ApiService } from '../services/storage';
@@ -139,6 +145,25 @@ export const Admin: React.FC = () => {
   const [oneDriveStatus, setOneDriveStatus] = useState<{ enabled: boolean; provider: string; connected: boolean; needsReconnect?: boolean; error?: string } | null>(null);
   const oneDriveStatusRef = useRef<typeof oneDriveStatus>(null);
 
+  // Sponsored State
+  const [sponsoredPricing, setSponsoredPricing] = useState<any[]>([]);
+  const [sponsoredListingsAdmin, setSponsoredListingsAdmin] = useState<any[]>([]);
+  const [sponsorTestimonialsAdmin, setSponsorTestimonialsAdmin] = useState<any[]>([]);
+  const [isLoadingSponsored, setIsLoadingSponsored] = useState(false);
+  const [isSavingSponsored, setIsSavingSponsored] = useState(false);
+  const [newTestimonial, setNewTestimonial] = useState({ author: '', quote: '', providerId: '' });
+  const [editingListing, setEditingListing] = useState<any | null>(null);
+  const [invoiceForm, setInvoiceForm] = useState({
+    startAt: '',
+    endAt: '',
+    invoiceNumber: '',
+    offlinePaymentMethod: '',
+    invoiceIssuedAt: '',
+    invoiceDueDate: '',
+    adminNote: '',
+    billingInfo: ''
+  });
+
   const [isUploadingFeaturedImage, setIsUploadingFeaturedImage] = useState(false);
   const [featuredImageLocalPreview, setFeaturedImageLocalPreview] = useState<string>('');
 
@@ -184,25 +209,7 @@ export const Admin: React.FC = () => {
       }
     };
 
-    // Load sponsored data when this tab is active
-    const loadSponsored = async () => {
-      if (!user || activeTab !== 'sponsored') return;
-      setIsLoadingSponsored(true);
-      try {
-        const pricing = await ApiService.getSponsoredPricing();
-        setSponsoredPricing(pricing || []);
-        const listings = await ApiService.getActiveSponsoredListings();
-        setSponsoredListingsAdmin(listings || []);
-      } catch (err) {
-        console.warn('Failed to load sponsored data', err);
-      } finally {
-        setIsLoadingSponsored(false);
-      }
-    };
-
-    if (user && activeTab === 'sponsored') {
-      loadSponsored();
-    }
+    // loadSponsored helper removed from here to become component-level
 
     const onFocus = () => {
       fetchStatus();
@@ -222,12 +229,197 @@ export const Admin: React.FC = () => {
       }, 8000);
     }
 
-    return () => {
-      canceled = true;
-      window.removeEventListener('focus', onFocus);
-      if (intervalId !== null) window.clearInterval(intervalId);
-    };
   }, [activeTab, user?.id]);
+
+  // Load sponsored data when this tab is active or refreshed
+  const loadSponsored = React.useCallback(async () => {
+    if (!user) return;
+    setIsLoadingSponsored(true);
+    try {
+      const [pricing, listings, meta] = await Promise.all([
+        ApiService.getSponsoredPricing(),
+        ApiService.getAllSponsoredListingsAdmin(),
+        ApiService.getSponsorMeta().catch(() => null)
+      ]);
+      setSponsoredPricing(pricing || []);
+      setSponsoredListingsAdmin(listings || []);
+      setSponsorTestimonialsAdmin(meta?.testimonials || []);
+    } catch (err) {
+      console.warn('Failed to load sponsored data', err);
+    } finally {
+      setIsLoadingSponsored(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (activeTab === 'sponsored') {
+      loadSponsored();
+    }
+  }, [activeTab, loadSponsored]);
+
+  const handleUpdateSlots = async (tierId: number, maxSlots: number | null) => {
+    try {
+      setIsSavingSponsored(true);
+      await ApiService.adminUpdateTierSlots(tierId, maxSlots);
+      alert("Tier slots updated successfully!");
+      loadSponsored();
+    } catch (err: any) {
+      alert(err?.message || "Failed to update slots");
+    } finally {
+      setIsSavingSponsored(false);
+    }
+  };
+
+  const handleMarkPaid = async (id: number) => {
+    if (!confirm("Mark this sponsorship as paid? This will activate the slots and trigger schedule/billing verification.")) return;
+    try {
+      setIsSavingSponsored(true);
+      await ApiService.adminMarkSponsoredPaid(id);
+      alert("Sponsorship marked as paid!");
+      loadSponsored();
+    } catch (err: any) {
+      alert(err?.message || "Failed to mark as paid");
+    } finally {
+      setIsSavingSponsored(false);
+    }
+  };
+
+  const handlePublishNow = async (id: number) => {
+    if (!confirm("Are you sure you want to publish this listing immediately? This will set start date to now and end date based on duration.")) return;
+    try {
+      setIsSavingSponsored(true);
+      await ApiService.adminPublishListingNow(id);
+      alert("Listing published successfully!");
+      loadSponsored();
+    } catch (err: any) {
+      alert(err?.message || "Failed to publish listing");
+    } finally {
+      setIsSavingSponsored(false);
+    }
+  };
+
+  const handleSendInvoice = async (listing: any) => {
+    const email = prompt("Enter email address to send invoice to:", listing.payer_email || "");
+    if (email === null) return;
+    try {
+      setIsSavingSponsored(true);
+      await ApiService.sendSponsoredInvoice(listing.id, email || undefined);
+      alert("Invoice email sent successfully!");
+      loadSponsored();
+    } catch (err: any) {
+      alert(err?.message || "Failed to send invoice email");
+    } finally {
+      setIsSavingSponsored(false);
+    }
+  };
+
+  const handleDownloadCSV = async () => {
+    try {
+      setIsSavingSponsored(true);
+      await ApiService.adminDownloadSponsoredCSV();
+    } catch (err: any) {
+      alert(err?.message || "Failed to export CSV");
+    } finally {
+      setIsSavingSponsored(false);
+    }
+  };
+
+  const startEditListing = (listing: any) => {
+    const formatDate = (dateStr: string | null | undefined) => {
+      if (!dateStr) return '';
+      try {
+        return new Date(dateStr).toISOString().substring(0, 10);
+      } catch {
+        return '';
+      }
+    };
+    setEditingListing(listing);
+    setInvoiceForm({
+      startAt: formatDate(listing.start_at),
+      endAt: formatDate(listing.end_at),
+      invoiceNumber: listing.invoice_number || '',
+      offlinePaymentMethod: listing.offline_payment_method || '',
+      invoiceIssuedAt: formatDate(listing.invoice_issued_at),
+      invoiceDueDate: formatDate(listing.invoice_due_date),
+      adminNote: listing.admin_note || '',
+      billingInfo: typeof listing.billing_info === 'object' ? JSON.stringify(listing.billing_info, null, 2) : (listing.billing_info || '')
+    });
+  };
+
+  const handleSaveListingEdits = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingListing) return;
+    try {
+      setIsSavingSponsored(true);
+      let parsedBilling = null;
+      if (invoiceForm.billingInfo.trim()) {
+        try {
+          parsedBilling = JSON.parse(invoiceForm.billingInfo);
+        } catch {
+          parsedBilling = invoiceForm.billingInfo; // fallback to plain string
+        }
+      }
+      
+      // Call both endpoints to update schedule and invoice
+      await ApiService.adminSchedulePublish(
+        editingListing.id, 
+        invoiceForm.startAt || null, 
+        invoiceForm.endAt || null, 
+        invoiceForm.adminNote
+      );
+      
+      await ApiService.updateSponsoredInvoice(editingListing.id, {
+        invoiceNumber: invoiceForm.invoiceNumber,
+        billingInfo: parsedBilling,
+        offlinePaymentMethod: invoiceForm.offlinePaymentMethod,
+        invoiceIssuedAt: invoiceForm.invoiceIssuedAt || undefined,
+        invoiceDueDate: invoiceForm.invoiceDueDate || undefined,
+        adminNote: invoiceForm.adminNote
+      });
+      
+      alert("Listing schedule and billing details updated successfully!");
+      setEditingListing(null);
+      loadSponsored();
+    } catch (err: any) {
+      alert(err?.message || "Failed to save listing edits");
+    } finally {
+      setIsSavingSponsored(false);
+    }
+  };
+
+  const handleAddSponsorTestimonial = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTestimonial.author || !newTestimonial.quote) {
+      alert("Please fill in author and quote.");
+      return;
+    }
+    try {
+      setIsSavingSponsored(true);
+      const pId = newTestimonial.providerId ? Number(newTestimonial.providerId) : null;
+      await ApiService.addSponsorTestimonial(newTestimonial.author, newTestimonial.quote, pId);
+      alert("Testimonial added successfully!");
+      setNewTestimonial({ author: '', quote: '', providerId: '' });
+      loadSponsored();
+    } catch (err: any) {
+      alert(err?.message || "Failed to add testimonial");
+    } finally {
+      setIsSavingSponsored(false);
+    }
+  };
+
+  const handleDeleteSponsorTestimonial = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this testimonial?")) return;
+    try {
+      setIsSavingSponsored(true);
+      await ApiService.deleteSponsorTestimonial(id);
+      alert("Testimonial deleted successfully!");
+      loadSponsored();
+    } catch (err: any) {
+      alert(err?.message || "Failed to delete testimonial");
+    } finally {
+      setIsSavingSponsored(false);
+    }
+  };
 
   const linkifyHtml = (html: string): string => {
     if (!html || typeof html !== 'string') return html;
@@ -1091,6 +1283,7 @@ export const Admin: React.FC = () => {
         'testimonials',
         'ads',
         'providers',
+        'sponsored',
         'contact',
         'content',
         'reviews',
@@ -2034,6 +2227,463 @@ export const Admin: React.FC = () => {
                       </div>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Sponsored Listings Tab */}
+              {activeTab === 'sponsored' && (
+                <div className="space-y-8">
+                  {/* Pricing Tiers Management */}
+                  <div className="bg-gray-50 dark:bg-gray-950 p-6 rounded-2xl border border-gray-100 dark:border-gray-800">
+                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                      <Zap size={18} className="text-grantify-gold" /> Sponsored Pricing Tiers & Max Slots
+                    </h3>
+                    <p className="text-xs text-gray-500 mb-6">
+                      Configure capacity constraints for sponsored slots. Setting max slots to blank/empty allows unlimited listings.
+                    </p>
+                    <div className="grid md:grid-cols-3 gap-4">
+                      {sponsoredPricing.map(tier => {
+                        return (
+                          <div key={tier.id} className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 flex flex-col justify-between">
+                            <div>
+                              <div className="font-bold text-gray-900 dark:text-gray-100">{tier.tierName}</div>
+                              <div className="text-lg font-black mt-1 text-gray-900 dark:text-gray-100">{(tier.priceCents / 100).toLocaleString(undefined, { style: 'currency', currency: 'NGN' })}</div>
+                              <p className="text-xs text-gray-500 mt-1">{tier.description}</p>
+                              <div className="text-xs text-gray-400 mt-1">Duration: {tier.durationDays} Days</div>
+                            </div>
+                            <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800">
+                              <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Max Slots Capacity</label>
+                              <div className="flex gap-2">
+                                <input
+                                  type="number"
+                                  placeholder="Unlimited"
+                                  className="w-full rounded border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 px-2 py-1 text-sm text-gray-900 dark:text-gray-100"
+                                  defaultValue={tier.maxSlots !== null ? tier.maxSlots : ''}
+                                  id={`slots-input-${tier.id}`}
+                                  aria-label="Max Slots capacity"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const val = (document.getElementById(`slots-input-${tier.id}`) as HTMLInputElement)?.value;
+                                    const slots = val.trim() === '' ? null : Number(val);
+                                    handleUpdateSlots(tier.id, slots);
+                                  }}
+                                  className="bg-gray-900 text-white dark:bg-gray-800 hover:bg-grantify-green px-2 py-1 rounded text-xs transition"
+                                >
+                                  Save
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Active & Pending Sponsored Listings */}
+                  <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
+                    <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Sponsored Listings Requests ({sponsoredListingsAdmin.length})</h3>
+                        <p className="text-xs text-gray-500">Manage campaign schedules, invoice records, payment states, and manual approvals.</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={handleDownloadCSV}
+                          className="flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white text-xs px-3 py-2 rounded-lg transition"
+                        >
+                          <Download size={14} /> Export CSV
+                        </button>
+                        <button
+                          type="button"
+                          onClick={loadSponsored}
+                          className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-xs px-3 py-2 rounded-lg transition text-gray-800 dark:text-gray-100"
+                        >
+                          Refresh Data
+                        </button>
+                      </div>
+                    </div>
+
+                    {isLoadingSponsored ? (
+                      <div className="flex items-center justify-center py-12 text-gray-400">
+                        <Loader2 className="animate-spin mr-2" /> Loading listings...
+                      </div>
+                    ) : sponsoredListingsAdmin.length === 0 ? (
+                      <div className="text-center py-12 text-gray-500 border border-dashed border-gray-100 dark:border-gray-800 rounded-xl">
+                        No sponsored bookings found.
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full text-sm border-collapse">
+                          <thead className="bg-gray-50 dark:bg-gray-950">
+                            <tr>
+                              <th className="p-3 text-left font-bold text-gray-700 dark:text-gray-200">ID / Info</th>
+                              <th className="p-3 text-left font-bold text-gray-700 dark:text-gray-200">Provider & Website</th>
+                              <th className="p-3 text-left font-bold text-gray-700 dark:text-gray-200">Tier / Price</th>
+                              <th className="p-3 text-left font-bold text-gray-700 dark:text-gray-200">Payer Details</th>
+                              <th className="p-3 text-left font-bold text-gray-700 dark:text-gray-200">Status & Schedule</th>
+                              <th className="p-3 text-left font-bold text-gray-700 dark:text-gray-200">Invoicing</th>
+                              <th className="p-3 text-left font-bold text-gray-700 dark:text-gray-200">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                            {sponsoredListingsAdmin.map((listing: any) => {
+                              const isPaid = listing.payment_status === 'paid';
+                              const isActive = listing.start_at && listing.end_at && new Date(listing.start_at) <= new Date() && new Date(listing.end_at) >= new Date();
+                              
+                              return (
+                                <tr key={listing.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-950/40">
+                                  <td className="p-3 font-mono text-xs text-gray-800 dark:text-gray-200">
+                                    #{listing.id}
+                                    <div className="text-[10px] text-gray-400 mt-1">
+                                      Created:<br/>{new Date(listing.created_at).toLocaleDateString()}
+                                    </div>
+                                  </td>
+                                  <td className="p-3">
+                                    <div className="font-bold text-gray-900 dark:text-gray-100">{listing.provider_name || `ID: ${listing.provider_id}`}</div>
+                                    {listing.provider_website && (
+                                      <a href={listing.provider_website} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-0.5 mt-1 hover:underline">
+                                        Website <ExternalLink size={10} />
+                                      </a>
+                                    )}
+                                  </td>
+                                  <td className="p-3">
+                                    <span className="inline-block bg-grantify-gold/10 text-grantify-gold text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border border-grantify-gold/25">
+                                      {listing.tier_name || 'Tier'}
+                                    </span>
+                                    <div className="font-bold mt-1 text-xs text-gray-900 dark:text-gray-100">
+                                      {(listing.amount_cents / 100).toLocaleString(undefined, { style: 'currency', currency: 'NGN' })}
+                                    </div>
+                                    <div className="text-[10px] text-gray-400">{listing.duration_days} days</div>
+                                  </td>
+                                  <td className="p-3 text-xs leading-relaxed text-gray-800 dark:text-gray-200">
+                                    <div><strong>{listing.payer_name}</strong></div>
+                                    <div className="text-gray-500">{listing.payer_email}</div>
+                                    {listing.payer_company && <div className="text-[10px] text-gray-400">Co: {listing.payer_company}</div>}
+                                    {listing.campaign_note && (
+                                      <div className="mt-1 text-[10px] bg-gray-50 dark:bg-gray-950 p-1.5 rounded text-gray-600 dark:text-gray-400 max-w-xs break-words">
+                                        Note: {listing.campaign_note}
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="p-3 text-xs text-gray-800 dark:text-gray-200">
+                                    <div className="mb-1.5">
+                                      {isPaid ? (
+                                        <span className="bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-400 text-[10px] font-bold px-2 py-0.5 rounded border border-green-200 dark:border-green-900">Paid ({listing.payment_provider})</span>
+                                      ) : (
+                                        <span className="bg-yellow-100 text-yellow-700 dark:bg-yellow-950/40 dark:text-yellow-400 text-[10px] font-bold px-2 py-0.5 rounded border border-yellow-200 dark:border-yellow-900">Pending Paid</span>
+                                      )}
+                                      
+                                      {isPaid && (
+                                        <div className="mt-1">
+                                          {isActive ? (
+                                            <span className="bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 text-[10px] font-bold px-2 py-0.5 rounded border border-blue-200 dark:border-blue-900">Active Listing</span>
+                                          ) : (
+                                            <span className="bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400 text-[10px] font-bold px-2 py-0.5 rounded">Scheduled / Expired</span>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="text-[10px] text-gray-500 leading-tight space-y-0.5">
+                                      <div>Start: {listing.start_at ? new Date(listing.start_at).toLocaleDateString() : 'Not Set'}</div>
+                                      <div>End: {listing.end_at ? new Date(listing.end_at).toLocaleDateString() : 'Not Set'}</div>
+                                    </div>
+                                    {listing.admin_note && <div className="text-[10px] text-red-600 mt-1">Admin note: {listing.admin_note}</div>}
+                                  </td>
+                                  <td className="p-3 text-xs text-gray-800 dark:text-gray-200">
+                                    {listing.invoice_number ? (
+                                      <div className="space-y-1">
+                                        <div className="font-bold">Inv: #{listing.invoice_number}</div>
+                                        {listing.offline_payment_method && <div className="text-[10px] text-gray-400">Via: {listing.offline_payment_method}</div>}
+                                        {listing.invoice_due_date && (
+                                          <div className="text-[10px] text-gray-400">
+                                            Due: {new Date(listing.invoice_due_date).toLocaleDateString()}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <span className="text-gray-400 italic">No Invoice generated</span>
+                                    )}
+                                  </td>
+                                  <td className="p-3 text-xs space-y-1.5">
+                                    <div className="flex flex-wrap gap-1">
+                                      {!isPaid && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleMarkPaid(listing.id)}
+                                          className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm"
+                                        >
+                                          <Check size={10} /> Mark Paid
+                                        </button>
+                                      )}
+                                      
+                                      {isPaid && !listing.start_at && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handlePublishNow(listing.id)}
+                                          className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm"
+                                        >
+                                          <Zap size={10} /> Publish Now
+                                        </button>
+                                      )}
+
+                                      <button
+                                        type="button"
+                                        onClick={() => startEditListing(listing)}
+                                        className="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-[10px] font-bold px-2 py-1 rounded border border-gray-200 dark:border-gray-700"
+                                      >
+                                        <Edit size={10} /> Edit Schedule & Invoice
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => handleSendInvoice(listing)}
+                                        className="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-[10px] font-bold px-2 py-1 rounded border border-gray-200 dark:border-gray-700"
+                                      >
+                                        <FileText size={10} /> Send Invoice Email
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Testimonials Management */}
+                  <div className="grid md:grid-cols-[1.1fr_0.9fr] gap-6">
+                    {/* Add Testimonial */}
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
+                      <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                        <Plus size={18} className="text-grantify-green" /> Add Sponsor Testimonial
+                      </h3>
+                      <form onSubmit={handleAddSponsorTestimonial} className="space-y-4">
+                        <div>
+                          <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Author Name / Role</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. Kola Adegoke, CEO of OPay Nigeria"
+                            className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                            value={newTestimonial.author}
+                            onChange={(e) => setNewTestimonial(prev => ({ ...prev, author: e.target.value }))}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Provider Link (Optional)</label>
+                          <select
+                            className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                            value={newTestimonial.providerId}
+                            onChange={(e) => setNewTestimonial(prev => ({ ...prev, providerId: e.target.value }))}
+                            title="Sponsor provider link"
+                          >
+                            <option value="">No provider linkage</option>
+                            {loanProviders.map(provider => (
+                              <option key={provider.id} value={provider.id}>{provider.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Quote / Content</label>
+                          <textarea
+                            required
+                            placeholder="What did they say about advertising with Grantify?"
+                            className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100 min-h-[100px]"
+                            value={newTestimonial.quote}
+                            onChange={(e) => setNewTestimonial(prev => ({ ...prev, quote: e.target.value }))}
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          disabled={isSavingSponsored}
+                          className="w-full bg-grantify-green text-white font-black py-3 rounded-xl hover:bg-green-700 transition flex items-center justify-center gap-2"
+                        >
+                          {isSavingSponsored ? <Loader2 className="animate-spin" size={16} /> : <><Check size={16} /> Add Testimonial</>}
+                        </button>
+                      </form>
+                    </div>
+
+                    {/* Testimonials List */}
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
+                      <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                        <MessageSquare size={18} className="text-grantify-gold" /> Active Testimonials ({sponsorTestimonialsAdmin.length})
+                      </h3>
+                      <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
+                        {sponsorTestimonialsAdmin.length === 0 ? (
+                          <div className="text-center py-12 text-gray-500 italic">No testimonials added yet.</div>
+                        ) : (
+                          sponsorTestimonialsAdmin.map(t => {
+                            const linkProvider = loanProviders.find(p => p.id === t.providerId || p.id === t.provider_id);
+                            return (
+                              <div key={t.id} className="rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-4 relative group">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteSponsorTestimonial(t.id)}
+                                  className="absolute top-4 right-4 text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition animate-fade-in"
+                                  title="Delete Testimonial"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                                <div className="font-bold text-sm text-gray-900 dark:text-gray-100">{t.author || t.name}</div>
+                                {linkProvider && (
+                                  <div className="text-[10px] text-grantify-gold font-bold mt-0.5">Linked: {linkProvider.name}</div>
+                                )}
+                                <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 leading-relaxed italic">
+                                  "{t.quote || t.content}"
+                                </p>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Editing Listing Schedule & Invoice Modal */}
+                  {editingListing && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                      <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto text-gray-900 dark:text-gray-100">
+                        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800">
+                          <div>
+                            <h3 className="text-lg font-bold">Edit Sponsorship #{editingListing.id}</h3>
+                            <p className="text-xs text-gray-500">{editingListing.provider_name || 'Provider placement details'}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setEditingListing(null)}
+                            className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+                            title="Close modal"
+                            aria-label="Close modal"
+                          >
+                            <X size={20} />
+                          </button>
+                        </div>
+
+                        <form onSubmit={handleSaveListingEdits} className="p-6 space-y-6">
+                          {/* Dates Schedule */}
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Campaign Start Date</label>
+                              <input
+                                type="date"
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                                value={invoiceForm.startAt}
+                                onChange={(e) => setInvoiceForm(prev => ({ ...prev, startAt: e.target.value }))}
+                                title="Campaign Start Date"
+                                placeholder="YYYY-MM-DD"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Campaign End Date</label>
+                              <input
+                                type="date"
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                                value={invoiceForm.endAt}
+                                onChange={(e) => setInvoiceForm(prev => ({ ...prev, endAt: e.target.value }))}
+                                title="Campaign End Date"
+                                placeholder="YYYY-MM-DD"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Invoice Numbers & Payment Method */}
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Invoice Number</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. INV-2026-001"
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                                value={invoiceForm.invoiceNumber}
+                                onChange={(e) => setInvoiceForm(prev => ({ ...prev, invoiceNumber: e.target.value }))}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Offline Payment Method (if applicable)</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. Bank Transfer, Cheque, OPay Direct"
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                                value={invoiceForm.offlinePaymentMethod}
+                                onChange={(e) => setInvoiceForm(prev => ({ ...prev, offlinePaymentMethod: e.target.value }))}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Invoice Dates */}
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Invoice Issued At</label>
+                              <input
+                                type="date"
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                                value={invoiceForm.invoiceIssuedAt}
+                                onChange={(e) => setInvoiceForm(prev => ({ ...prev, invoiceIssuedAt: e.target.value }))}
+                                title="Invoice Issued At Date"
+                                placeholder="YYYY-MM-DD"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Invoice Due Date</label>
+                              <input
+                                type="date"
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                                value={invoiceForm.invoiceDueDate}
+                                onChange={(e) => setInvoiceForm(prev => ({ ...prev, invoiceDueDate: e.target.value }))}
+                                title="Invoice Due Date"
+                                placeholder="YYYY-MM-DD"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Billing Info JSON or text */}
+                          <div>
+                            <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Billing Address & Info (JSON format recommended)</label>
+                            <textarea
+                              placeholder='e.g. {"companyName": "OPay Ltd", "address": "Lagos, Nigeria"}'
+                              className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm font-mono min-h-[100px] text-gray-900 dark:text-gray-100"
+                              value={invoiceForm.billingInfo}
+                              onChange={(e) => setInvoiceForm(prev => ({ ...prev, billingInfo: e.target.value }))}
+                            />
+                          </div>
+
+                          {/* Admin note */}
+                          <div>
+                            <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Admin Note / internal remarks</label>
+                            <textarea
+                              placeholder="Notes visible only to admin team"
+                              className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm min-h-[80px] text-gray-900 dark:text-gray-100"
+                              value={invoiceForm.adminNote}
+                              onChange={(e) => setInvoiceForm(prev => ({ ...prev, adminNote: e.target.value }))}
+                            />
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
+                            <button
+                              type="button"
+                              onClick={() => setEditingListing(null)}
+                              className="px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-750 dark:text-gray-200 font-bold hover:bg-gray-50 dark:hover:bg-gray-950 transition"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="submit"
+                              disabled={isSavingSponsored}
+                              className="px-5 py-3 rounded-xl bg-grantify-green text-white font-black hover:bg-green-700 transition flex items-center gap-2"
+                            >
+                              {isSavingSponsored ? <Loader2 className="animate-spin" size={16} /> : <><Save size={16} /> Save Changes</>}
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

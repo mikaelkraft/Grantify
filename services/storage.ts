@@ -818,6 +818,58 @@ export const ApiService = {
     if (!res.ok) throw new Error('Failed to fetch active sponsored listings');
     return await res.json();
   },
+  getAllSponsoredListingsAdmin: async (): Promise<any[]> => {
+    const adminHeader = getAdminSessionHeader();
+    if (!adminHeader) throw new Error('Admin session missing');
+    const res = await fetch(`${API_URL}/api/sponsored?what=listings`, {
+      headers: { 'X-Admin-Session': adminHeader }
+    });
+    if (!res.ok) throw new Error('Failed to fetch admin sponsored listings');
+    return await res.json();
+  },
+  addSponsorTestimonial: async (author: string, quote: string, providerId?: number | null): Promise<any> => {
+    const adminHeader = getAdminSessionHeader();
+    if (!adminHeader) throw new Error('Admin session missing');
+    const res = await fetch(`${API_URL}/api/sponsored?action=add_sponsor_testimonial`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Session': adminHeader },
+      body: JSON.stringify({ author, quote, providerId })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.error || 'Failed to add testimonial');
+    }
+    return await res.json();
+  },
+  updateSponsorTestimonial: async (id: number, author: string, quote: string): Promise<any> => {
+    const adminHeader = getAdminSessionHeader();
+    if (!adminHeader) throw new Error('Admin session missing');
+    const res = await fetch(`${API_URL}/api/sponsored?action=update_sponsor_testimonial`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Session': adminHeader },
+      body: JSON.stringify({ id, author, quote })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.error || 'Failed to update testimonial');
+    }
+    return await res.json();
+  },
+  deleteSponsorTestimonial: async (id: number): Promise<any> => {
+    const adminHeader = getAdminSessionHeader();
+    if (!adminHeader) throw new Error('Admin session missing');
+    const res = await fetch(`${API_URL}/api/sponsored?action=delete_sponsor_testimonial`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Session': adminHeader },
+      body: JSON.stringify({ id })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.error || 'Failed to delete testimonial');
+    }
+    return await res.json();
+  },
+
 
   // -- Blog --
   getBlogPosts: async (category?: string): Promise<BlogPost[]> => {

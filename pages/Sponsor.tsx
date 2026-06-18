@@ -117,8 +117,47 @@ export const Sponsor: React.FC = () => {
     return index === 1 || name.includes('standard') || name.includes('popular');
   };
 
+  const getTierFeatures = (tierName: string) => {
+    const name = tierName.toLowerCase();
+    if (name.includes('premium') || name.includes('gold') || name.includes('enterprise')) {
+      return [
+        'Max-exposure top listing placements',
+        'Direct newsletter editorial slot',
+        'Priority invoice & wire transfer support',
+        'Real-time conversion & lead analytics',
+        'Dedicated account manager assistance'
+      ];
+    }
+    if (name.includes('standard') || name.includes('silver') || name.includes('popular')) {
+      return [
+        'Featured homepage sponsor placement',
+        'Premium highlighted listing styling',
+        'Priority provider directory indexing',
+        'Weekly traffic & referral performance metrics',
+        'Standard email & dashboard support'
+      ];
+    }
+    return [
+      'Standard directory listing placement',
+      'Basic styling and metadata display',
+      'Direct reference ID lookup support',
+      'Monthly referral click summary report'
+    ];
+  };
+
+  const handleSelectTier = (tierId: number) => {
+    setForm(prev => ({ ...prev, tierId: String(tierId) }));
+    setTimeout(() => {
+      const el = document.getElementById('booking-form');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 50);
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-12">
+      {/* Hero Section */}
       <section className="rounded-[2rem] border border-gray-100 dark:border-gray-800 bg-gradient-to-br from-gray-900 via-gray-950 to-gray-900 text-white p-6 md:p-10 shadow-2xl relative overflow-hidden">
         <div className="absolute -top-16 -right-16 w-48 h-48 bg-grantify-gold/10 rounded-full blur-3xl" />
         <div className="relative z-10 grid gap-8 lg:grid-cols-[1.2fr_0.8fr] items-start">
@@ -129,7 +168,7 @@ export const Sponsor: React.FC = () => {
               Book sponsored listings, article placements, or newsletter mentions directly. Pick a provider, choose a package, and submit the sponsorship request in one step.
             </p>
             <div className="flex flex-wrap gap-3">
-              <a href="#launch" className="inline-flex items-center gap-2 bg-white text-gray-900 font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all">
+              <a href="#booking-form" className="inline-flex items-center gap-2 bg-white text-gray-900 font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all">
                 Book Sponsorship <ArrowRight size={16} />
               </a>
               <Link to="/blog#media-kit" className="inline-flex items-center gap-2 border border-white/10 text-white font-black px-5 py-3 rounded-xl hover:bg-white/5 transition-all">
@@ -140,9 +179,9 @@ export const Sponsor: React.FC = () => {
 
           <div className="grid gap-3">
             {[
-              'Featured provider placements',
-              'Sponsored content and newsletter slots',
-              'Invoice support and activation workflow',
+              'Featured provider placements for maximum authority',
+              'Sponsored content and weekly newsletter slots',
+              'Self-serve activation and secure payment verification',
             ].map((item) => (
               <div key={item} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/80 backdrop-blur-sm">
                 {item}
@@ -152,153 +191,98 @@ export const Sponsor: React.FC = () => {
         </div>
       </section>
 
-      <section id="launch" className="mt-8 grid gap-6 lg:grid-cols-[1fr_1.1fr] items-start">
-        <div className="rounded-[1.75rem] border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 shadow-sm">
-          <div className="flex items-center gap-2 mb-4 text-grantify-green font-black uppercase tracking-widest text-xs">
-            <Sparkles size={14} /> Packages
-          </div>
-          <div className="space-y-3">
-            {pricing.map((tier, index) => (
-              <button
+      {/* Pricing Cards Grid */}
+      <section className="mt-12">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-black text-gray-900 dark:text-gray-100">Simple, Transparent Placement Packages</h2>
+          <p className="text-gray-600 dark:text-gray-400 mt-2 max-w-xl mx-auto text-sm md:text-base">
+            Choose the advertising package that matches your growth goals. Click a card to select it and jump to the booking form below.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6">
+          {pricing.map((tier, index) => {
+            const isFeatured = isFeaturedTier(tier, index);
+            const isSelected = String(form.tierId) === String(tier.id);
+            const features = getTierFeatures(tier.tierName);
+            const slotsLeft = sponsorMeta?.tiers?.find((t: any) => String(t.id) === String(tier.id))?.slotsLeft;
+
+            return (
+              <div
                 key={tier.id}
-                type="button"
-                onClick={() => setForm(prev => ({ ...prev, tierId: String(tier.id) }))}
-                className={`w-full text-left rounded-2xl border p-4 transition-all ${String(form.tierId) === String(tier.id) ? 'border-grantify-green bg-grantify-green/5' : 'border-gray-100 dark:border-gray-800 hover:border-grantify-green/30'} ${isFeaturedTier(tier, index) ? 'ring-2 ring-grantify-gold/70 shadow-lg' : ''}`}
+                onClick={() => handleSelectTier(tier.id)}
+                className={`cursor-pointer rounded-3xl border p-6 flex flex-col justify-between transition-all relative ${
+                  isSelected
+                    ? 'border-grantify-green bg-grantify-green/5 dark:bg-grantify-green/5 shadow-xl ring-2 ring-grantify-green'
+                    : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-grantify-green/50 hover:shadow-lg'
+                } ${isFeatured && !isSelected ? 'ring-2 ring-grantify-gold/50 shadow-md' : ''}`}
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <div className="text-sm font-black uppercase tracking-widest text-grantify-gold">{tier.tierName}</div>
-                      {isFeaturedTier(tier, index) && (
-                        <span className="inline-flex items-center rounded-full bg-grantify-gold text-grantify-green px-2 py-0.5 text-[10px] font-black uppercase tracking-widest">
-                          Most Popular
-                        </span>
-                      )}
-                      {sponsorMeta?.tiers && sponsorMeta.tiers.find((t: any) => String(t.id) === String(tier.id))?.slotsLeft !== null && (
-                        (() => {
-                          const m = sponsorMeta.tiers.find((t: any) => String(t.id) === String(tier.id));
-                          if (!m) return null;
-                          const left = m.slotsLeft;
-                          if (left === null) return null;
-                          return (
-                            <span className="inline-flex items-center ml-2 rounded-full bg-red-600 text-white px-2 py-0.5 text-[10px] font-black uppercase tracking-widest">
-                              {left <= 5 ? `Only ${left} left` : `${left} slots`}
-                            </span>
-                          );
-                        })()
-                      )}
+                {isFeatured && (
+                  <span className="absolute -top-3 left-6 inline-flex items-center rounded-full bg-grantify-gold text-grantify-green px-3 py-1 text-xs font-black uppercase tracking-widest shadow-sm">
+                    Most Popular
+                  </span>
+                )}
+
+                <div>
+                  <div className="flex justify-between items-start gap-4 mb-4">
+                    <div>
+                      <h3 className="text-lg font-black uppercase tracking-wider text-gray-900 dark:text-gray-100">{tier.tierName}</h3>
+                      <p className="text-xs text-gray-500 mt-1">{tier.durationDays} Days Sponsorship</p>
                     </div>
-                    <div className="mt-1 text-2xl font-black">{(tier.priceCents / 100).toLocaleString(undefined, { style: 'currency', currency: 'NGN' })}</div>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">{tier.description}</p>
+                    {slotsLeft !== null && slotsLeft !== undefined && (
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-black uppercase tracking-wider ${
+                        slotsLeft <= 3 ? 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                      }`}>
+                        {slotsLeft <= 3 ? `Only ${slotsLeft} Left` : `${slotsLeft} Slots`}
+                      </span>
+                    )}
                   </div>
-                  <div className="text-xs font-bold text-gray-400 dark:text-gray-500 whitespace-nowrap">{tier.durationDays} days</div>
+
+                  <div className="mb-4">
+                    <span className="text-3xl font-black text-gray-900 dark:text-gray-100">
+                      {(tier.priceCents / 100).toLocaleString(undefined, { style: 'currency', currency: 'NGN' })}
+                    </span>
+                    <span className="text-gray-500 text-sm font-bold"> / tier</span>
+                  </div>
+
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-6 min-h-[40px]">{tier.description}</p>
+
+                  <div className="border-t border-gray-100 dark:border-gray-800 pt-6 mb-6">
+                    <ul className="space-y-3">
+                      {features.map((feat, fIdx) => (
+                        <li key={fIdx} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300">
+                          <CheckCircle className="text-grantify-green flex-shrink-0 mt-0.5" size={16} />
+                          <span>{feat}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
-              </button>
-            ))}
-          </div>
-        </div>
 
-        <div className="rounded-[1.75rem] border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 shadow-sm lg:col-span-2">
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.35em] text-gray-400 mb-2">Compare</div>
-              <h3 className="text-xl font-black">Pick the right sponsorship tier</h3>
-            </div>
-            <CheckCircle className="text-grantify-green" size={18} />
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-left border-separate border-spacing-y-3">
-              <thead>
-                <tr className="text-xs uppercase tracking-widest text-gray-400">
-                  <th className="px-3 py-2">Tier</th>
-                  <th className="px-3 py-2">Price</th>
-                  <th className="px-3 py-2">Duration</th>
-                  <th className="px-3 py-2">Use Case</th>
-                  <th className="px-3 py-2">Launch</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pricing.map((tier, index) => (
-                  <tr key={tier.id} className={`rounded-2xl ${index % 2 === 0 ? 'bg-gray-50 dark:bg-gray-950/40' : 'bg-transparent'} ${isFeaturedTier(tier, index) ? 'ring-2 ring-inset ring-grantify-gold/50' : ''}`}>
-                    <td className="px-3 py-4 rounded-l-2xl font-black text-gray-900 dark:text-gray-100">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span>{tier.tierName}</span>
-                        {isFeaturedTier(tier, index) && (
-                          <span className="inline-flex items-center rounded-full bg-grantify-gold text-grantify-green px-2 py-0.5 text-[10px] font-black uppercase tracking-widest">
-                            Popular
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-3 py-4 text-gray-700 dark:text-gray-300">{(tier.priceCents / 100).toLocaleString(undefined, { style: 'currency', currency: 'NGN' })}</td>
-                    <td className="px-3 py-4 text-gray-700 dark:text-gray-300">{tier.durationDays} days</td>
-                    <td className="px-3 py-4 text-gray-700 dark:text-gray-300">{tier.description}</td>
-                    <td className="px-3 py-4 rounded-r-2xl">
-                      <button
-                        type="button"
-                        onClick={() => setForm(prev => ({ ...prev, tierId: String(tier.id) }))}
-                        className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-black uppercase tracking-widest transition-all ${String(form.tierId) === String(tier.id) ? 'bg-grantify-green text-white' : 'bg-gray-900 text-white hover:bg-grantify-green'}`}
-                      >
-                        Choose
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="rounded-[1.75rem] border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 shadow-sm lg:col-span-2">
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.35em] text-gray-400 mb-2">Placement Preview</div>
-              <h3 className="text-xl font-black">Where your sponsorship appears</h3>
-            </div>
-            <ExternalLink className="text-grantify-green" size={18} />
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            {[
-              { title: 'Home Page Banner', text: 'Top-of-funnel visibility on the main Grantify homepage and partner revenue section.' },
-              { title: 'Blog Intel', text: 'Media-kit placement on the blog page where readers are already comparing options.' },
-              { title: 'Provider Directory', text: 'Direct sponsored exposure alongside the relevant provider or listing context.' },
-            ].map((item) => (
-              <div key={item.title} className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-4">
-                <div className="text-sm font-black uppercase tracking-widest text-grantify-gold mb-2">{item.title}</div>
-                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{item.text}</p>
+                <button
+                  type="button"
+                  className={`w-full py-3 px-4 rounded-xl text-center font-black uppercase tracking-wider text-sm transition-all ${
+                    isSelected
+                      ? 'bg-grantify-green text-white hover:bg-green-700 shadow-md'
+                      : 'bg-gray-900 text-white hover:bg-grantify-green dark:bg-gray-800 dark:hover:bg-grantify-green'
+                  }`}
+                >
+                  {isSelected ? 'Selected Package' : 'Choose Plan'}
+                </button>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
+      </section>
 
-        {/* Testimonials / Proof */}
-        <div className="rounded-[1.75rem] border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 shadow-sm lg:col-span-2 mt-6">
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.35em] text-gray-400 mb-2">Proof</div>
-              <h3 className="text-xl font-black">Advertiser results & testimonials</h3>
-            </div>
-            <Sparkles className="text-grantify-gold" size={18} />
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            {testimonials.length ? testimonials.map((t, i) => (
-              <div key={t.id || i} className="rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
-                <div className="text-sm font-black text-gray-900 dark:text-gray-100 mb-2">{t.author || t.name || 'Advertiser'}</div>
-                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{t.quote || t.content}</p>
-              </div>
-            )) : (
-              <div className="text-sm text-gray-600">No testimonials yet — contact sales to be featured.</div>
-            )}
-          </div>
-        </div>
-
-        <div className="rounded-[1.75rem] border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 shadow-sm">
-          <div className="flex items-center justify-between gap-3 mb-4">
+      {/* Booking Form and Proof Section */}
+      <section className="mt-12 grid gap-8 lg:grid-cols-[1.2fr_0.8fr] items-start">
+        {/* Booking Form Card */}
+        <div id="booking-form" className="rounded-[1.75rem] border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 shadow-sm scroll-mt-6">
+          <div className="flex items-center justify-between gap-3 mb-6">
             <div>
               <div className="text-[10px] font-black uppercase tracking-[0.35em] text-gray-400 mb-2">Direct Launch</div>
-              <h2 className="text-2xl font-black">Create sponsorship booking</h2>
+              <h2 className="text-2xl font-black text-gray-900 dark:text-gray-100">Create sponsorship booking</h2>
             </div>
             {loading && <Loader2 className="animate-spin text-grantify-green" size={18} />}
           </div>
@@ -309,7 +293,7 @@ export const Sponsor: React.FC = () => {
               <select
                 value={form.providerId}
                 onChange={(e) => setForm(prev => ({ ...prev, providerId: e.target.value }))}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3"
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-800 dark:text-gray-100"
                 aria-label="Sponsor provider"
                 title="Sponsor provider"
                 required
@@ -325,7 +309,7 @@ export const Sponsor: React.FC = () => {
               <select
                 value={form.tierId}
                 onChange={(e) => setForm(prev => ({ ...prev, tierId: e.target.value }))}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3"
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-800 dark:text-gray-100"
                 aria-label="Sponsor package"
                 title="Sponsor package"
                 required
@@ -339,41 +323,41 @@ export const Sponsor: React.FC = () => {
 
             <div>
               <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">Name</label>
-              <input className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3" value={form.name} onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))} placeholder="Your full name" title="Your full name" required />
+              <input className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-800 dark:text-gray-100" value={form.name} onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))} placeholder="Your full name" title="Your full name" required />
             </div>
             <div>
               <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">Email</label>
-              <input type="email" className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3" value={form.email} onChange={(e) => setForm(prev => ({ ...prev, email: e.target.value }))} placeholder="name@company.com" title="Email address" required />
+              <input type="email" className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-800 dark:text-gray-100" value={form.email} onChange={(e) => setForm(prev => ({ ...prev, email: e.target.value }))} placeholder="name@company.com" title="Email address" required />
             </div>
             <div>
               <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">Company</label>
-              <input className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3" value={form.company} onChange={(e) => setForm(prev => ({ ...prev, company: e.target.value }))} placeholder="Company or brand" title="Company" />
+              <input className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-800 dark:text-gray-100" value={form.company} onChange={(e) => setForm(prev => ({ ...prev, company: e.target.value }))} placeholder="Company or brand" title="Company" />
             </div>
             <div>
               <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">Website</label>
-              <input className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3" value={form.website} onChange={(e) => setForm(prev => ({ ...prev, website: e.target.value }))} placeholder="https://your-site.com" title="Website" />
+              <input className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-800 dark:text-gray-100" value={form.website} onChange={(e) => setForm(prev => ({ ...prev, website: e.target.value }))} placeholder="https://your-site.com" title="Website" />
             </div>
             <div className="md:col-span-2">
               <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">Campaign note</label>
-              <textarea className="w-full min-h-[120px] rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3" value={form.note} onChange={(e) => setForm(prev => ({ ...prev, note: e.target.value }))} placeholder="What are you promoting?" />
+              <textarea className="w-full min-h-[120px] rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-800 dark:text-gray-100" value={form.note} onChange={(e) => setForm(prev => ({ ...prev, note: e.target.value }))} placeholder="What are you promoting?" />
             </div>
 
             <div className="md:col-span-2">
               <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-3">Payment method</label>
               <div className="flex gap-3 flex-wrap">
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="paymentProvider" value="paypal" checked={form.paymentProvider === 'paypal'} onChange={(e) => setForm(prev => ({ ...prev, paymentProvider: e.target.value }))} className="w-4 h-4" />
-                  <span className="text-sm font-bold">PayPal (International)</span>
+                  <input type="radio" name="paymentProvider" value="paypal" checked={form.paymentProvider === 'paypal'} onChange={(e) => setForm(prev => ({ ...prev, paymentProvider: e.target.value }))} className="w-4 h-4 text-grantify-green" />
+                  <span className="text-sm font-bold text-gray-700 dark:text-gray-200">PayPal (International)</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="paymentProvider" value="opay" checked={form.paymentProvider === 'opay'} onChange={(e) => setForm(prev => ({ ...prev, paymentProvider: e.target.value }))} className="w-4 h-4" />
-                  <span className="text-sm font-bold">OPay (Nigeria)</span>
+                  <input type="radio" name="paymentProvider" value="opay" checked={form.paymentProvider === 'opay'} onChange={(e) => setForm(prev => ({ ...prev, paymentProvider: e.target.value }))} className="w-4 h-4 text-grantify-green" />
+                  <span className="text-sm font-bold text-gray-700 dark:text-gray-200">OPay (Nigeria)</span>
                 </label>
               </div>
             </div>
 
-            <div className="md:col-span-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div className="text-sm text-gray-600 dark:text-gray-300">
+            <div className="md:col-span-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between pt-2">
+              <div className="text-xs text-gray-500 dark:text-gray-400">
                 {message || 'We will create the booking and either open checkout or queue an invoice for confirmation.'}
               </div>
               <button type="submit" disabled={submitting} className="inline-flex items-center justify-center gap-2 bg-grantify-green text-white font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-60">
@@ -383,63 +367,105 @@ export const Sponsor: React.FC = () => {
           </form>
         </div>
 
-        {/* Trust badges & Guarantee */}
-        <div className="rounded-[1.75rem] border border-gray-100 dark:border-gray-800 bg-gradient-to-br from-grantify-green/5 to-grantify-gold/5 dark:from-grantify-green/10 dark:to-grantify-gold/10 p-6 md:p-8 shadow-sm lg:col-span-2">
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-green mb-2">Trusted</div>
-              <h3 className="text-xl font-black">Your investment is protected</h3>
+        {/* Info & Proof Sidebar */}
+        <div className="grid gap-6">
+          {/* Testimonials */}
+          <div className="rounded-[1.75rem] border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 shadow-sm">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-[0.35em] text-gray-400 mb-1">Proof</div>
+                <h3 className="text-lg font-black text-gray-900 dark:text-gray-100">Advertiser results & testimonials</h3>
+              </div>
+              <Sparkles className="text-grantify-gold" size={18} />
             </div>
-            <Shield className="text-grantify-green" size={18} />
+
+            <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1">
+              {testimonials.length ? testimonials.map((t, i) => (
+                <div key={t.id || i} className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-4">
+                  <div className="text-xs font-black text-gray-900 dark:text-gray-100 mb-1">{t.author || t.name || 'Advertiser'}</div>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed italic">"{t.quote || t.content}"</p>
+                </div>
+              )) : (
+                <div className="text-xs text-gray-500">No testimonials yet — contact sales to be featured.</div>
+              )}
+            </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="flex gap-3">
-              <Lock className="text-grantify-green flex-shrink-0" size={20} />
+          {/* Placements Preview */}
+          <div className="rounded-[1.75rem] border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 shadow-sm">
+            <div className="flex items-center justify-between gap-3 mb-4">
               <div>
-                <div className="font-black text-sm mb-1">256-bit SSL Encrypted</div>
-                <p className="text-xs text-gray-600 dark:text-gray-400">All payments secured with industry-standard encryption</p>
+                <div className="text-[10px] font-black uppercase tracking-[0.35em] text-gray-400 mb-1">Preview</div>
+                <h3 className="text-lg font-black text-gray-900 dark:text-gray-100">Where your sponsorship appears</h3>
               </div>
+              <ExternalLink className="text-grantify-green" size={18} />
             </div>
-            <div className="flex gap-3">
-              <RefreshCw className="text-grantify-green flex-shrink-0" size={20} />
+            <div className="grid gap-3">
+              {[
+                { title: 'Home Page Banner', text: 'Top-of-funnel visibility on the main Grantify homepage and partner revenue section.' },
+                { title: 'Blog Intel', text: 'Media-kit placement on the blog page where readers are already comparing options.' },
+                { title: 'Provider Directory', text: 'Direct sponsored exposure alongside the relevant provider or listing context.' },
+              ].map((item) => (
+                <div key={item.title} className="rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3">
+                  <div className="text-xs font-black uppercase tracking-wider text-grantify-gold mb-1">{item.title}</div>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">{item.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Guarantee Badges */}
+          <div className="rounded-[1.75rem] border border-gray-100 dark:border-gray-800 bg-gradient-to-br from-grantify-green/5 to-grantify-gold/5 dark:from-grantify-green/10 dark:to-grantify-gold/10 p-6 shadow-sm">
+            <div className="flex items-center justify-between gap-3 mb-4">
               <div>
-                <div className="font-black text-sm mb-1">14-Day Guarantee</div>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Not satisfied? Full refund within 14 days of activation</p>
+                <div className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-green mb-1">Trusted</div>
+                <h3 className="text-base font-black text-gray-900 dark:text-gray-100">Your investment is protected</h3>
               </div>
+              <Shield className="text-grantify-green" size={18} />
             </div>
-            <div className="flex gap-3">
-              <CheckCircle className="text-grantify-green flex-shrink-0" size={20} />
-              <div>
-                <div className="font-black text-sm mb-1">50+ Partners</div>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Trusted by lenders, advisors, and fintech providers</p>
+
+            <div className="grid gap-4">
+              <div className="flex gap-3">
+                <Lock className="text-grantify-green flex-shrink-0" size={18} />
+                <div>
+                  <div className="font-bold text-xs text-gray-900 dark:text-gray-100 mb-0.5">256-bit SSL Encrypted</div>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">All payments secured with industry-standard encryption</p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <RefreshCw className="text-grantify-green flex-shrink-0" size={18} />
+                <div>
+                  <div className="font-bold text-xs text-gray-900 dark:text-gray-100 mb-0.5">14-Day Guarantee</div>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">Not satisfied? Full refund within 14 days of activation</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
+      </section>
 
-        <div className="rounded-[1.75rem] border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 shadow-sm lg:col-span-2">
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.35em] text-gray-400 mb-2">FAQ</div>
-              <h3 className="text-xl font-black">Quick answers for advertisers</h3>
+      {/* FAQ Section */}
+      <section className="mt-8 rounded-[1.75rem] border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 shadow-sm">
+        <div className="flex items-center justify-between gap-3 mb-6">
+          <div>
+            <div className="text-[10px] font-black uppercase tracking-[0.35em] text-gray-400 mb-2">FAQ</div>
+            <h3 className="text-xl font-black text-gray-900 dark:text-gray-100">Quick answers for advertisers</h3>
+          </div>
+          <CheckCircle className="text-grantify-green" size={18} />
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          {[
+            { q: 'What happens after I click launch?', a: 'We create the sponsored booking, then either open checkout or queue an invoice for admin approval and activation.' },
+            { q: 'Can I sponsor a specific provider?', a: 'Yes. The form lets you choose the provider you want featured so the booking maps to the right listing.' },
+            { q: 'Will I get an invoice?', a: 'Yes. If checkout is not available, the admin flow can generate and email an invoice automatically.' },
+            { q: 'Can I change the campaign note later?', a: 'Yes. The admin team can update invoice and billing details from the sponsored listings dashboard.' },
+          ].map((item) => (
+            <div key={item.q} className="rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
+              <div className="text-sm font-black text-gray-900 dark:text-gray-100 mb-2">{item.q}</div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{item.a}</p>
             </div>
-            <CheckCircle className="text-grantify-green" size={18} />
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-2">
-            {[
-              { q: 'What happens after I click launch?', a: 'We create the sponsored booking, then either open checkout or queue an invoice for admin approval and activation.' },
-              { q: 'Can I sponsor a specific provider?', a: 'Yes. The form lets you choose the provider you want featured so the booking maps to the right listing.' },
-              { q: 'Will I get an invoice?', a: 'Yes. If checkout is not available, the admin flow can generate and email an invoice automatically.' },
-              { q: 'Can I change the campaign note later?', a: 'Yes. The admin team can update invoice and billing details from the sponsored listings dashboard.' },
-            ].map((item) => (
-              <div key={item.q} className="rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
-                <div className="text-sm font-black text-gray-900 dark:text-gray-100 mb-2">{item.q}</div>
-                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{item.a}</p>
-              </div>
-            ))}
-          </div>
+          ))}
         </div>
       </section>
     </div>

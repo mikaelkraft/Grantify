@@ -210,6 +210,7 @@ export const BlogPostView: React.FC = () => {
   const [recommendedPosts, setRecommendedPosts] = useState<BlogPost[]>([]);
   const [ads, setAds] = useState<AdConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string>('');
   const [commentForm, setCommentForm] = useState({ name: '', content: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [replyTo, setReplyTo] = useState<string | null>(null);
@@ -418,6 +419,7 @@ export const BlogPostView: React.FC = () => {
   const fetchPost = async (effectiveId: string) => {
     try {
       setIsLoading(true);
+      setError('');
       const data = await ApiService.getBlogPost(effectiveId, { commentsSort });
       setPost(data);
 
@@ -432,7 +434,7 @@ export const BlogPostView: React.FC = () => {
       
     } catch (e) {
       console.error(e);
-      navigate('/blog');
+      setError('Failed to load the article. Please check your connection and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -521,11 +523,36 @@ export const BlogPostView: React.FC = () => {
     setReplyTo(null);
   };
 
-  if (isLoading || !post) {
+  if (isLoading) {
     return (
       <div className="min-h-[500px] flex flex-col items-center justify-center text-grantify-green">
         <Loader2 className="animate-spin w-12 h-12 mb-4" />
-        <p>Loading the Article</p>
+        <p>Loading the Article...</p>
+      </div>
+    );
+  }
+
+  if (error || !post) {
+    return (
+      <div className="max-w-xl mx-auto py-20 px-4 text-center">
+        <div className="bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900 rounded-3xl p-8 shadow-sm">
+          <h2 className="text-2xl font-black text-red-700 dark:text-red-400 mb-4">Failed to Load Article</h2>
+          <p className="text-gray-600 dark:text-gray-300 mb-6">{error || 'The requested article could not be found.'}</p>
+          <div className="flex gap-4 justify-center">
+            <button
+              onClick={() => fetchPost(effectiveId)}
+              className="bg-grantify-green text-white font-bold px-6 py-3 rounded-xl shadow-md hover:bg-green-700 transition"
+            >
+              Retry
+            </button>
+            <Link
+              to="/blog"
+              className="border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-200 font-bold px-6 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-950 transition"
+            >
+              Back to Blog
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }

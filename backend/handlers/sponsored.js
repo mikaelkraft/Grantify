@@ -97,7 +97,7 @@ export default async function handler(req, res) {
         }
 
         const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
-        const q = `SELECT sl.*, lp.name as provider_name, sp.tier_name, sp.duration_days
+        const q = `SELECT sl.*, lp.name as provider_name, lp.website as provider_website, sp.tier_name, sp.duration_days
                    FROM sponsored_listings sl
                    LEFT JOIN loan_providers lp ON lp.id = sl.provider_id
                    LEFT JOIN sponsored_pricing sp ON sp.id = sl.tier_id

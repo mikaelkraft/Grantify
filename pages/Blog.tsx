@@ -16,20 +16,7 @@ export const Blog: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [myReactions, setMyReactions] = useState<Record<string, 'likes' | 'loves' | 'claps' | null>>({});
-  const [providers, setProviders] = useState<LoanProvider[]>([]);
   const [pricing, setPricing] = useState<Array<{ id: number; tierName: string; priceCents: number; durationDays: number; description: string }>>([]);
-  const [isLoadingMediaKit, setIsLoadingMediaKit] = useState(true);
-  const [isLaunching, setIsLaunching] = useState(false);
-  const [launchMessage, setLaunchMessage] = useState('');
-  const [sponsorForm, setSponsorForm] = useState({
-    providerId: '',
-    tierId: '',
-    name: '',
-    email: '',
-    company: '',
-    website: '',
-    note: ''
-  });
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -61,23 +48,11 @@ export const Blog: React.FC = () => {
 
   useEffect(() => {
     const loadMediaKit = async () => {
-      setIsLoadingMediaKit(true);
       try {
-        const [providerData, pricingData] = await Promise.all([
-          ApiService.getLoanProviders(),
-          ApiService.getSponsoredPricing()
-        ]);
-        setProviders(Array.isArray(providerData) ? providerData : []);
+        const pricingData = await ApiService.getSponsoredPricing();
         setPricing(Array.isArray(pricingData) ? pricingData : []);
-        setSponsorForm(prev => ({
-          ...prev,
-          providerId: prev.providerId || String((providerData && providerData[0] && providerData[0].id) || ''),
-          tierId: prev.tierId || String((pricingData && pricingData[0] && pricingData[0].id) || '')
-        }));
       } catch (e) {
         console.error('Failed to load media kit data', e);
-      } finally {
-        setIsLoadingMediaKit(false);
       }
     };
     void loadMediaKit();
@@ -106,38 +81,6 @@ export const Blog: React.FC = () => {
     }
   };
 
-  const handleLaunchSponsor = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLaunchMessage('');
-    setIsLaunching(true);
-    try {
-      if (!sponsorForm.providerId || !sponsorForm.tierId) {
-        throw new Error('Choose a provider and package first.');
-      }
-
-      const payerInfo = {
-        name: sponsorForm.name,
-        email: sponsorForm.email,
-        company: sponsorForm.company,
-        website: sponsorForm.website,
-        note: sponsorForm.note,
-        placement: 'blog-media-kit'
-      };
-
-      const result = await ApiService.createSponsoredPurchase(Number(sponsorForm.providerId), Number(sponsorForm.tierId), payerInfo);
-      if (result.paymentUrl) {
-        window.open(result.paymentUrl, '_blank', 'noopener,noreferrer');
-      }
-      setLaunchMessage(result.paymentUrl
-        ? 'Sponsorship created. Complete payment in the new tab to activate it.'
-        : `Sponsorship request created. Reference ID: ${result.id}. Our team will issue the invoice and confirm activation.`);
-    } catch (err: any) {
-      setLaunchMessage(err?.message || 'Failed to launch sponsorship.');
-    } finally {
-      setIsLaunching(false);
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="min-h-[500px] flex flex-col items-center justify-center text-grantify-green">
@@ -163,125 +106,41 @@ export const Blog: React.FC = () => {
 
       <div id="media-kit" className="mb-10 rounded-[2rem] border border-gray-100 dark:border-gray-800 bg-gradient-to-br from-gray-900 via-gray-950 to-gray-900 text-white p-6 md:p-8 shadow-2xl relative overflow-hidden">
         <div className="absolute -top-12 -right-12 w-32 h-32 bg-grantify-gold/10 rounded-full blur-3xl"></div>
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-8">
           <div className="max-w-2xl">
             <p className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-gold mb-3 flex items-center gap-2"><Zap size={12} /> Media Kit</p>
-            <h2 className="text-2xl md:text-3xl font-black leading-tight mb-3">Book a sponsorship slot and launch directly.</h2>
-            <p className="text-sm md:text-base text-white/80 leading-relaxed">
-              Choose a package, pick the provider you want featured, and launch a sponsored listing from the same page readers already trust for grants, providers, and business guidance.
+            <h2 className="text-2xl md:text-3xl font-black leading-tight mb-3">Partner with Grantify for direct audience reach.</h2>
+            <p className="text-sm text-white/80 leading-relaxed">
+              Book a sponsored slot to feature your services directly to businesses and applicants actively seeking funding options. Select a package below to get started.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Link to="/sponsor?tier=standard" className="inline-flex items-center gap-2 border border-white/15 text-white font-black px-5 py-3 rounded-xl hover:bg-white/5 transition-all w-full lg:w-auto">
-              Contact Sales <ExternalLink size={16} />
+            <Link to="/sponsor" className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl hover:bg-gray-100 transition-all w-full lg:w-auto">
+              View All Placements <ArrowRight size={16} />
             </Link>
           </div>
-          <Link to="/sponsor" className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all w-full lg:w-auto">
-            Book Now <ArrowRight size={16} />
-          </Link>
         </div>
 
-        <div className="relative z-10 grid gap-4 md:grid-cols-3 mt-6">
+        <div className="relative z-10 grid gap-6 md:grid-cols-3">
           {pricing.slice(0, 3).map((tier) => (
-            <button
+            <Link
               key={tier.id}
-              type="button"
-              onClick={() => setSponsorForm(prev => ({ ...prev, tierId: String(tier.id) }))}
-              className={`rounded-2xl border p-4 backdrop-blur-sm text-left transition-all ${String(sponsorForm.tierId) === String(tier.id) ? 'border-grantify-gold bg-grantify-gold/10 shadow-lg' : 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20'}`}
+              to={`/sponsor?tier=${tier.id}`}
+              className="rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/25 hover:scale-[1.02] p-5 backdrop-blur-sm text-left transition-all flex flex-col justify-between group"
             >
-              <div className="flex items-center justify-between gap-3 mb-2">
-                <div className="text-sm font-black uppercase tracking-widest text-grantify-gold">{tier.tierName}</div>
-                <Sparkles size={14} className="text-grantify-gold" />
+              <div>
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div className="text-sm font-black uppercase tracking-widest text-grantify-gold">{tier.tierName}</div>
+                  <Sparkles size={14} className="text-grantify-gold group-hover:animate-pulse" />
+                </div>
+                <div className="text-2xl font-black text-white mb-2">{(tier.priceCents / 100).toLocaleString(undefined, { style: 'currency', currency: 'NGN' })}</div>
+                <p className="text-xs text-white/70 leading-relaxed mb-4">{tier.description} · {tier.durationDays} days</p>
               </div>
-              <div className="text-lg font-black text-white mb-1">{(tier.priceCents / 100).toLocaleString(undefined, { style: 'currency', currency: 'NGN' })}</div>
-              <p className="text-sm text-white/75 leading-relaxed">{tier.description} · {tier.durationDays} days</p>
-              <ul className="mt-3 space-y-1 text-xs text-white/70">
-                <li>• Featured placement on the sponsored listings page</li>
-                <li>• Included in the media-kit launch flow</li>
-                <li>• Invoice and email support from the admin team</li>
-              </ul>
-            </button>
+              <div className="text-xs font-bold text-grantify-gold group-hover:underline flex items-center gap-1 mt-auto pt-3 border-t border-white/5">
+                Book This Tier <ChevronRight size={14} />
+              </div>
+            </Link>
           ))}
-        </div>
-
-        <div id="sponsor-launch" className="relative z-10 mt-8 rounded-[1.5rem] border border-white/10 bg-white/5 p-5 md:p-6 backdrop-blur-md">
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <div>
-              <h3 className="text-lg md:text-xl font-black">Direct Advert Launch</h3>
-              <p className="text-sm text-white/70">Fill in the form and launch a sponsored listing immediately.</p>
-            </div>
-            {isLoadingMediaKit && <Loader2 className="animate-spin" size={18} />}
-          </div>
-
-          <form onSubmit={handleLaunchSponsor} className="grid gap-4 lg:grid-cols-2">
-            <div className="lg:col-span-1">
-              <label className="block text-xs font-black uppercase tracking-widest text-white/60 mb-2">Featured Provider</label>
-              <select
-                value={sponsorForm.providerId}
-                onChange={(e) => setSponsorForm(prev => ({ ...prev, providerId: e.target.value }))}
-                className="w-full rounded-xl bg-gray-950/80 border border-white/10 p-3 text-sm text-white"
-                aria-label="Featured provider"
-                title="Featured provider"
-                required
-              >
-                <option value="">Select provider</option>
-                {providers.map((provider) => (
-                  <option key={provider.id} value={provider.id}>{provider.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="lg:col-span-1">
-              <label className="block text-xs font-black uppercase tracking-widest text-white/60 mb-2">Package</label>
-              <select
-                value={sponsorForm.tierId}
-                onChange={(e) => setSponsorForm(prev => ({ ...prev, tierId: e.target.value }))}
-                className="w-full rounded-xl bg-gray-950/80 border border-white/10 p-3 text-sm text-white"
-                aria-label="Sponsorship package"
-                title="Sponsorship package"
-                required
-              >
-                <option value="">Select package</option>
-                {pricing.map((tier) => (
-                  <option key={tier.id} value={tier.id}>{tier.tierName} - {(tier.priceCents / 100).toLocaleString(undefined, { style: 'currency', currency: 'NGN' })}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-black uppercase tracking-widest text-white/60 mb-2">Your Name</label>
-              <input value={sponsorForm.name} onChange={(e) => setSponsorForm(prev => ({ ...prev, name: e.target.value }))} className="w-full rounded-xl bg-gray-950/80 border border-white/10 p-3 text-sm text-white placeholder:text-white/30" placeholder="Partner contact name" required />
-            </div>
-            <div>
-              <label className="block text-xs font-black uppercase tracking-widest text-white/60 mb-2">Email</label>
-              <input type="email" value={sponsorForm.email} onChange={(e) => setSponsorForm(prev => ({ ...prev, email: e.target.value }))} className="w-full rounded-xl bg-gray-950/80 border border-white/10 p-3 text-sm text-white placeholder:text-white/30" placeholder="name@company.com" required />
-            </div>
-            <div>
-              <label className="block text-xs font-black uppercase tracking-widest text-white/60 mb-2">Company</label>
-              <input value={sponsorForm.company} onChange={(e) => setSponsorForm(prev => ({ ...prev, company: e.target.value }))} className="w-full rounded-xl bg-gray-950/80 border border-white/10 p-3 text-sm text-white placeholder:text-white/30" placeholder="Company / brand" />
-            </div>
-            <div>
-              <label className="block text-xs font-black uppercase tracking-widest text-white/60 mb-2">Website</label>
-              <input value={sponsorForm.website} onChange={(e) => setSponsorForm(prev => ({ ...prev, website: e.target.value }))} className="w-full rounded-xl bg-gray-950/80 border border-white/10 p-3 text-sm text-white placeholder:text-white/30" placeholder="https://..." />
-            </div>
-            <div className="lg:col-span-2">
-              <label className="block text-xs font-black uppercase tracking-widest text-white/60 mb-2">Campaign Note</label>
-              <textarea value={sponsorForm.note} onChange={(e) => setSponsorForm(prev => ({ ...prev, note: e.target.value }))} className="w-full rounded-xl bg-gray-950/80 border border-white/10 p-3 text-sm text-white placeholder:text-white/30 min-h-[110px]" placeholder="What do you want to promote? Article, provider listing, homepage slot, or newsletter mention." />
-            </div>
-
-            <div className="lg:col-span-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div className="text-sm text-white/70 max-w-2xl">
-                {launchMessage ? launchMessage : 'This will create the booking and either open checkout or queue an invoice for admin approval. Partners can use this flow to book sponsored articles, provider slots, or newsletter mentions without waiting on back-and-forth email.'}
-              </div>
-              <button
-                type="submit"
-                disabled={isLaunching}
-                className="inline-flex items-center justify-center gap-2 bg-grantify-gold text-grantify-green font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {isLaunching ? <Loader2 className="animate-spin" size={16} /> : <>Launch Sponsorship <ArrowRight size={16} /></>}
-              </button>
-            </div>
-          </form>
         </div>
       </div>
 

@@ -440,17 +440,24 @@ export const Home: React.FC = () => {
           <div className="relative z-10 grid gap-4 md:grid-cols-3 mt-6">
             {sponsoredListings && sponsoredListings.length > 0 ? (
               sponsoredListings.slice(0, 3).map((s: any) => (
-                <Link
+                <a
                   key={s.id}
-                  to="/sponsor"
+                  href={s.provider_website || '/loan-providers'}
+                  target={s.provider_website ? "_blank" : undefined}
+                  rel={s.provider_website ? "noopener noreferrer" : undefined}
                   className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm block transition-all hover:bg-white/10 hover:border-white/20 hover:-translate-y-0.5"
                 >
                   <div className="text-sm font-black uppercase tracking-widest text-grantify-gold mb-2">{String(s.tier_name || 'Sponsored')}</div>
-                  <div className="text-lg font-bold text-white mb-2 hover:underline">{String(s.provider_name || s.provider_id || 'Provider')}</div>
-                  <div className="text-sm text-white/75 leading-relaxed">Status: <span className="font-bold">{String(s.payment_status || 'pending')}</span></div>
-                  {s.start_at && <div className="text-xs text-white/60 mt-2">Starts: {new Date(s.start_at).toLocaleDateString()}</div>}
-                  {s.end_at && <div className="text-xs text-white/60">Ends: {new Date(s.end_at).toLocaleDateString()}</div>}
-                </Link>
+                  <div className="text-lg font-bold text-white mb-2 hover:underline flex items-center gap-1.5">
+                    {String(s.provider_name || s.provider_id || 'Provider')}
+                    {s.provider_website && <ExternalLink size={14} className="opacity-60" />}
+                  </div>
+                  {s.campaign_note ? (
+                    <p className="text-sm text-white/75 leading-relaxed line-clamp-2 mt-1">{s.campaign_note}</p>
+                  ) : (
+                    <p className="text-sm text-white/75 leading-relaxed line-clamp-2 mt-1">Visit provider for verified funding options.</p>
+                  )}
+                </a>
               ))
             ) : (
               [
