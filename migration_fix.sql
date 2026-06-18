@@ -140,12 +140,23 @@ CREATE UNIQUE INDEX IF NOT EXISTS content_flags_unique_reporter_idx ON content_f
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS sponsored_pricing (
         id SERIAL PRIMARY KEY,
-        tier_name TEXT NOT NULL,
+        tier_name TEXT NOT NULL UNIQUE,
         price_cents INTEGER NOT NULL DEFAULT 0,
         duration_days INTEGER NOT NULL DEFAULT 30,
         description TEXT DEFAULT '',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Deduplicate existing rows to ensure constraint can be applied/maintained safely
+DELETE FROM sponsored_pricing
+WHERE id NOT IN (
+    SELECT MIN(id)
+    FROM sponsored_pricing
+    GROUP BY tier_name
+);
+
+-- Add unique constraint if table already existed without UNIQUE keyword
+ALTER TABLE sponsored_pricing ADD CONSTRAINT sponsored_pricing_tier_name_key UNIQUE (tier_name);
 
 CREATE TABLE IF NOT EXISTS sponsored_listings (
         id SERIAL PRIMARY KEY,
@@ -174,5 +185,5 @@ VALUES
     ('Basic', 500000, 7, 'Basic featured listing for 7 days'),
     ('Standard', 2500000, 30, 'Standard featured listing for 30 days'),
     ('Premium', 7000000, 90, 'Premium featured listing for 90 days')
-ON CONFLICT DO NOTHING;
+ON CONFLICT (tier_name) DO NOTHING;
 

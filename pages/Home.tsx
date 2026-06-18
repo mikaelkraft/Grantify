@@ -379,8 +379,7 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* Monetization / Partner Section (admin-only OR active sponsored listings visible to public) */}
-      {(showPartnerRevenue || (sponsoredListings && sponsoredListings.length > 0)) && (
+      {/* Monetization / Partner Section (always visible so public can discover sponsorship opportunities) */}
       <section className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 pb-12">
         <div className="rounded-[2.5rem] border border-gray-100 dark:border-gray-800 bg-gradient-to-br from-emerald-950 via-gray-950 to-gray-900 text-white p-6 md:p-10 shadow-2xl relative overflow-hidden">
           <div className="absolute -top-16 -right-16 w-48 h-48 bg-grantify-gold/10 rounded-full blur-3xl"></div>
@@ -419,11 +418,23 @@ export const Home: React.FC = () => {
                 </div>
               </>
             ) : (
-              <div className="max-w-2xl">
-                <p className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-gold mb-3">Sponsored</p>
-                <h2 className="text-2xl md:text-3xl font-black leading-tight mb-3">Sponsored Listings</h2>
-                <p className="text-sm md:text-base text-white/80 leading-relaxed">Paid featured listings currently active on Grantify.</p>
-              </div>
+              <>
+                <div className="max-w-2xl">
+                  <p className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-gold mb-3">Sponsored</p>
+                  <h2 className="text-2xl md:text-3xl font-black leading-tight mb-3">Partner Opportunities</h2>
+                  <p className="text-sm md:text-base text-white/80 leading-relaxed">
+                    Advertise your brand, loan app, or financial service to thousands of visitors seeking capital.
+                  </p>
+                </div>
+                <div className="flex gap-3 w-full lg:w-auto">
+                  <Link to="/sponsor" className="inline-flex items-center justify-center gap-2 bg-grantify-gold text-grantify-green font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all w-full lg:w-auto">
+                    Become a Sponsor <ArrowRight size={16} />
+                  </Link>
+                  <Link to="/contact" className="inline-flex items-center justify-center gap-2 border border-white/10 text-white font-black px-4 py-3 rounded-xl hover:bg-white/5 transition-all w-full lg:w-auto">
+                    Contact Us
+                  </Link>
+                </div>
+              </>
             )}
           </div>
           <div className="relative z-10 grid gap-4 md:grid-cols-3 mt-6">
@@ -456,7 +467,6 @@ export const Home: React.FC = () => {
           </div>
         </div>
       </section>
-      )}
 
       {/* Blog Slider for Engagement */}
       <BlogSlider posts={blogPosts} />
