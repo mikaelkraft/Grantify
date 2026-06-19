@@ -4,7 +4,7 @@
 import admins from '../backend/handlers/admins.js';
 import ai from '../backend/handlers/ai.js';
 import blog from '../backend/handlers/blog.js';
-import config from '../backend/handlers/config.js';
+import configHandler from '../backend/handlers/config.js';
 import contact from '../backend/handlers/contact.js';
 import leads from '../backend/handlers/leads.js';
 import loanProviders from '../backend/handlers/loan_providers.js';
@@ -114,7 +114,7 @@ export default async function handler(req, res) {
     if (root === 'admins') return admins(req, res);
     if (root === 'ai') return ai(req, res);
     if (root === 'blog') return blog(req, res);
-    if (root === 'config') return config(req, res);
+    if (root === 'config') return configHandler(req, res);
     if (root === 'contact') return contact(req, res);
     if (root === 'leads') return leads(req, res);
     if (root === 'loan_providers') return loanProviders(req, res);
