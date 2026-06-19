@@ -476,6 +476,30 @@ export const ApiService = {
     if (!res.ok) throw new Error('Failed to save application to API');
   },
 
+  updateApplication: async (app: LoanApplication): Promise<void> => {
+    const adminHeader = getAdminSessionHeader();
+    const res = await fetch(`${API_URL}/api/leads?type=applications&id=${encodeURIComponent(app.id)}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Session': adminHeader || '',
+      },
+      body: JSON.stringify(app)
+    });
+    if (!res.ok) throw new Error('Failed to update application via API');
+  },
+
+  deleteApplication: async (id: string): Promise<void> => {
+    const adminHeader = getAdminSessionHeader();
+    const res = await fetch(`${API_URL}/api/leads?type=applications&id=${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: {
+        'X-Admin-Session': adminHeader || '',
+      }
+    });
+    if (!res.ok) throw new Error('Failed to delete application via API');
+  },
+
   // -- Testimonials --
   getTestimonials: async (): Promise<Testimonial[]> => {
     const res = await fetch(`${API_URL}/api/testimonials`);
@@ -692,7 +716,7 @@ export const ApiService = {
     }
     return await res.json();
   },
-  createSponsoredPurchase: async (providerId: number, tierId: number, payerInfo?: any): Promise<{ id: number; paymentUrl: string | null; amountCents: number }> => {
+  createSponsoredPurchase: async (providerId: number | null, tierId: number, payerInfo?: any): Promise<{ id: number; paymentUrl: string | null; amountCents: number }> => {
     const res = await fetch(`${API_URL}/api/sponsored?action=create`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

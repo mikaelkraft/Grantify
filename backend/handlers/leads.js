@@ -2,10 +2,22 @@
 
 import pool, { toCamelCase } from '../db.js';
 
+const parseAdminSession = (req) => {
+  try {
+    const raw = req.headers['x-admin-session'];
+    if (!raw) return null;
+    const json = decodeURIComponent(escape(Buffer.from(String(raw), 'base64').toString('utf8')));
+    const parsed = JSON.parse(json);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Admin-Session');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
@@ -70,6 +82,41 @@ export default async function handler(req, res) {
             app.repaymentAmount, app.durationMonths, app.status, app.dateApplied, app.referralCode
           ]
         );
+        return res.status(200).json({ success: true });
+      }
+
+      if (req.method === 'PUT') {
+        const session = parseAdminSession(req);
+        if (!session?.id) return res.status(401).json({ error: 'Unauthorized' });
+
+        const app = req.body;
+        const appId = req.query.id || app.id;
+        if (!appId) return res.status(400).json({ error: 'Application ID is required' });
+
+        await pool.query(
+          `UPDATE applications SET 
+            full_name = $1, phone_number = $2, email = $3, country = $4,
+            amount = $5, purpose = $6, business_type = $7, matched_network = $8, type = $9,
+            repayment_amount = $10, duration_months = $11, status = $12, date_applied = $13, referral_code = $14
+           WHERE id = $15`,
+          [
+            app.fullName, app.phoneNumber, app.email, app.country,
+            app.amount, app.purpose, app.businessType, app.matchedNetwork, app.type,
+            app.repaymentAmount, app.durationMonths, app.status, app.dateApplied, app.referralCode,
+            appId
+          ]
+        );
+        return res.status(200).json({ success: true });
+      }
+
+      if (req.method === 'DELETE') {
+        const session = parseAdminSession(req);
+        if (!session?.id) return res.status(401).json({ error: 'Unauthorized' });
+
+        const appId = req.query.id;
+        if (!appId) return res.status(400).json({ error: 'Application ID is required' });
+
+        await pool.query('DELETE FROM applications WHERE id = $1', [appId]);
         return res.status(200).json({ success: true });
       }
     }

@@ -197,13 +197,46 @@ const requireValidAdmin = async (req) => {
   }
 };
 
+const fallbackImages = {
+  'nigerian agriculture farmers': 'https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?auto=format&fit=crop&w=1600&h=900&q=80',
+  'nigeria healthcare clinic': 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1600&h=900&q=80',
+  'nigeria education classroom': 'https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?auto=format&fit=crop&w=1600&h=900&q=80',
+  'nigeria renewable energy solar': 'https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&w=1600&h=900&q=80',
+  'nigeria manufacturing factory': 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=1600&h=900&q=80',
+  'nigeria finance fintech startup': 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=1600&h=900&q=80',
+  'nigeria tech startup entrepreneurs': 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1600&h=900&q=80',
+  'nigerian women entrepreneurs': 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=1600&h=900&q=80',
+  'nigerian youth entrepreneurship': 'https://images.unsplash.com/photo-1531535934200-a574b2b0c030?auto=format&fit=crop&w=1600&h=900&q=80',
+  'default': 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1600&h=900&q=80'
+};
+
+const getFallbackImage = (query) => {
+  const q = String(query || '').toLowerCase().trim();
+  for (const [key, url] of Object.entries(fallbackImages)) {
+    if (key !== 'default' && q.includes(key)) {
+      return url;
+    }
+  }
+  if (q.includes('agric') || q.includes('farm') || q.includes('crop') || q.includes('field')) return fallbackImages['nigerian agriculture farmers'];
+  if (q.includes('health') || q.includes('clinic') || q.includes('medical') || q.includes('hospital') || q.includes('doctor')) return fallbackImages['nigeria healthcare clinic'];
+  if (q.includes('school') || q.includes('education') || q.includes('student') || q.includes('university') || q.includes('class')) return fallbackImages['nigeria education classroom'];
+  if (q.includes('solar') || q.includes('energy') || q.includes('power') || q.includes('panel') || q.includes('electricity')) return fallbackImages['nigeria renewable energy solar'];
+  if (q.includes('manufactur') || q.includes('factory') || q.includes('industr') || q.includes('plant') || q.includes('machine')) return fallbackImages['nigeria manufacturing factory'];
+  if (q.includes('finance') || q.includes('fintech') || q.includes('bank') || q.includes('loan') || q.includes('credit') || q.includes('money') || q.includes('pay')) return fallbackImages['nigeria finance fintech startup'];
+  if (q.includes('tech') || q.includes('software') || q.includes('startup') || q.includes('ai') || q.includes('innovat') || q.includes('code') || q.includes('comput')) return fallbackImages['nigeria tech startup entrepreneurs'];
+  if (q.includes('women') || q.includes('female') || q.includes('girl') || q.includes('lady')) return fallbackImages['nigerian women entrepreneurs'];
+  if (q.includes('youth') || q.includes('grad') || q.includes('young')) return fallbackImages['nigerian youth entrepreneurship'];
+  
+  return fallbackImages['default'];
+};
+
 const fetchUnsplashImage = async (query) => {
   const key = process.env.UNSPLASH_ACCESS_KEY;
   const q = String(query || '').trim();
-  if (!q) return '';
+  if (!q) return getFallbackImage(q);
 
   if (!key) {
-    return `https://source.unsplash.com/1600x900/?${encodeURIComponent(q)}`;
+    return getFallbackImage(q);
   }
 
   try {
@@ -214,12 +247,16 @@ const fetchUnsplashImage = async (query) => {
         'Authorization': `Client-ID ${key}`
       }
     });
-    if (!res.ok) return '';
+    if (!res.ok) {
+      console.warn(`Unsplash API responded with status ${res.status}. Falling back to curated image.`);
+      return getFallbackImage(q);
+    }
     const data = await res.json();
     const imageUrl = data?.urls?.regular || data?.urls?.small || '';
-    return typeof imageUrl === 'string' ? imageUrl : '';
-  } catch {
-    return '';
+    return typeof imageUrl === 'string' && imageUrl ? imageUrl : getFallbackImage(q);
+  } catch (err) {
+    console.error('Failed to fetch from Unsplash, using fallback:', err);
+    return getFallbackImage(q);
   }
 };
 

@@ -164,6 +164,25 @@ export const Admin: React.FC = () => {
     billingInfo: ''
   });
 
+  // Applications Editing State
+  const [editingApplication, setEditingApplication] = useState<LoanApplication | null>(null);
+  const [appForm, setAppForm] = useState({
+    fullName: '',
+    phoneNumber: '',
+    email: '',
+    country: '',
+    amount: '',
+    purpose: '',
+    businessType: '',
+    matchedNetwork: '',
+    type: '',
+    repaymentAmount: '',
+    durationMonths: '',
+    status: '',
+    dateApplied: '',
+    referralCode: ''
+  });
+
   const [isUploadingFeaturedImage, setIsUploadingFeaturedImage] = useState(false);
   const [featuredImageLocalPreview, setFeaturedImageLocalPreview] = useState<string>('');
 
@@ -418,6 +437,73 @@ export const Admin: React.FC = () => {
       alert(err?.message || "Failed to delete testimonial");
     } finally {
       setIsSavingSponsored(false);
+    }
+  };
+
+  const startEditApplication = (app: LoanApplication) => {
+    setEditingApplication(app);
+    setAppForm({
+      fullName: app.fullName || '',
+      phoneNumber: app.phoneNumber || '',
+      email: app.email || '',
+      country: app.country || '',
+      amount: String(app.amount || ''),
+      purpose: app.purpose || '',
+      businessType: app.businessType || '',
+      matchedNetwork: app.matchedNetwork || '',
+      type: app.type || '',
+      repaymentAmount: String(app.repaymentAmount || ''),
+      durationMonths: String(app.durationMonths || ''),
+      status: app.status || '',
+      dateApplied: app.dateApplied || '',
+      referralCode: app.referralCode || ''
+    });
+  };
+
+  const handleSaveApplicationEdits = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingApplication) return;
+    try {
+      setIsSaving(true);
+      const updated: LoanApplication = {
+        ...editingApplication,
+        fullName: appForm.fullName,
+        phoneNumber: appForm.phoneNumber,
+        email: appForm.email,
+        country: appForm.country,
+        amount: Number(appForm.amount),
+        purpose: appForm.purpose,
+        businessType: appForm.businessType,
+        matchedNetwork: appForm.matchedNetwork,
+        type: appForm.type as any,
+        repaymentAmount: appForm.repaymentAmount ? Number(appForm.repaymentAmount) : undefined,
+        durationMonths: appForm.durationMonths ? Number(appForm.durationMonths) : undefined,
+        status: appForm.status as any,
+        dateApplied: appForm.dateApplied,
+        referralCode: appForm.referralCode || undefined
+      };
+      await ApiService.updateApplication(updated);
+      alert("Application updated successfully!");
+      setEditingApplication(null);
+      refreshData();
+    } catch (err: any) {
+      alert(err?.message || "Failed to update application");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteApplication = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this application? This action cannot be undone.")) return;
+    try {
+      setIsLoading(true);
+      await ApiService.deleteApplication(id);
+      alert("Application deleted successfully!");
+      refreshData();
+    } catch (err: any) {
+      alert(err?.message || "Failed to delete application");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -1818,6 +1904,7 @@ export const Admin: React.FC = () => {
                           <th className="p-3 text-left text-xs uppercase text-gray-400 dark:text-gray-500">Business/Purpose</th>
                           <th className="p-3 text-left text-xs uppercase text-gray-400 dark:text-gray-500">Matched Body</th>
                           <th className="p-3 text-left text-xs uppercase text-gray-400 dark:text-gray-500">Type & Date</th>
+                          <th className="p-3 text-left text-xs uppercase text-gray-400 dark:text-gray-500">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -1841,11 +1928,236 @@ export const Admin: React.FC = () => {
                               <span className="text-xs font-bold uppercase">{app.type}</span>
                               <span className="text-[10px] block text-gray-500">{app.dateApplied}</span>
                             </td>
+                            <td className="p-3 text-xs space-y-1">
+                              <div className="flex flex-wrap gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => startEditApplication(app)}
+                                  className="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-[10px] font-bold px-2 py-1 rounded border border-gray-200 dark:border-gray-700"
+                                >
+                                  <Edit size={10} /> Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteApplication(app.id)}
+                                  className="flex items-center gap-1 bg-red-100 hover:bg-red-200 dark:bg-red-950/40 dark:hover:bg-red-900/60 text-red-700 dark:text-red-400 text-[10px] font-bold px-2 py-1 rounded border border-red-200 dark:border-red-900/40"
+                                >
+                                  <Trash2 size={10} /> Delete
+                                </button>
+                              </div>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
+
+                  {/* Editing Application Modal */}
+                  {editingApplication && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                      <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto text-gray-900 dark:text-gray-100">
+                        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800">
+                          <div>
+                            <h3 className="text-lg font-bold">Edit Application #{editingApplication.id}</h3>
+                            <p className="text-xs text-gray-500">Update status, amount, type, or user information</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setEditingApplication(null)}
+                            className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+                            title="Close modal"
+                            aria-label="Close modal"
+                          >
+                            <X size={20} />
+                          </button>
+                        </div>
+
+                        <form onSubmit={handleSaveApplicationEdits} className="p-6 space-y-6">
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Full Name</label>
+                              <input
+                                type="text"
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                                value={appForm.fullName}
+                                onChange={(e) => setAppForm(prev => ({ ...prev, fullName: e.target.value }))}
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Phone Number</label>
+                              <input
+                                type="text"
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                                value={appForm.phoneNumber}
+                                onChange={(e) => setAppForm(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                                required
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Email</label>
+                              <input
+                                type="email"
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                                value={appForm.email}
+                                onChange={(e) => setAppForm(prev => ({ ...prev, email: e.target.value }))}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Country</label>
+                              <input
+                                type="text"
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                                value={appForm.country}
+                                onChange={(e) => setAppForm(prev => ({ ...prev, country: e.target.value }))}
+                                required
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Amount</label>
+                              <input
+                                type="number"
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                                value={appForm.amount}
+                                onChange={(e) => setAppForm(prev => ({ ...prev, amount: e.target.value }))}
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Business Type</label>
+                              <input
+                                type="text"
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                                value={appForm.businessType}
+                                onChange={(e) => setAppForm(prev => ({ ...prev, businessType: e.target.value }))}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Repayment Amount (Optional)</label>
+                              <input
+                                type="number"
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                                value={appForm.repaymentAmount}
+                                onChange={(e) => setAppForm(prev => ({ ...prev, repaymentAmount: e.target.value }))}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Duration (Months - Optional)</label>
+                              <input
+                                type="number"
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                                value={appForm.durationMonths}
+                                onChange={(e) => setAppForm(prev => ({ ...prev, durationMonths: e.target.value }))}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Matched Network / Body</label>
+                              <input
+                                type="text"
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                                value={appForm.matchedNetwork}
+                                onChange={(e) => setAppForm(prev => ({ ...prev, matchedNetwork: e.target.value }))}
+                                placeholder="General"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Referral Code</label>
+                              <input
+                                type="text"
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                                value={appForm.referralCode}
+                                onChange={(e) => setAppForm(prev => ({ ...prev, referralCode: e.target.value }))}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid md:grid-cols-3 gap-4">
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Status</label>
+                              <select
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                                value={appForm.status}
+                                onChange={(e) => setAppForm(prev => ({ ...prev, status: e.target.value }))}
+                                required
+                              >
+                                <option value="Pending">Pending</option>
+                                <option value="Approved">Approved</option>
+                                <option value="Rejected">Rejected</option>
+                                <option value="Processing">Processing</option>
+                                <option value="Grant Matched">Grant Matched</option>
+                                <option value="Verified">Verified</option>
+                                <option value="Disbursed">Disbursed</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Application Type</label>
+                              <select
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                                value={appForm.type}
+                                onChange={(e) => setAppForm(prev => ({ ...prev, type: e.target.value }))}
+                                required
+                              >
+                                <option value="Standard">Standard</option>
+                                <option value="Fast-Track">Fast-Track</option>
+                                <option value="Grant Recommendation">Grant Recommendation</option>
+                                <option value="Business Loan">Business Loan</option>
+                                <option value="Fast-Track Verification">Fast-Track Verification</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Date Applied</label>
+                              <input
+                                type="date"
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                                value={appForm.dateApplied}
+                                onChange={(e) => setAppForm(prev => ({ ...prev, dateApplied: e.target.value }))}
+                                required
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Purpose</label>
+                            <textarea
+                              className="w-full min-h-[80px] rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                              value={appForm.purpose}
+                              onChange={(e) => setAppForm(prev => ({ ...prev, purpose: e.target.value }))}
+                              required
+                            />
+                          </div>
+
+                          <div className="flex justify-end gap-3 border-t border-gray-100 dark:border-gray-800 pt-4">
+                            <button
+                              type="button"
+                              onClick={() => setEditingApplication(null)}
+                              className="px-5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="submit"
+                              disabled={isSaving}
+                              className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition flex items-center gap-2"
+                            >
+                              {isSaving ? <Loader2 className="animate-spin" size={16} /> : 'Save Changes'}
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -2342,7 +2654,12 @@ export const Admin: React.FC = () => {
                                     </div>
                                   </td>
                                   <td className="p-3">
-                                    <div className="font-bold text-gray-900 dark:text-gray-100">{listing.provider_name || `ID: ${listing.provider_id}`}</div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-bold text-gray-900 dark:text-gray-100">{listing.provider_name || `ID: ${listing.provider_id}`}</span>
+                                      {!listing.provider_id && (
+                                        <span className="inline-block bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 text-[9px] font-bold px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-900">Custom</span>
+                                      )}
+                                    </div>
                                     {listing.provider_website && (
                                       <a href={listing.provider_website} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-0.5 mt-1 hover:underline">
                                         Website <ExternalLink size={10} />

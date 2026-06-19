@@ -118,6 +118,21 @@ const stripTrailingAlsoReadBlocks = (html: string) => {
   return input;
 };
 
+const fixLinksInHtml = (html: string): string => {
+  if (!html) return '';
+  return html.replace(/<a\b([^>]*)\bhref=(["'])(.*?)\2([^>]*)/gi, (match, before, quote, href, after) => {
+    const trimmedHref = href.trim();
+    const hasProtocol = /^(https?:\/\/|mailto:|tel:|sms:|javascript:)/i.test(trimmedHref);
+    const isSpecial = trimmedHref.startsWith('/') || trimmedHref.startsWith('#') || trimmedHref === '';
+    
+    if (!hasProtocol && !isSpecial) {
+      const fixedHref = `https://${trimmedHref}`;
+      return `<a${before}href=${quote}${fixedHref}${quote}${after}`;
+    }
+    return match;
+  });
+};
+
 const extractParagraphHtml = (html: string) => {
   const matches = String(html || '').match(/<p\b[^>]*>[\s\S]*?<\/p>/gi);
   return matches || [];
@@ -262,7 +277,8 @@ export const BlogPostView: React.FC = () => {
 
   const articleHtml = useMemo(() => {
     if (!post) return '';
-    return injectInlineRecommendations(postHtml, recommendedPosts, String(post.title || ''));
+    const rawHtml = injectInlineRecommendations(postHtml, recommendedPosts, String(post.title || ''));
+    return fixLinksInHtml(rawHtml);
   }, [post, postHtml, recommendedPosts]);
 
   useEffect(() => {
@@ -632,6 +648,24 @@ export const BlogPostView: React.FC = () => {
     }
   };
 
+  const handleContentClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    const anchor = target.closest('a');
+    if (anchor) {
+      const href = anchor.getAttribute('href');
+      if (href) {
+        const isExternal = /^(https?:\/\/)/i.test(href);
+        if (isExternal) {
+          e.preventDefault();
+          const proceed = window.confirm(`You are leaving Grantify to visit: ${href}\n\nDo you want to proceed to this external website?`);
+          if (proceed) {
+            window.open(href, '_blank', 'noopener,noreferrer');
+          }
+        }
+      }
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto py-12 px-3 sm:px-4 md:px-6">
       <Link to="/blog" className="inline-flex items-center gap-2 text-gray-500 dark:text-gray-300 hover:text-grantify-green mb-8 transition-colors">
@@ -687,7 +721,7 @@ export const BlogPostView: React.FC = () => {
           )}
 
 
-          <div lang="en" className="max-w-none text-gray-700 dark:text-gray-200 text-sm leading-relaxed quill-content">
+          <div lang="en" className="max-w-none text-gray-700 dark:text-gray-200 text-sm leading-relaxed quill-content" onClick={handleContentClick}>
             {ads?.body ? (
               (() => {
                 // Since content is now HTML from ReactQuill

@@ -23,7 +23,8 @@ export const Sponsor: React.FC = () => {
     company: '',
     website: '',
     note: '',
-    paymentProvider: 'paypal'
+    paymentProvider: 'paypal',
+    customPartnerName: ''
   });
 
   useEffect(() => {
@@ -84,9 +85,11 @@ export const Sponsor: React.FC = () => {
     setMessage('');
     setSubmitting(true);
     try {
-      const providerId = Number(form.providerId);
+      const isCustom = form.providerId === 'custom';
+      const providerId = isCustom ? null : Number(form.providerId);
       const tierId = Number(form.tierId);
-      if (!providerId || !tierId) throw new Error('Choose a provider and package.');
+      if ((!isCustom && !providerId) || !tierId) throw new Error('Choose a provider and package.');
+      if (isCustom && !form.customPartnerName.trim()) throw new Error('Please enter the custom partner name.');
 
       const payerInfo = {
         name: form.name,
@@ -95,7 +98,8 @@ export const Sponsor: React.FC = () => {
         website: form.website,
         note: form.note,
         placement: 'sponsor-page',
-        paymentProvider: form.paymentProvider
+        paymentProvider: form.paymentProvider,
+        customPartnerName: isCustom ? form.customPartnerName.trim() : undefined
       };
 
       const result = await ApiService.createSponsoredPurchase(providerId, tierId, payerInfo);
@@ -302,8 +306,23 @@ export const Sponsor: React.FC = () => {
                 {providers.map((provider) => (
                   <option key={provider.id} value={provider.id}>{provider.name}</option>
                 ))}
+                <option value="custom">Other / Custom Partner</option>
               </select>
             </div>
+
+            {form.providerId === 'custom' && (
+              <div className="md:col-span-2">
+                <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">Custom Partner Name</label>
+                <input
+                  className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-800 dark:text-gray-100"
+                  value={form.customPartnerName}
+                  onChange={(e) => setForm(prev => ({ ...prev, customPartnerName: e.target.value }))}
+                  placeholder="Enter custom partner or business name"
+                  title="Custom Partner Name"
+                  required
+                />
+              </div>
+            )}
             <div>
               <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">Package</label>
               <select

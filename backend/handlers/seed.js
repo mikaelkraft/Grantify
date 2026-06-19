@@ -435,6 +435,7 @@ export default async function handler(req, res) {
         ('Basic', 500000, 7, 'Basic featured listing for 7 days'),
         ('Standard', 2500000, 30, 'Standard featured listing for 30 days'),
         ('Premium', 7000000, 90, 'Premium featured listing for 90 days')
+        ON CONFLICT (tier_name) DO NOTHING
       `);
     }
 

@@ -105,13 +105,33 @@ export default async function handler(req, res) {
                    ORDER BY sl.created_at DESC`;
         const r = await client.query(q, params);
 
+        const mappedRows = (r.rows || []).map(row => {
+          let payer = {};
+          if (row.payer_info) {
+            try {
+              payer = typeof row.payer_info === 'string' ? JSON.parse(row.payer_info) : row.payer_info;
+            } catch (e) {
+              payer = {};
+            }
+          }
+          return {
+            ...row,
+            payer_name: payer.name || '',
+            payer_email: payer.email || '',
+            payer_company: payer.company || '',
+            campaign_note: payer.note || '',
+            provider_name: row.provider_name || payer.customPartnerName || '',
+            provider_website: row.provider_website || payer.website || ''
+          };
+        });
+
         // Export CSV for admins
         if (String(action).toLowerCase() === 'export_csv') {
           // Require admin
           const session = parseAdminSession(req);
           if (!session?.id) return res.status(401).json({ error: 'Unauthorized' });
 
-          const rows = r.rows || [];
+          const rows = mappedRows;
           const cols = [
             'id','provider_id','provider_name','tier_id','tier_name','amount_cents','payment_status','start_at','end_at','created_at','updated_at','payer_info','invoice_number','billing_info','offline_payment_method','invoice_issued_at','invoice_due_date','admin_note'
           ];
@@ -131,7 +151,7 @@ export default async function handler(req, res) {
           return res.status(200).send(csv);
         }
 
-        return res.status(200).json(r.rows);
+        return res.status(200).json(mappedRows);
       }
 
       return res.status(400).json({ error: 'Missing query parameter `what` (pricing|listings)' });
@@ -141,7 +161,7 @@ export default async function handler(req, res) {
       const { action } = req.query || {};
       if (action === 'create') {
         const { providerId, tierId, payerInfo } = req.body || {};
-        if (!providerId || !tierId) return res.status(400).json({ error: 'providerId and tierId are required' });
+        if (providerId === undefined || !tierId) return res.status(400).json({ error: 'providerId (can be null) and tierId are required' });
 
         const tierRes = await client.query('SELECT id, price_cents FROM sponsored_pricing WHERE id = $1', [tierId]);
         if (tierRes.rows.length === 0) return res.status(400).json({ error: 'Invalid tier' });
