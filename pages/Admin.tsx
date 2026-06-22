@@ -1354,6 +1354,38 @@ export const Admin: React.FC = () => {
     }
   };
 
+  const handleApproveSinglePost = async (post: BlogPost) => {
+    if (!window.confirm(`Approve and publish "${post.title}"? This will remove the "autodraft" tag.`)) return;
+    setIsSavingPost(true);
+    try {
+      const nextTags = (Array.isArray(post.tags) ? post.tags.filter(t => String(t).toLowerCase() !== 'autodraft') : []);
+      await ApiService.submitBlogAction({
+        action: 'update',
+        id: String(post.id),
+        title: post.title,
+        content: post.content,
+        author: post.author,
+        authorRole: post.authorRole,
+        category: post.category,
+        image: post.image || '',
+        tags: nextTags,
+        sourceName: post.sourceName || '',
+        sourceUrl: post.sourceUrl || '',
+        views: post.views,
+        likes: post.likes,
+        loves: post.loves,
+        claps: post.claps,
+        createdAt: post.createdAt
+      });
+      await refreshData();
+      alert('Post approved and published.');
+    } catch (e: any) {
+      alert(e?.message || 'Failed to approve post');
+    } finally {
+      setIsSavingPost(false);
+    }
+  };
+
   const [pendingEditPostId, setPendingEditPostId] = useState<string | null>(null);
   const [featuredImageUploadKey, setFeaturedImageUploadKey] = useState(0);
   const [featuredImagePreviewNonce, setFeaturedImagePreviewNonce] = useState(0);
@@ -3772,6 +3804,20 @@ export const Admin: React.FC = () => {
                            <button type="submit" disabled={isSavingPost} className={`${isEditingPost ? 'bg-blue-600 hover:bg-blue-800' : 'bg-grantify-green hover:bg-green-800'} inline-flex items-center justify-center min-h-11 text-white font-bold py-3 leading-tight rounded transition shadow-lg relative z-10 px-4 whitespace-normal text-center`}>
                              {isSavingPost ? "Saving..." : (isEditingPost ? "Update Publication" : "Publish Article to Community")}
                            </button>
+                           <button
+                             type="button"
+                             onClick={() => {
+                               localStorage.setItem('grantify_blog_preview_data', JSON.stringify({
+                                 ...newPost,
+                                 id: newPost.id || 'preview',
+                                 createdAt: newPost.createdAt || new Date().toISOString()
+                               }));
+                               window.open('/blog/preview', '_blank');
+                             }}
+                             className="inline-flex items-center justify-center min-h-11 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-100 font-bold py-3 leading-tight px-4 rounded transition shadow-md relative z-10 whitespace-normal text-center"
+                           >
+                             Preview Article
+                           </button>
                            {isEditingPost && (
                              <button
                                type="button"
@@ -3920,6 +3966,15 @@ export const Admin: React.FC = () => {
                               </td>
                               <td className="p-3">
                                 <div className="flex gap-1">
+                                  {isAutodraftPost(post) && (
+                                    <button 
+                                      onClick={() => handleApproveSinglePost(post)}
+                                      className="text-green-600 hover:bg-green-100 p-2 rounded"
+                                      title="Approve and Publish Draft"
+                                    >
+                                      <Check size={16} />
+                                    </button>
+                                  )}
                                   <button 
                                     onClick={() => handleEditBlogPost(post)}
                                     className="text-blue-600 hover:bg-blue-100 p-2 rounded"

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ApiService } from '../services/storage';
 import { BlogPost, BlogComment, AdConfig } from '../types';
-import { Loader2, ThumbsUp, Heart, Hand, MessageSquare, ArrowLeft, Send, Calendar, User, Shield, Share2, Eye, ArrowUp, Copy, Flag } from 'lucide-react';
+import { Loader2, ThumbsUp, Heart, Hand, MessageSquare, ArrowLeft, Send, Calendar, User, Shield, Share2, Eye, ArrowUp, Copy, Flag, Sparkles } from 'lucide-react';
 import { AdSlot } from '../components/AdSlot';
 import { FacebookShareButton, TwitterShareButton, WhatsappShareButton, LinkedinShareButton, FacebookIcon, WhatsappIcon, LinkedinIcon } from 'react-share';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
@@ -367,6 +367,11 @@ export const BlogPostView: React.FC = () => {
 
   useEffect(() => {
     if (!post?.id) return;
+    if (post.id === 'preview') {
+      setRecommendedPosts([]);
+      setAds(null);
+      return;
+    }
     let canceled = false;
 
     // Load non-critical data in the background so the article renders ASAP.
@@ -402,6 +407,7 @@ export const BlogPostView: React.FC = () => {
 
   useEffect(() => {
     if (!post || !slugOrId) return;
+    if (post.id === 'preview' || slugOrId === 'preview') return;
     // Only canonicalize if the URL already refers to this post's id.
     // Otherwise (e.g., user clicked a recommended post), we may still be showing
     // the previous post while the new one is loading.
@@ -436,6 +442,33 @@ export const BlogPostView: React.FC = () => {
     try {
       setIsLoading(true);
       setError('');
+      if (effectiveId === 'preview') {
+        const rawPreview = localStorage.getItem('grantify_blog_preview_data');
+        if (!rawPreview) {
+          throw new Error('No preview data found. Please edit a post in the Admin Panel and click "Preview".');
+        }
+        const data = JSON.parse(rawPreview);
+        const previewPost = {
+          id: 'preview',
+          title: data.title || 'Untitled Draft',
+          content: data.content || '',
+          author: data.author || 'Author',
+          authorRole: data.authorRole || 'Editor',
+          category: data.category || 'Finance',
+          image: data.image || '',
+          tags: Array.isArray(data.tags) ? data.tags : [],
+          likes: data.likes || 0,
+          loves: data.loves || 0,
+          claps: data.claps || 0,
+          views: data.views || 0,
+          createdAt: data.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          comments: []
+        };
+        setPost(previewPost);
+        setIsLoading(false);
+        return;
+      }
       const data = await ApiService.getBlogPost(effectiveId, { commentsSort });
       setPost(data);
 
@@ -671,6 +704,13 @@ export const BlogPostView: React.FC = () => {
       <Link to="/blog" className="inline-flex items-center gap-2 text-gray-500 dark:text-gray-300 hover:text-grantify-green mb-8 transition-colors">
         <ArrowLeft size={16} /> Back to Blog Intel
       </Link>
+
+      {post.id === 'preview' && (
+        <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black text-center py-4 px-6 rounded-3xl mb-8 flex items-center justify-center gap-2 shadow-lg">
+          <Sparkles size={18} className="animate-pulse" />
+          <span>Wordpress Preview Mode: Viewing unsaved admin draft changes</span>
+        </div>
+      )}
 
       <article className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm mb-12">
         <div className="overflow-hidden rounded-t-3xl">
