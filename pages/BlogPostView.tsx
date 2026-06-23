@@ -461,6 +461,7 @@ export const BlogPostView: React.FC = () => {
           loves: data.loves || 0,
           claps: data.claps || 0,
           views: data.views || 0,
+          commentsCount: 0,
           createdAt: data.createdAt || new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           comments: []

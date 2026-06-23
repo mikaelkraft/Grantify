@@ -2007,8 +2007,9 @@ export const Admin: React.FC = () => {
                         <form onSubmit={handleSaveApplicationEdits} className="p-6 space-y-6">
                           <div className="grid md:grid-cols-2 gap-4">
                             <div>
-                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Full Name</label>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1" htmlFor="appForm-fullName">Full Name</label>
                               <input
+                                id="appForm-fullName"
                                 type="text"
                                 className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
                                 value={appForm.fullName}
@@ -2017,8 +2018,9 @@ export const Admin: React.FC = () => {
                               />
                             </div>
                             <div>
-                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Phone Number</label>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1" htmlFor="appForm-phoneNumber">Phone Number</label>
                               <input
+                                id="appForm-phoneNumber"
                                 type="text"
                                 className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
                                 value={appForm.phoneNumber}
@@ -2030,8 +2032,9 @@ export const Admin: React.FC = () => {
 
                           <div className="grid md:grid-cols-2 gap-4">
                             <div>
-                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Email</label>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1" htmlFor="appForm-email">Email</label>
                               <input
+                                id="appForm-email"
                                 type="email"
                                 className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
                                 value={appForm.email}
@@ -2039,8 +2042,9 @@ export const Admin: React.FC = () => {
                               />
                             </div>
                             <div>
-                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Country</label>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1" htmlFor="appForm-country">Country</label>
                               <input
+                                id="appForm-country"
                                 type="text"
                                 className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
                                 value={appForm.country}
@@ -2052,8 +2056,9 @@ export const Admin: React.FC = () => {
 
                           <div className="grid md:grid-cols-2 gap-4">
                             <div>
-                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Amount</label>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1" htmlFor="appForm-amount">Amount</label>
                               <input
+                                id="appForm-amount"
                                 type="number"
                                 className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
                                 value={appForm.amount}
@@ -2062,8 +2067,9 @@ export const Admin: React.FC = () => {
                               />
                             </div>
                             <div>
-                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Business Type</label>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1" htmlFor="appForm-businessType">Business Type</label>
                               <input
+                                id="appForm-businessType"
                                 type="text"
                                 className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
                                 value={appForm.businessType}
@@ -2074,8 +2080,9 @@ export const Admin: React.FC = () => {
 
                           <div className="grid md:grid-cols-2 gap-4">
                             <div>
-                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Repayment Amount (Optional)</label>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1" htmlFor="appForm-repaymentAmount">Repayment Amount (Optional)</label>
                               <input
+                                id="appForm-repaymentAmount"
                                 type="number"
                                 className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
                                 value={appForm.repaymentAmount}
@@ -2083,8 +2090,9 @@ export const Admin: React.FC = () => {
                               />
                             </div>
                             <div>
-                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Duration (Months - Optional)</label>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1" htmlFor="appForm-durationMonths">Duration (Months - Optional)</label>
                               <input
+                                id="appForm-durationMonths"
                                 type="number"
                                 className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
                                 value={appForm.durationMonths}
@@ -2095,8 +2103,9 @@ export const Admin: React.FC = () => {
 
                           <div className="grid md:grid-cols-2 gap-4">
                             <div>
-                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Matched Network / Body</label>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1" htmlFor="appForm-matchedNetwork">Matched Network / Body</label>
                               <input
+                                id="appForm-matchedNetwork"
                                 type="text"
                                 className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
                                 value={appForm.matchedNetwork}
@@ -2105,8 +2114,9 @@ export const Admin: React.FC = () => {
                               />
                             </div>
                             <div>
-                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Referral Code</label>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1" htmlFor="appForm-referralCode">Referral Code</label>
                               <input
+                                id="appForm-referralCode"
                                 type="text"
                                 className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
                                 value={appForm.referralCode}
@@ -2117,8 +2127,9 @@ export const Admin: React.FC = () => {
 
                           <div className="grid md:grid-cols-3 gap-4">
                             <div>
-                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Status</label>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1" htmlFor="appForm-status">Status</label>
                               <select
+                                id="appForm-status"
                                 className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
                                 value={appForm.status}
                                 onChange={(e) => setAppForm(prev => ({ ...prev, status: e.target.value }))}
@@ -2134,8 +2145,9 @@ export const Admin: React.FC = () => {
                               </select>
                             </div>
                             <div>
-                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Application Type</label>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1" htmlFor="appForm-type">Application Type</label>
                               <select
+                                id="appForm-type"
                                 className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
                                 value={appForm.type}
                                 onChange={(e) => setAppForm(prev => ({ ...prev, type: e.target.value }))}
@@ -2149,8 +2161,9 @@ export const Admin: React.FC = () => {
                               </select>
                             </div>
                             <div>
-                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Date Applied</label>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1" htmlFor="appForm-dateApplied">Date Applied</label>
                               <input
+                                id="appForm-dateApplied"
                                 type="date"
                                 className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
                                 value={appForm.dateApplied}
@@ -2161,8 +2174,9 @@ export const Admin: React.FC = () => {
                           </div>
 
                           <div>
-                            <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Purpose</label>
+                            <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1" htmlFor="appForm-purpose">Purpose</label>
                             <textarea
+                              id="appForm-purpose"
                               className="w-full min-h-[80px] rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
                               value={appForm.purpose}
                               onChange={(e) => setAppForm(prev => ({ ...prev, purpose: e.target.value }))}

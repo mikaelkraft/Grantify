@@ -253,7 +253,7 @@ export const Blog: React.FC = () => {
                 {(['banner', 'in-article', 'directory'] as const).map((tab) => (
                   <button
                     key={tab}
-                    type="button;button"
+                    type="button"
                     onClick={() => setActivePreviewTab(tab)}
                     className={`text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border transition-all ${
                       activePreviewTab === tab
