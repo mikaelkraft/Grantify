@@ -261,7 +261,7 @@ const injectInlineRecommendations = (html: string, recs: BlogPost[], title: stri
 const buildDiscussionPrompts = (post: BlogPost | null) => {
   const title = String(post?.title || '').trim();
   const category = String(post?.category || '').trim();
-  const coreTopic = category || 'this topic';
+  const coreTopic = category || 'financial opportunities';
 
   const cleanedTitle = title
     .replace(/\s+/g, ' ')
@@ -270,12 +270,12 @@ const buildDiscussionPrompts = (post: BlogPost | null) => {
     .trim();
 
   return [
-    `What is the biggest practical challenge you see with ${coreTopic.toLowerCase()} right now?`,
+    `What is the biggest challenge or opportunity you see for SMEs in Nigeria regarding ${coreTopic.toLowerCase()}?`,
     cleanedTitle
-      ? `Which part of the article feels most relevant to your own experience with “${cleanedTitle}”?`
-      : `Which example or takeaway here feels most relevant to your own experience?`,
-    `What would you add or change for people trying to apply this advice this week?`,
-    `If you have seen this work in a real business, what detail would help others do it better?`,
+      ? `Have you tried applying for "${cleanedTitle}" or a similar scheme? Share your experience.`
+      : `Have you ever applied for a similar funding opportunity? What was the process like?`,
+    `What advice would you give to another Nigerian entrepreneur trying to leverage this information this week?`,
+    `If you have used these tips to secure capital or grow your business, what specific detail made the difference?`,
   ];
 };
 
@@ -549,6 +549,23 @@ export const BlogPostView: React.FC = () => {
       setError('Failed to load the article. Please check your connection and try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSelectPrompt = (prompt: string) => {
+    setCommentForm(prev => {
+      const current = prev.content.trim();
+      const prefix = `Regarding: "${prompt}"\n\n`;
+      if (current.startsWith('Regarding: "')) {
+        const cleanContent = current.replace(/^Regarding: ".*?"\n\n/, '');
+        return { ...prev, content: prefix + cleanContent };
+      }
+      return { ...prev, content: current ? `${prefix}${current}` : prefix };
+    });
+    const el = document.getElementById('comment-textarea');
+    if (el) {
+      el.focus();
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   };
 
@@ -1023,10 +1040,11 @@ export const BlogPostView: React.FC = () => {
             {discussionPrompts.map((prompt, index) => (
               <div
                 key={index}
-                className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-950/60 px-4 py-4 text-sm text-gray-700 dark:text-gray-200 shadow-sm"
+                onClick={() => handleSelectPrompt(prompt)}
+                className="cursor-pointer rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-950/60 px-4 py-4 text-sm text-gray-700 dark:text-gray-200 shadow-sm hover:border-grantify-green hover:bg-grantify-green/5 dark:hover:bg-grantify-green/5 transition-all duration-300 transform hover:-translate-y-0.5 group"
               >
-                <span className="block text-[10px] font-black uppercase tracking-[0.28em] text-grantify-green mb-2">
-                  Prompt {index + 1}
+                <span className="block text-[10px] font-black uppercase tracking-[0.28em] text-grantify-green mb-2 group-hover:text-grantify-gold transition-colors">
+                  Prompt {index + 1} — Click to reply
                 </span>
                 {prompt}
               </div>
@@ -1050,6 +1068,7 @@ export const BlogPostView: React.FC = () => {
               required
             />
             <textarea 
+              id="comment-textarea"
               rows={4}
               placeholder="Share your thoughts or ask a question..."
               className="w-full p-4 rounded-xl border-none ring-1 ring-gray-200 dark:ring-gray-700 focus:ring-2 focus:ring-grantify-green bg-white dark:bg-gray-950 shadow-inner outline-none text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
