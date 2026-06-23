@@ -66,7 +66,21 @@ export default async function handler(req, res) {
     <li>Return to Grantify Admin and try the upload again to re-run consent.</li>
   </ol>
   <p style="font-size:12px; color:#666;">Tip: make sure the consent screen includes your Google user as a test user if the app is still in “Testing”.</p>
-  <script>try{window.close();}catch(e){}</script>
+  <script>
+    try {
+      if (window.opener) {
+        window.close();
+      } else {
+        setTimeout(function() {
+          window.location.href = '/admin?tab=blog';
+        }, 5000);
+      }
+    } catch(e) {
+      setTimeout(function() {
+        window.location.href = '/admin?tab=blog';
+      }, 5000);
+    }
+  </script>
 </body></html>`);
       }
     }
@@ -86,7 +100,21 @@ export default async function handler(req, res) {
 <body style="font-family:system-ui; padding:16px;">
   <h2>Google Drive connected</h2>
   <p>You can close this window and return to Grantify Admin.</p>
-  <script>try{window.close();}catch(e){}</script>
+  <script>
+    try {
+      if (window.opener) {
+        window.close();
+      } else {
+        setTimeout(function() {
+          window.location.href = '/admin?tab=blog';
+        }, 1500);
+      }
+    } catch(e) {
+      setTimeout(function() {
+        window.location.href = '/admin?tab=blog';
+      }, 1500);
+    }
+  </script>
 </body></html>`);
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Callback error';

@@ -133,6 +133,67 @@ const fixLinksInHtml = (html: string): string => {
   });
 };
 
+const formatListsInHtml = (html: string): string => {
+  if (!html) return '';
+
+  // 1. Process paragraphs that contain lists split by <br />
+  let processed = html.replace(/<p\b[^>]*>([\s\S]*?)<\/p>/gi, (match, content) => {
+    if (!/(\*|-|•|&bull;)\s+/.test(content)) return match;
+    
+    const parts = content.split(/<br\s*\/?>|\n/gi);
+    let result = '';
+    let inList = false;
+    
+    for (const part of parts) {
+      const trimmed = part.trim();
+      const listMatch = trimmed.match(/^\s*(\*|-|•|&bull;)\s+(.*)/i);
+      
+      if (listMatch) {
+        if (!inList) {
+          result += '<ul>';
+          inList = true;
+        }
+        result += `<li>${listMatch[2]}</li>`;
+      } else {
+        if (inList) {
+          result += '</ul>';
+          inList = false;
+        }
+        if (result && trimmed) {
+          result += `<br />${part}`;
+        } else {
+          result += part;
+        }
+      }
+    }
+    if (inList) {
+      result += '</ul>';
+    }
+    
+    if (result.startsWith('<ul>') && result.endsWith('</ul>')) {
+      return result;
+    }
+    return `<p>${result}</p>`;
+  });
+
+  // 2. Group consecutive paragraphs that are individual bullet points:
+  // e.g. <p>* Item 1</p><p>* Item 2</p> or <p>• Item 1</p><p>• Item 2</p>
+  processed = processed.replace(/(?:<p\b[^>]*>\s*(?:\*|-|•|&bull;)\s+([\s\S]*?)<\/p>\s*)+/gi, (match) => {
+    const liItems: string[] = [];
+    const itemRegex = /<p\b[^>]*>\s*(?:\*|-|•|&bull;)\s+([\s\S]*?)<\/p>/gi;
+    let itemMatch;
+    while ((itemMatch = itemRegex.exec(match)) !== null) {
+      liItems.push(`<li>${itemMatch[1].trim()}</li>`);
+    }
+    if (liItems.length > 0) {
+      return `<ul>${liItems.join('')}</ul>`;
+    }
+    return match;
+  });
+
+  return processed;
+};
+
 const extractParagraphHtml = (html: string) => {
   const matches = String(html || '').match(/<p\b[^>]*>[\s\S]*?<\/p>/gi);
   return matches || [];
@@ -272,7 +333,8 @@ export const BlogPostView: React.FC = () => {
     const raw = String(post?.content || '').replace(/\u00ad/g, '');
     if (!raw.trim()) return '';
     const normalized = looksLikeHtml(raw) ? raw : plainTextToHtml(raw);
-    return stripLeadingDuplicateH2(normalized, String(post?.title || ''));
+    const withLists = formatListsInHtml(normalized);
+    return stripLeadingDuplicateH2(withLists, String(post?.title || ''));
   }, [post?.content, post?.title]);
 
   const articleHtml = useMemo(() => {

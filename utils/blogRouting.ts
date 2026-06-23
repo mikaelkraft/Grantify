@@ -23,20 +23,18 @@ export const makeBlogSlug = (title: string, id: string | number) => {
 };
 
 export const parseBlogParam = (param: string) => {
-  const raw = String(param || '');
-  const sepIndex = raw.lastIndexOf('~');
-  if (sepIndex === -1) {
-    return { id: raw, fromSlug: false };
-  }
-
-  const encodedId = raw.slice(sepIndex + 1);
-  let id = encodedId;
+  let decoded = String(param || '');
   try {
-    id = decodeURIComponent(encodedId);
+    decoded = decodeURIComponent(decoded);
   } catch {
-    // fall back to encoded value
+    // fall back to original
+  }
+  const sepIndex = decoded.lastIndexOf('~');
+  if (sepIndex === -1) {
+    return { id: decoded, fromSlug: false };
   }
 
+  const id = decoded.slice(sepIndex + 1);
   return { id, fromSlug: true };
 };
 

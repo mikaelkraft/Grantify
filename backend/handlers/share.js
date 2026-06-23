@@ -12,16 +12,16 @@ const escapeHtml = (str = '') => String(str)
 const stripHtml = (html = '') => String(html).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
 const extractBlogId = (param) => {
-  const raw = String(param || '');
-  const sepIndex = raw.lastIndexOf('~');
-  if (sepIndex === -1) return raw;
-
-  const encodedId = raw.slice(sepIndex + 1);
+  let decoded = String(param || '');
   try {
-    return decodeURIComponent(encodedId);
+    decoded = decodeURIComponent(decoded);
   } catch {
-    return encodedId;
+    // fall back to original
   }
+  const sepIndex = decoded.lastIndexOf('~');
+  if (sepIndex === -1) return decoded;
+
+  return decoded.slice(sepIndex + 1);
 };
 
 const slugifyTitle = (title) => {

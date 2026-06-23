@@ -23,6 +23,7 @@ import {
   FileText,
   DollarSign,
   ExternalLink,
+  Eye,
 } from 'lucide-react';
 import React, { useEffect, useRef, useState, useTransition } from 'react';
 import { ApiService } from '../services/storage';
@@ -79,6 +80,12 @@ export const Admin: React.FC = () => {
   const [includeHiddenReviews, setIncludeHiddenReviews] = useState(false);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [selectedBlogPostIds, setSelectedBlogPostIds] = useState<Set<string>>(new Set());
+  const [showBulkEditModal, setShowBulkEditModal] = useState(false);
+  const [bulkEditForm, setBulkEditForm] = useState({
+    category: '',
+    author: '',
+    authorRole: '',
+  });
 
   const categoryOptions = React.useMemo(() => {
     const base = [
@@ -206,16 +213,30 @@ export const Admin: React.FC = () => {
     });
   }, [user?.id]);
 
+  // Load tab from URL query params on mount
   useEffect(() => {
-    let canceled = false;
-    let intervalId: number | null = null;
-
-    // If URL contains ?tab=sponsored (or other tab), open that tab on mount
     try {
       const qs = new URLSearchParams(window.location.search || '');
       const requested = qs.get('tab');
-      if (requested && !canceled) setActiveTab(requested);
+      if (requested) setActiveTab(requested);
     } catch {}
+  }, [user?.id]);
+
+  // Sync tab state with URL query parameter
+  useEffect(() => {
+    try {
+      const qs = new URLSearchParams(window.location.search || '');
+      if (qs.get('tab') !== activeTab) {
+        qs.set('tab', activeTab);
+        const newUrl = `${window.location.pathname}?${qs.toString()}`;
+        window.history.replaceState(null, '', newUrl);
+      }
+    } catch {}
+  }, [activeTab]);
+
+  useEffect(() => {
+    let canceled = false;
+    let intervalId: number | null = null;
 
     const fetchStatus = async () => {
       if (!user) return;
@@ -248,6 +269,11 @@ export const Admin: React.FC = () => {
       }, 8000);
     }
 
+    return () => {
+      canceled = true;
+      if (intervalId) window.clearInterval(intervalId);
+      window.removeEventListener('focus', onFocus);
+    };
   }, [activeTab, user?.id]);
 
   // Load sponsored data when this tab is active or refreshed
@@ -730,8 +756,13 @@ export const Admin: React.FC = () => {
       const msg = String(err?.message || '').toLowerCase();
 
       if (connectUrl) {
-        try { window.open(connectUrl, '_blank', 'noopener,noreferrer'); } catch {}
-        alert('Cloud storage is not connected yet. A consent page was opened; complete it, then retry the upload.');
+        let opened: Window | null = null;
+        try { opened = window.open(connectUrl, '_blank', 'noopener,noreferrer'); } catch {}
+        if (!opened) {
+          window.location.href = connectUrl;
+        } else {
+          alert('Cloud storage is not connected yet. A consent page was opened; complete it, then retry the upload.');
+        }
         return;
       }
 
@@ -1354,6 +1385,68 @@ export const Admin: React.FC = () => {
     }
   };
 
+  const handleBulkDeleteBlogPosts = async () => {
+    const ids = Array.from(selectedBlogPostIds);
+    if (ids.length === 0) return;
+    const ok = window.confirm(`Are you sure you want to delete ${ids.length} selected post(s)?`);
+    if (!ok) return;
+
+    setIsSavingPost(true);
+    try {
+      for (const id of ids) {
+        await ApiService.deleteBlogPost(id);
+      }
+      setSelectedBlogPostIds(new Set());
+      await refreshData();
+      alert('Selected posts deleted.');
+    } catch (e: any) {
+      alert(e?.message || 'Failed to delete selected posts');
+    } finally {
+      setIsSavingPost(false);
+    }
+  };
+
+  const handleBulkEditBlogPosts = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const ids = Array.from(selectedBlogPostIds);
+    if (ids.length === 0) return;
+
+    setIsSavingPost(true);
+    try {
+      for (const id of ids) {
+        const post = blogPosts.find(p => String(p.id) === String(id));
+        if (!post) continue;
+        
+        await ApiService.submitBlogAction({
+          action: 'update',
+          id: String(post.id),
+          title: post.title,
+          content: post.content,
+          author: bulkEditForm.author.trim() ? bulkEditForm.author.trim() : post.author,
+          authorRole: bulkEditForm.authorRole.trim() ? bulkEditForm.authorRole.trim() : post.authorRole,
+          category: bulkEditForm.category ? bulkEditForm.category : post.category,
+          image: post.image || '',
+          tags: post.tags,
+          sourceName: post.sourceName || '',
+          sourceUrl: post.sourceUrl || '',
+          views: post.views,
+          likes: post.likes,
+          loves: post.loves,
+          claps: post.claps,
+          createdAt: post.createdAt
+        });
+      }
+      setSelectedBlogPostIds(new Set());
+      setShowBulkEditModal(false);
+      await refreshData();
+      alert('Selected posts updated.');
+    } catch (e: any) {
+      alert(e?.message || 'Failed to bulk edit selected posts');
+    } finally {
+      setIsSavingPost(false);
+    }
+  };
+
   const handleApproveSinglePost = async (post: BlogPost) => {
     if (!window.confirm(`Approve and publish "${post.title}"? This will remove the "autodraft" tag.`)) return;
     setIsSavingPost(true);
@@ -1468,8 +1561,13 @@ export const Admin: React.FC = () => {
       const msg = String(err?.message || '').toLowerCase();
 
       if (connectUrl) {
-        try { window.open(connectUrl, '_blank', 'noopener,noreferrer'); } catch {}
-        alert('Cloud storage is not connected yet. A consent page was opened; complete it, then retry the upload.');
+        let opened: Window | null = null;
+        try { opened = window.open(connectUrl, '_blank', 'noopener,noreferrer'); } catch {}
+        if (!opened) {
+          window.location.href = connectUrl;
+        } else {
+          alert('Cloud storage is not connected yet. A consent page was opened; complete it, then retry the upload.');
+        }
         return;
       }
 
@@ -3897,6 +3995,29 @@ export const Admin: React.FC = () => {
                           >
                             Approve selected
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setBulkEditForm({
+                                category: '',
+                                author: '',
+                                authorRole: '',
+                              });
+                              setShowBulkEditModal(true);
+                            }}
+                            disabled={selectedBlogPostIds.size === 0 || isSavingPost}
+                            className="text-xs font-bold px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                          >
+                            Edit selected
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleBulkDeleteBlogPosts}
+                            disabled={selectedBlogPostIds.size === 0 || isSavingPost}
+                            className="text-xs font-bold px-3 py-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                          >
+                            Delete selected
+                          </button>
                         </div>
                       </div>
                       <table className="w-full text-sm min-w-[800px]">
@@ -3980,6 +4101,20 @@ export const Admin: React.FC = () => {
                               </td>
                               <td className="p-3">
                                 <div className="flex gap-1">
+                                  <button 
+                                    type="button"
+                                    onClick={() => {
+                                      localStorage.setItem('grantify_blog_preview_data', JSON.stringify({
+                                        ...post,
+                                        createdAt: post.createdAt || new Date().toISOString()
+                                      }));
+                                      window.open('/blog/preview', '_blank');
+                                    }}
+                                    className="text-amber-600 hover:bg-amber-100 p-2 rounded"
+                                    title="Preview post"
+                                  >
+                                    <Eye size={16} />
+                                  </button>
                                   {isAutodraftPost(post) && (
                                     <button 
                                       onClick={() => handleApproveSinglePost(post)}
@@ -4010,6 +4145,92 @@ export const Admin: React.FC = () => {
                         </tbody>
                       </table>
                     </div>
+
+                    {/* Bulk Edit Modal */}
+                    {showBulkEditModal && (
+                      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                        <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto text-gray-900 dark:text-gray-100">
+                          <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800">
+                            <div>
+                              <h3 className="text-lg font-bold">Bulk Edit Selected Drafts</h3>
+                              <p className="text-xs text-gray-500">Updating {selectedBlogPostIds.size} post(s). Leave fields blank to keep their current values.</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setShowBulkEditModal(false)}
+                              className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+                              title="Close modal"
+                              aria-label="Close modal"
+                            >
+                              <X size={20} />
+                            </button>
+                          </div>
+
+                          <form onSubmit={handleBulkEditBlogPosts} className="p-6 space-y-6">
+                            <div className="space-y-4">
+                              <div>
+                                <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1" htmlFor="bulkEditForm-category">Category</label>
+                                <select
+                                  id="bulkEditForm-category"
+                                  value={bulkEditForm.category}
+                                  onChange={(e) => setBulkEditForm(prev => ({ ...prev, category: e.target.value }))}
+                                  className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm"
+                                  title="Bulk Category"
+                                >
+                                  <option value="">Keep current category</option>
+                                  {categoryOptions.map((opt) => (
+                                    <option key={opt} value={opt}>{opt}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div>
+                                <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1" htmlFor="bulkEditForm-author">Author Name</label>
+                                <input
+                                  id="bulkEditForm-author"
+                                  type="text"
+                                  value={bulkEditForm.author}
+                                  onChange={(e) => setBulkEditForm(prev => ({ ...prev, author: e.target.value }))}
+                                  className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm"
+                                  placeholder="Keep current author name"
+                                  title="Bulk Author"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1" htmlFor="bulkEditForm-authorRole">Author Role</label>
+                                <input
+                                  id="bulkEditForm-authorRole"
+                                  type="text"
+                                  value={bulkEditForm.authorRole}
+                                  onChange={(e) => setBulkEditForm(prev => ({ ...prev, authorRole: e.target.value }))}
+                                  className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm"
+                                  placeholder="Keep current author role"
+                                  title="Bulk Author Role"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="flex gap-4 justify-end pt-4 border-t border-gray-100 dark:border-gray-800">
+                              <button
+                                type="button"
+                                onClick={() => setShowBulkEditModal(false)}
+                                className="px-4 py-2 text-sm font-bold border border-gray-200 dark:border-gray-800 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-950"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="submit"
+                                disabled={isSavingPost}
+                                className="px-5 py-2 text-sm font-bold bg-grantify-green text-white rounded-xl hover:bg-green-700 disabled:opacity-50"
+                              >
+                                {isSavingPost ? 'Saving...' : 'Apply Changes'}
+                              </button>
+                            </div>
+                          </form>
+                        </div>
+                      </div>
+                    )}
                 </div>
               )}
 

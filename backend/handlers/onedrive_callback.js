@@ -58,7 +58,21 @@ export default async function handler(req, res) {
 <body style="font-family:system-ui; padding:16px;">
   <h2>OneDrive connected</h2>
   <p>You can close this window and return to Grantify Admin.</p>
-  <script>try{window.close();}catch(e){}</script>
+  <script>
+    try {
+      if (window.opener) {
+        window.close();
+      } else {
+        setTimeout(function() {
+          window.location.href = '/admin?tab=blog';
+        }, 1500);
+      }
+    } catch(e) {
+      setTimeout(function() {
+        window.location.href = '/admin?tab=blog';
+      }, 1500);
+    }
+  </script>
 </body></html>`);
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Callback error';

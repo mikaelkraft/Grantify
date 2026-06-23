@@ -166,26 +166,26 @@ export const Sponsor: React.FC = () => {
         <div className="absolute -top-16 -right-16 w-48 h-48 bg-grantify-gold/10 rounded-full blur-3xl" />
         <div className="relative z-10 grid gap-8 lg:grid-cols-[1.2fr_0.8fr] items-start">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-gold mb-3 flex items-center gap-2"><Zap size={12} /> Sponsor</p>
-            <h1 className="text-4xl md:text-6xl font-black leading-[1.05] mb-5">Direct advert launch for partners who want results.</h1>
+            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-gold mb-3 flex items-center gap-2"><Zap size={12} /> Sponsor & Advertise</p>
+            <h1 className="text-4xl md:text-6xl font-black leading-[1.05] mb-5">Put your brand in front of high-intent capital seekers.</h1>
             <p className="text-base md:text-lg text-white/80 leading-relaxed max-w-2xl mb-6">
-              Book sponsored listings, article placements, or newsletter mentions directly. Pick a provider, choose a package, and submit the sponsorship request in one step.
+              Establish your microfinance bank, fintech platform, or loan institution as a trusted partner. Choose from our high-performance sponsorship packages to drive verified, pre-qualified traffic to your products.
             </p>
             <div className="flex flex-wrap gap-3">
               <a href="#booking-form" className="inline-flex items-center gap-2 bg-white text-gray-900 font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all">
-                Book Sponsorship <ArrowRight size={16} />
+                Select Your Package <ArrowRight size={16} />
               </a>
               <Link to="/blog#media-kit" className="inline-flex items-center gap-2 border border-white/10 text-white font-black px-5 py-3 rounded-xl hover:bg-white/5 transition-all">
-                View Media Kit <ExternalLink size={16} />
+                Interactive Media Kit <ExternalLink size={16} />
               </Link>
             </div>
           </div>
-
+ 
           <div className="grid gap-3">
             {[
-              'Featured provider placements for maximum authority',
-              'Sponsored content and weekly newsletter slots',
-              'Self-serve activation and secure payment verification',
+              'Premium top-of-funnel listing placements for maximum conversions',
+              'Targeted sponsored editorial features and direct newsletter spots',
+              'Real-time traffic performance dashboard and transparent click attribution',
             ].map((item) => (
               <div key={item} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/80 backdrop-blur-sm">
                 {item}
@@ -198,9 +198,9 @@ export const Sponsor: React.FC = () => {
       {/* Pricing Cards Grid */}
       <section className="mt-12">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-black text-gray-900 dark:text-gray-100">Simple, Transparent Placement Packages</h2>
+          <h2 className="text-3xl font-black text-gray-900 dark:text-gray-100">Tailored Sponsorship Packages</h2>
           <p className="text-gray-600 dark:text-gray-400 mt-2 max-w-xl mx-auto text-sm md:text-base">
-            Choose the advertising package that matches your growth goals. Click a card to select it and jump to the booking form below.
+            Select the optimal visibility tier for your institution. All plans include comprehensive traffic metrics and direct applicant referral tracking.
           </p>
         </div>
 
@@ -285,8 +285,8 @@ export const Sponsor: React.FC = () => {
         <div id="booking-form" className="rounded-[1.75rem] border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 shadow-sm scroll-mt-6">
           <div className="flex items-center justify-between gap-3 mb-6">
             <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.35em] text-gray-400 mb-2">Direct Launch</div>
-              <h2 className="text-2xl font-black text-gray-900 dark:text-gray-100">Create sponsorship booking</h2>
+              <div className="text-[10px] font-black uppercase tracking-[0.35em] text-gray-400 mb-2">Campaign Setup</div>
+              <h2 className="text-2xl font-black text-gray-900 dark:text-gray-100">Configure Your Campaign</h2>
             </div>
             {loading && <Loader2 className="animate-spin text-grantify-green" size={18} />}
           </div>
@@ -475,10 +475,10 @@ export const Sponsor: React.FC = () => {
 
         <div className="grid gap-4 md:grid-cols-2">
           {[
-            { q: 'What happens after I click launch?', a: 'We create the sponsored booking, then either open checkout or queue an invoice for admin approval and activation.' },
-            { q: 'Can I sponsor a specific provider?', a: 'Yes. The form lets you choose the provider you want featured so the booking maps to the right listing.' },
-            { q: 'Will I get an invoice?', a: 'Yes. If checkout is not available, the admin flow can generate and email an invoice automatically.' },
-            { q: 'Can I change the campaign note later?', a: 'Yes. The admin team can update invoice and billing details from the sponsored listings dashboard.' },
+            { q: 'How does the onboarding process work?', a: 'Once you select your package and submit details, you can complete payment immediately via our checkout portal. Your sponsored features will go live within 24 hours after editorial verification.' },
+            { q: 'Can we promote a new financial product or custom brand?', a: 'Absolutely. Choose "Other / Custom Partner" in the provider dropdown to enter your details, and our design team will construct a bespoke listing card for your product.' },
+            { q: 'Are official corporate invoices provided?', a: 'Yes. We issue VAT-compliant corporate invoices and receipts for all transactions. Wire transfers and direct bank deposits are fully supported.' },
+            { q: 'Can we adjust our creative assets or redirection links later?', a: 'Yes. Your campaign dashboard and our dedicated support team allow you to update redirect links, promotional copy, and graphics at any time during your active slot.' },
           ].map((item) => (
             <div key={item.q} className="rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
               <div className="text-sm font-black text-gray-900 dark:text-gray-100 mb-2">{item.q}</div>
