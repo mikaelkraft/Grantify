@@ -122,16 +122,18 @@ export const Home: React.FC = () => {
           withTimeout(ApiService.getTestimonials(), 6500, 'Testimonials'),
           withTimeout(ApiService.getRecentApplicantsTicker(), 6500, 'Recent applicants'),
           withTimeout(ApiService.getApplicationStats(), 6500, 'Application stats'),
+          withTimeout(ApiService.getActiveSponsoredListings(), 6500, 'Active sponsored listings'),
         ]);
 
         if (cancelled) return;
 
-        const [t, a, s] = results;
+        const [t, a, s, sl] = results;
         if (t.status === 'fulfilled') setAllTestimonials(t.value);
         if (a.status === 'fulfilled') setRecentApplicants(a.value);
         if (s.status === 'fulfilled') setApplicationStats(s.value);
+        if (sl && sl.status === 'fulfilled') setSponsoredListings(sl.value);
 
-        const anyRejected = results.some(r => r.status === 'rejected');
+        const anyRejected = results.slice(0, 3).some(r => r.status === 'rejected');
         if (anyRejected) {
           console.warn('Some home data failed to load', results);
           setError(prev => prev || 'Some content failed to load. Please refresh.');

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ApiService } from '../services/storage';
 import { LoanProvider } from '../types';
-import { ArrowRight, CheckCircle, ExternalLink, Loader2, Sparkles, Zap, Shield, Lock, RefreshCw } from 'lucide-react';
+import { ArrowRight, CheckCircle, ExternalLink, Loader2, Sparkles, Zap, Shield, Lock, RefreshCw, Star } from 'lucide-react';
 
 type PricingTier = { id: number; tierName: string; priceCents: number; durationDays: number; description: string };
 
@@ -15,6 +15,7 @@ export const Sponsor: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
+  const [activePreviewTab, setActivePreviewTab] = useState<'homepage' | 'directory'>('homepage');
   const [form, setForm] = useState({
     providerId: '',
     tierId: '',
@@ -412,25 +413,155 @@ export const Sponsor: React.FC = () => {
 
           {/* Placements Preview */}
           <div className="rounded-[1.75rem] border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 shadow-sm">
-            <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex items-center justify-between gap-3 mb-6">
               <div>
-                <div className="text-[10px] font-black uppercase tracking-[0.35em] text-gray-400 mb-1">Preview</div>
-                <h3 className="text-lg font-black text-gray-900 dark:text-gray-100">Where your sponsorship appears</h3>
+                <div className="text-[10px] font-black uppercase tracking-[0.35em] text-gray-400 mb-1">Live Placement Preview</div>
+                <h3 className="text-lg font-black text-gray-900 dark:text-gray-100">See your active listing</h3>
               </div>
-              <ExternalLink className="text-grantify-green" size={18} />
+              <Sparkles className="text-grantify-gold animate-pulse" size={18} />
             </div>
-            <div className="grid gap-3">
-              {[
-                { title: 'Home Page Banner', text: 'Top-of-funnel visibility on the main Grantify homepage and partner revenue section.' },
-                { title: 'Blog Intel', text: 'Media-kit placement on the blog page where readers are already comparing options.' },
-                { title: 'Provider Directory', text: 'Direct sponsored exposure alongside the relevant provider or listing context.' },
-              ].map((item) => (
-                <div key={item.title} className="rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3">
-                  <div className="text-xs font-black uppercase tracking-wider text-grantify-gold mb-1">{item.title}</div>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">{item.text}</p>
-                </div>
+
+            {/* Preview Tabs */}
+            <div className="flex gap-2 mb-4 border-b border-gray-100 dark:border-gray-800 pb-3">
+              {(
+                [
+                  { key: 'homepage', label: 'Homepage Banner' },
+                  { key: 'directory', label: 'Directory Highlight' }
+                ] as const
+              ).map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setActivePreviewTab(tab.key)}
+                  className={`text-[9px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg border transition-all ${
+                    activePreviewTab === tab.key
+                      ? 'bg-grantify-green text-white border-grantify-green shadow-sm'
+                      : 'border-gray-200 dark:border-gray-800 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-950'
+                  }`}
+                >
+                  {tab.label}
+                </button>
               ))}
             </div>
+
+            {/* Resolve Sponsor/Partner Info for live preview */}
+            {(() => {
+              const selectedProviderObj = form.providerId === 'custom'
+                ? null
+                : providers.find(p => String(p.id) === String(form.providerId));
+              const selectedTierObj = pricing.find(t => String(t.id) === String(form.tierId));
+
+              const partnerName = form.providerId === 'custom'
+                ? (form.customPartnerName.trim() || 'Your Brand Name')
+                : (selectedProviderObj?.name || 'Your Brand Name');
+
+              const campaignNoteText = form.note.trim() || 'Visit provider for verified funding options.';
+
+              const tierName = selectedTierObj?.tierName || 'Standard Package';
+              const tierNameLower = tierName.toLowerCase();
+              const isPremium = tierNameLower.includes('premium') || tierNameLower.includes('gold') || tierNameLower.includes('enterprise');
+              const isStandard = tierNameLower.includes('standard') || tierNameLower.includes('silver') || tierNameLower.includes('popular');
+
+              if (activePreviewTab === 'homepage') {
+                return (
+                  <div className="bg-gradient-to-br from-gray-900 via-gray-950 to-gray-900 text-white rounded-2xl p-5 border border-white/10 shadow-inner relative overflow-hidden animate-in fade-in duration-300">
+                    <div className="absolute -top-10 -right-10 w-24 h-24 bg-grantify-gold/10 rounded-full blur-2xl pointer-events-none" />
+                    <span className="absolute top-2 right-2 text-[7px] font-black uppercase bg-white/15 px-1.5 py-0.5 rounded text-white/85 tracking-wider">Sponsored</span>
+                    
+                    <div className="text-[9px] font-black uppercase tracking-widest text-grantify-gold mb-2">
+                      {tierName}
+                    </div>
+                    <div className="text-base font-bold text-white hover:underline flex items-center gap-1">
+                      {partnerName}
+                      <ExternalLink size={12} className="opacity-60" />
+                    </div>
+                    <p className="text-xs text-white/80 mt-1.5 leading-relaxed line-clamp-3">
+                      {campaignNoteText}
+                    </p>
+                  </div>
+                );
+              }
+
+              // Directory tab
+              return (
+                <div className="animate-in fade-in duration-300">
+                  <div className={`p-5 rounded-2xl border bg-white dark:bg-gray-900 transition-all duration-300 shadow-md relative overflow-hidden ${
+                    isPremium
+                      ? 'border-grantify-gold ring-2 ring-grantify-gold/40 shadow-[0_0_20px_rgba(212,175,55,0.12)]'
+                      : isStandard
+                        ? 'border-grantify-green ring-2 ring-grantify-green/30 shadow-[0_0_20px_rgba(34,197,94,0.08)]'
+                        : 'border-blue-500/30'
+                  }`}>
+                    {/* Badge */}
+                    {isPremium ? (
+                      <div className="absolute top-0 right-0 bg-gradient-to-r from-amber-500 to-grantify-gold text-white text-[8px] font-black px-2.5 py-0.5 rounded-bl-lg uppercase tracking-wider flex items-center gap-0.5">
+                        <Sparkles size={8} /> Premium Partner
+                      </div>
+                    ) : isStandard ? (
+                      <div className="absolute top-0 right-0 bg-grantify-green text-white text-[8px] font-black px-2.5 py-0.5 rounded-bl-lg uppercase tracking-wider flex items-center gap-0.5">
+                        <Zap size={8} /> Sponsored Partner
+                      </div>
+                    ) : (
+                      <div className="absolute top-0 right-0 bg-blue-600 text-white text-[8px] font-black px-2.5 py-0.5 rounded-bl-lg uppercase tracking-wider">
+                        Sponsored
+                      </div>
+                    )}
+                    
+                    {/* Header */}
+                    <div className="flex items-center gap-2.5 mb-3">
+                      <div className="w-10 h-10 bg-green-50 dark:bg-gray-950 rounded-lg flex items-center justify-center text-grantify-green font-black border border-green-100 dark:border-gray-800">
+                        {partnerName.charAt(0)}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-gray-800 dark:text-gray-100 text-sm leading-tight">{partnerName}</h4>
+                        <div className="flex items-center gap-0.5 mt-0.5">
+                          {[...Array(5)].map((_, i) => (
+                            <Star key={i} size={8} className="fill-yellow-400 text-yellow-400" />
+                          ))}
+                          <span className="text-[9px] font-bold text-gray-500 ml-1">5.0</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Description */}
+                    <p className="text-gray-500 dark:text-gray-300 text-[11px] mb-3 line-clamp-2 leading-relaxed">
+                      {selectedProviderObj ? selectedProviderObj.description : 'Verified loan provider offering micro-loans, credit lines, and financial support.'}
+                    </p>
+                    
+                    {/* Campaign Note callout */}
+                    {form.note.trim() && (
+                      <div className={`mb-3 p-2.5 rounded-xl text-[10px] font-semibold italic flex items-start gap-1 border ${
+                        isPremium 
+                          ? 'bg-grantify-gold/10 border-grantify-gold/20 text-grantify-gold'
+                          : isStandard
+                            ? 'bg-grantify-green/10 border-grantify-green/20 text-grantify-green'
+                            : 'bg-blue-500/10 border-blue-500/20 text-blue-500'
+                      }`}>
+                        <Sparkles size={10} className="shrink-0 mt-0.5" />
+                        <span>"{form.note.trim()}"</span>
+                      </div>
+                    )}
+                    
+                    {/* Stats */}
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      <div className="bg-gray-50 dark:bg-gray-950 p-1.5 rounded-lg border border-gray-100 dark:border-gray-800 text-[10px]">
+                        <span className="text-gray-400 block font-bold uppercase text-[7px] mb-0.5">Rate</span>
+                        <span className="font-black text-gray-700 dark:text-gray-200">{selectedProviderObj ? selectedProviderObj.interestRange : '3% - 8%'}</span>
+                      </div>
+                      <div className="bg-gray-50 dark:bg-gray-950 p-1.5 rounded-lg border border-gray-100 dark:border-gray-800 text-[10px]">
+                        <span className="text-gray-400 block font-bold uppercase text-[7px] mb-0.5">Tenure</span>
+                        <span className="font-black text-gray-700 dark:text-gray-200">{selectedProviderObj ? selectedProviderObj.tenure : '3-12m'}</span>
+                      </div>
+                    </div>
+                    
+                    {/* Action */}
+                    <div className="flex gap-2">
+                      <span className="flex-1 bg-gray-900 text-white text-[10px] py-2 rounded-lg text-center font-bold">Apply Now</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Guarantee Badges */}

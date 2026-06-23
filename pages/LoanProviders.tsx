@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ExternalLink, AlertTriangle, ShieldCheck, Info, Loader2, Star, CheckCircle, Zap, Award, Smartphone, MessageCircle, X, Send, CornerDownRight, ThumbsUp, ThumbsDown, Flag } from 'lucide-react';
+import { ExternalLink, AlertTriangle, ShieldCheck, Info, Loader2, Star, CheckCircle, Zap, Award, Smartphone, MessageCircle, X, Send, CornerDownRight, ThumbsUp, ThumbsDown, Flag, Sparkles } from 'lucide-react';
 import { ApiService } from '../services/storage';
 import { AdSlot } from '../components/AdSlot';
 import { AdConfig, LoanProvider, ProviderReview } from '../types';
@@ -9,6 +9,7 @@ export const LoanProviders: React.FC = () => {
   const location = useLocation();
   const [providers, setProviders] = useState<LoanProvider[]>([]);
   const [ads, setAds] = useState<AdConfig | null>(null);
+  const [activeSponsorships, setActiveSponsorships] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [highlightProviderId, setHighlightProviderId] = useState<string>('');
 
@@ -111,12 +112,14 @@ export const LoanProviders: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [providersData, adsData] = await Promise.all([
+        const [providersData, adsData, activeSponsorshipsData] = await Promise.all([
           ApiService.getLoanProviders(),
-          ApiService.getAds()
+          ApiService.getAds(),
+          ApiService.getActiveSponsoredListings().catch(() => [])
         ]);
         setProviders(providersData);
         setAds(adsData);
+        setActiveSponsorships(Array.isArray(activeSponsorshipsData) ? activeSponsorshipsData : []);
       } catch (e) {
         console.error("Failed to load loan providers", e);
       } finally {
@@ -302,6 +305,39 @@ export const LoanProviders: React.FC = () => {
       </div>
     );
   };
+
+  const getSponsorshipPriority = (provider: LoanProvider) => {
+    const sponsorship = activeSponsorships.find(s => s.provider_id === provider.id);
+    if (!sponsorship) return 0;
+    const tierName = String(sponsorship.tier_name || '').toLowerCase();
+    if (tierName.includes('premium') || tierName.includes('gold') || tierName.includes('enterprise')) {
+      return 3;
+    }
+    if (tierName.includes('standard') || tierName.includes('silver') || tierName.includes('popular')) {
+      return 2;
+    }
+    return 1;
+  };
+
+  const sortedRecommended = React.useMemo(() => {
+    const recommended = providers.filter(p => p.isRecommended);
+    return [...recommended].sort((a, b) => {
+      const prioA = getSponsorshipPriority(a);
+      const prioB = getSponsorshipPriority(b);
+      if (prioB !== prioA) return prioB - prioA;
+      return (b.rating || 0) - (a.rating || 0);
+    });
+  }, [providers, activeSponsorships]);
+
+  const sortedVerified = React.useMemo(() => {
+    const verified = providers.filter(p => !p.isRecommended);
+    return [...verified].sort((a, b) => {
+      const prioA = getSponsorshipPriority(a);
+      const prioB = getSponsorshipPriority(b);
+      if (prioB !== prioA) return prioB - prioA;
+      return (b.rating || 0) - (a.rating || 0);
+    });
+  }, [providers, activeSponsorships]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -581,33 +617,81 @@ export const LoanProviders: React.FC = () => {
             </div>
             
             <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-              {providers.filter(p => p.isRecommended).map((provider, index) => (
-                <div 
-                  key={provider.id || `rec-${index}`} 
-                  ref={(el) => { if (provider.id != null) providerCardRefs.current[String(provider.id)] = el; }}
-                  className={`group relative bg-white dark:bg-gray-900 border-2 rounded-2xl p-6 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 overflow-hidden ${highlightProviderId && String(provider.id || '') === highlightProviderId ? 'border-grantify-gold ring-4 ring-grantify-gold/30 shadow-2xl -translate-y-1' : 'border-grantify-green/20 dark:border-gray-800 hover:border-grantify-green'}`}
-                >
-                  <div className="absolute top-0 right-0 bg-grantify-green text-white text-[10px] font-black px-3 py-1 rounded-bl-lg uppercase tracking-widest">
-                    Featured
-                  </div>
+              {sortedRecommended.map((provider, index) => {
+                const sponsorship = activeSponsorships.find(s => s.provider_id === provider.id);
+                const tierName = sponsorship ? String(sponsorship.tier_name || '').toLowerCase() : '';
+                const isPremium = tierName.includes('premium') || tierName.includes('gold') || tierName.includes('enterprise');
+                const isStandard = tierName.includes('standard') || tierName.includes('silver') || tierName.includes('popular');
 
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      {provider.logo ? (
-                        <img src={provider.logo} alt={provider.name} className="w-12 h-12 object-contain rounded-lg bg-white dark:bg-gray-900 p-1 border border-gray-100 dark:border-gray-800 shadow-sm" />
+                let cardBorderClass = 'border-grantify-green/20 dark:border-gray-800 hover:border-grantify-green';
+                if (highlightProviderId && String(provider.id || '') === highlightProviderId) {
+                  cardBorderClass = 'border-grantify-gold ring-4 ring-grantify-gold/30 shadow-2xl -translate-y-1';
+                } else if (sponsorship) {
+                  if (isPremium) {
+                    cardBorderClass = 'border-grantify-gold ring-2 ring-grantify-gold/40 shadow-[0_0_20px_rgba(212,175,55,0.15)] dark:shadow-[0_0_20px_rgba(212,175,55,0.05)] hover:shadow-[0_0_25px_rgba(212,175,55,0.25)] hover:border-grantify-gold';
+                  } else if (isStandard) {
+                    cardBorderClass = 'border-grantify-green ring-2 ring-grantify-green/30 shadow-[0_0_20px_rgba(34,197,94,0.1)] dark:shadow-[0_0_20px_rgba(34,197,94,0.03)] hover:shadow-[0_0_25px_rgba(34,197,94,0.2)] hover:border-grantify-green';
+                  } else {
+                    cardBorderClass = 'border-blue-500/30 ring-1 ring-blue-500/10 hover:border-blue-500';
+                  }
+                }
+
+                return (
+                  <div 
+                    key={provider.id || `rec-${index}`} 
+                    ref={(el) => { if (provider.id != null) providerCardRefs.current[String(provider.id)] = el; }}
+                    className={`group relative bg-white dark:bg-gray-900 border-2 rounded-2xl p-6 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 overflow-hidden ${cardBorderClass}`}
+                  >
+                    {sponsorship ? (
+                      isPremium ? (
+                        <div className="absolute top-0 right-0 bg-gradient-to-r from-amber-500 to-grantify-gold text-white text-[9px] font-black px-3 py-1 rounded-bl-lg uppercase tracking-wider flex items-center gap-1">
+                          <Sparkles size={10} /> Premium Partner
+                        </div>
+                      ) : isStandard ? (
+                        <div className="absolute top-0 right-0 bg-grantify-green text-white text-[9px] font-black px-3 py-1 rounded-bl-lg uppercase tracking-wider flex items-center gap-1">
+                          <Zap size={10} /> Sponsored Partner
+                        </div>
                       ) : (
-                         <div className="w-12 h-12 bg-green-50 dark:bg-gray-950 rounded-lg flex items-center justify-center text-grantify-green font-black text-xl border border-green-100 dark:border-gray-800">
-                           {provider.name.charAt(0)}
-                         </div>
-                      )}
-                      <h3 className="text-xl font-black text-grantify-green leading-tight">{provider.name}</h3>
-                    </div>
-                    {renderStars(provider.rating)}
-                  </div>
+                        <div className="absolute top-0 right-0 bg-blue-600 text-white text-[9px] font-black px-3 py-1 rounded-bl-lg uppercase tracking-wider">
+                          Sponsored
+                        </div>
+                      )
+                    ) : (
+                      <div className="absolute top-0 right-0 bg-grantify-green text-white text-[10px] font-black px-3 py-1 rounded-bl-lg uppercase tracking-widest">
+                        Featured
+                      </div>
+                    )}
 
-                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-6 line-clamp-3 italic leading-relaxed">
-                    "{provider.description}"
-                  </p>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        {provider.logo ? (
+                          <img src={provider.logo} alt={provider.name} className="w-12 h-12 object-contain rounded-lg bg-white dark:bg-gray-900 p-1 border border-gray-100 dark:border-gray-800 shadow-sm" />
+                        ) : (
+                           <div className="w-12 h-12 bg-green-50 dark:bg-gray-950 rounded-lg flex items-center justify-center text-grantify-green font-black text-xl border border-green-100 dark:border-gray-800">
+                             {provider.name.charAt(0)}
+                           </div>
+                        )}
+                        <h3 className="text-xl font-black text-grantify-green leading-tight">{provider.name}</h3>
+                      </div>
+                      {renderStars(provider.rating)}
+                    </div>
+
+                    <p className="text-gray-600 dark:text-gray-300 text-sm mb-6 line-clamp-3 italic leading-relaxed">
+                      "{provider.description}"
+                    </p>
+
+                    {sponsorship?.campaign_note && (
+                      <div className={`mb-4 p-3 rounded-xl text-xs font-semibold italic flex items-start gap-1.5 border ${
+                        isPremium 
+                          ? 'bg-grantify-gold/10 dark:bg-grantify-gold/5 border-grantify-gold/20 text-grantify-gold'
+                          : isStandard
+                            ? 'bg-grantify-green/10 dark:bg-grantify-green/5 border-grantify-green/20 text-grantify-green'
+                            : 'bg-blue-500/10 dark:bg-blue-500/5 border-blue-500/20 text-blue-500'
+                      }`}>
+                        <Sparkles size={13} className="shrink-0 mt-0.5" />
+                        <span>"{sponsorship.campaign_note}"</span>
+                      </div>
+                    )}
 
                   <div className="space-y-3 mb-8 bg-green-50/50 dark:bg-gray-950 p-4 rounded-xl border border-green-100 dark:border-gray-800">
                     <div className="flex justify-between items-center text-xs">
@@ -644,7 +728,8 @@ export const LoanProviders: React.FC = () => {
                     </button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         )}
@@ -667,36 +752,84 @@ export const LoanProviders: React.FC = () => {
             </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {providers.filter(p => !p.isRecommended).map((provider, index) => (
-                <div 
-                  key={provider.id || index} 
-                  ref={(el) => { if (provider.id != null) providerCardRefs.current[String(provider.id)] = el; }}
-                  className={`bg-white dark:bg-gray-900 hover:bg-gray-50/50 dark:hover:bg-gray-900 border rounded-2xl p-6 transition-all duration-200 hover:shadow-lg flex flex-col h-full group ${highlightProviderId && String(provider.id || '') === highlightProviderId ? 'border-grantify-gold ring-4 ring-grantify-gold/30 shadow-xl' : 'border-gray-100 dark:border-gray-800'}`}
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-grow flex items-start gap-3">
-                      {provider.logo ? (
-                         <img src={provider.logo} alt={provider.name} className="w-10 h-10 object-contain rounded bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800" />
+              {sortedVerified.map((provider, index) => {
+                const sponsorship = activeSponsorships.find(s => s.provider_id === provider.id);
+                const tierName = sponsorship ? String(sponsorship.tier_name || '').toLowerCase() : '';
+                const isPremium = tierName.includes('premium') || tierName.includes('gold') || tierName.includes('enterprise');
+                const isStandard = tierName.includes('standard') || tierName.includes('silver') || tierName.includes('popular');
+
+                let cardBorderClass = 'border-gray-100 dark:border-gray-800';
+                if (highlightProviderId && String(provider.id || '') === highlightProviderId) {
+                  cardBorderClass = 'border-grantify-gold ring-4 ring-grantify-gold/30 shadow-xl';
+                } else if (sponsorship) {
+                  if (isPremium) {
+                    cardBorderClass = 'border-grantify-gold ring-2 ring-grantify-gold/40 shadow-[0_0_20px_rgba(212,175,55,0.15)] dark:shadow-[0_0_20px_rgba(212,175,55,0.05)] hover:shadow-[0_0_25px_rgba(212,175,55,0.25)] hover:border-grantify-gold';
+                  } else if (isStandard) {
+                    cardBorderClass = 'border-grantify-green ring-2 ring-grantify-green/30 shadow-[0_0_20px_rgba(34,197,94,0.1)] dark:shadow-[0_0_20px_rgba(34,197,94,0.03)] hover:shadow-[0_0_25px_rgba(34,197,94,0.2)] hover:border-grantify-green';
+                  } else {
+                    cardBorderClass = 'border-blue-500/30 ring-1 ring-blue-500/10 hover:border-blue-500';
+                  }
+                }
+
+                return (
+                  <div 
+                    key={provider.id || index} 
+                    ref={(el) => { if (provider.id != null) providerCardRefs.current[String(provider.id)] = el; }}
+                    className={`bg-white dark:bg-gray-900 hover:bg-gray-50/50 dark:hover:bg-gray-900 border rounded-2xl p-6 transition-all duration-200 hover:shadow-lg flex flex-col h-full group relative overflow-hidden ${cardBorderClass}`}
+                  >
+                    {sponsorship && (
+                      isPremium ? (
+                        <div className="absolute top-0 right-0 bg-gradient-to-r from-amber-500 to-grantify-gold text-white text-[8px] font-black px-2.5 py-0.5 rounded-bl-lg uppercase tracking-wider flex items-center gap-0.5 z-10">
+                          <Sparkles size={8} className="shrink-0" /> Premium Partner
+                        </div>
+                      ) : isStandard ? (
+                        <div className="absolute top-0 right-0 bg-grantify-green text-white text-[8px] font-black px-2.5 py-0.5 rounded-bl-lg uppercase tracking-wider flex items-center gap-0.5 z-10">
+                          <Zap size={8} className="shrink-0" /> Sponsored Partner
+                        </div>
                       ) : (
-                         <div className="w-10 h-10 bg-gray-50 dark:bg-gray-950 rounded flex items-center justify-center text-gray-400 font-bold border border-gray-100 dark:border-gray-800">
-                           {provider.name.charAt(0)}
-                         </div>
-                      )}
-                      <div>
-                        {provider.tag && (
-                          <span className="inline-block bg-blue-50 text-blue-600 text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-tighter mb-1">
-                            {provider.tag}
-                          </span>
+                        <div className="absolute top-0 right-0 bg-blue-600 text-white text-[8px] font-black px-2.5 py-0.5 rounded-bl-lg uppercase tracking-wider z-10">
+                          Sponsored
+                        </div>
+                      )
+                    )}
+
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-grow flex items-start gap-3">
+                        {provider.logo ? (
+                           <img src={provider.logo} alt={provider.name} className="w-10 h-10 object-contain rounded bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800" />
+                        ) : (
+                           <div className="w-10 h-10 bg-gray-50 dark:bg-gray-950 rounded flex items-center justify-center text-gray-400 font-bold border border-gray-100 dark:border-gray-800">
+                             {provider.name.charAt(0)}
+                           </div>
                         )}
-                        <h3 className="font-black text-gray-800 dark:text-gray-100 group-hover:text-grantify-green transition-colors leading-tight">{provider.name}</h3>
+                        <div>
+                          {provider.tag && (
+                            <span className="inline-block bg-blue-50 text-blue-600 text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-tighter mb-1">
+                              {provider.tag}
+                            </span>
+                          )}
+                          <h3 className="font-black text-gray-800 dark:text-gray-100 group-hover:text-grantify-green transition-colors leading-tight">{provider.name}</h3>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        {renderStars(provider.rating)}
                       </div>
                     </div>
-                    <div className="text-right">
-                      {renderStars(provider.rating)}
-                    </div>
-                  </div>
 
-                  <p className="text-gray-500 dark:text-gray-300 text-xs mb-6 flex-grow line-clamp-3">{provider.description}</p>
+                    <p className="text-gray-500 dark:text-gray-300 text-xs mb-6 flex-grow line-clamp-3">{provider.description}</p>
+
+                    {sponsorship?.campaign_note && (
+                      <div className={`mb-4 p-2.5 rounded-xl text-[11px] font-semibold italic flex items-start gap-1 border ${
+                        isPremium 
+                          ? 'bg-grantify-gold/10 dark:bg-grantify-gold/5 border-grantify-gold/20 text-grantify-gold'
+                          : isStandard
+                            ? 'bg-grantify-green/10 dark:bg-grantify-green/5 border-grantify-green/20 text-grantify-green'
+                            : 'bg-blue-500/10 dark:bg-blue-500/5 border-blue-500/20 text-blue-500'
+                      }`}>
+                        <Sparkles size={11} className="shrink-0 mt-0.5" />
+                        <span>"{sponsorship.campaign_note}"</span>
+                      </div>
+                    )}
                   
                   <div className="grid grid-cols-2 gap-3 mb-6">
                     <div className="bg-gray-50 dark:bg-gray-950 p-2 rounded-lg border border-gray-100 dark:border-gray-800">
@@ -728,7 +861,8 @@ export const LoanProviders: React.FC = () => {
                     </button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
               
               {providers.length === 0 && (
                 <div className="col-span-full py-20 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800 text-center">
