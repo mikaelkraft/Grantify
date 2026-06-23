@@ -14,6 +14,15 @@ const parseAdminSession = (req) => {
   }
 };
 
+async function ensureSponsoredMetricsSchema(client) {
+  try {
+    await client.query("ALTER TABLE sponsored_listings ADD COLUMN IF NOT EXISTS clicks INTEGER DEFAULT 0");
+    await client.query("ALTER TABLE sponsored_listings ADD COLUMN IF NOT EXISTS conversions INTEGER DEFAULT 0");
+  } catch (e) {
+    // ignore
+  }
+}
+
 // Simple sponsored listing handler
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -24,6 +33,7 @@ export default async function handler(req, res) {
 
   const client = await pool.connect();
   try {
+    await ensureSponsoredMetricsSchema(client);
     if (req.method === 'GET') {
       const { what, active, action } = req.query || {};
       if (what === 'pricing') {
@@ -159,6 +169,20 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST') {
       const { action } = req.query || {};
+      if (action === 'track_click') {
+        const { id } = req.body || {};
+        if (!id) return res.status(400).json({ error: 'id required' });
+        await client.query("UPDATE sponsored_listings SET clicks = COALESCE(clicks, 0) + 1 WHERE id = $1", [id]);
+        return res.status(200).json({ success: true });
+      }
+
+      if (action === 'track_conversion') {
+        const { id } = req.body || {};
+        if (!id) return res.status(400).json({ error: 'id required' });
+        await client.query("UPDATE sponsored_listings SET conversions = COALESCE(conversions, 0) + 1 WHERE id = $1", [id]);
+        return res.status(200).json({ success: true });
+      }
+
       if (action === 'create') {
         const { providerId, tierId, payerInfo } = req.body || {};
         if (providerId === undefined || !tierId) return res.status(400).json({ error: 'providerId (can be null) and tierId are required' });

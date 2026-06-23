@@ -842,6 +842,28 @@ export const ApiService = {
     if (!res.ok) throw new Error('Failed to fetch active sponsored listings');
     return await res.json();
   },
+  trackSponsorClick: async (id: number): Promise<void> => {
+    try {
+      await fetch(`${API_URL}/api/sponsored?action=track_click`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
+    } catch (e) {
+      console.warn('Click tracking failed', e);
+    }
+  },
+  trackSponsorConversion: async (id: number): Promise<void> => {
+    try {
+      await fetch(`${API_URL}/api/sponsored?action=track_conversion`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
+    } catch (e) {
+      console.warn('Conversion tracking failed', e);
+    }
+  },
   getAllSponsoredListingsAdmin: async (): Promise<any[]> => {
     const adminHeader = getAdminSessionHeader();
     if (!adminHeader) throw new Error('Admin session missing');
@@ -896,23 +918,23 @@ export const ApiService = {
 
 
   // -- Blog --
-  getBlogPosts: async (category?: string): Promise<BlogPost[]> => {
+  getBlogPosts: async (category?: string, opts?: { includeDrafts?: boolean }): Promise<BlogPost[]> => {
     const url = category ? `${API_URL}/api/blog?category=${category}` : `${API_URL}/api/blog`;
-    const adminHeader = getAdminSessionHeader();
+    const adminHeader = opts?.includeDrafts ? getAdminSessionHeader() : null;
     const headers: Record<string,string> | undefined = adminHeader ? { 'X-Admin-Session': adminHeader } : undefined;
     const res = await fetch(url, { headers });
     if (!res.ok) throw new Error('Failed to fetch blog posts');
     return await res.json();
   },
 
-  getBlogPostsPage: async (opts?: { category?: string; page?: number; pageSize?: number }): Promise<BlogPostsPage> => {
+  getBlogPostsPage: async (opts?: { category?: string; page?: number; pageSize?: number; includeDrafts?: boolean }): Promise<BlogPostsPage> => {
     const qs = new URLSearchParams();
     qs.set('paginated', '1');
     qs.set('page', String(Math.max(1, Number(opts?.page) || 1)));
     qs.set('pageSize', String(Math.min(30, Math.max(1, Number(opts?.pageSize) || 9))));
     if (opts?.category) qs.set('category', String(opts.category));
 
-    const adminHeader = getAdminSessionHeader();
+    const adminHeader = opts?.includeDrafts ? getAdminSessionHeader() : null;
     const headers: Record<string,string> | undefined = adminHeader ? { 'X-Admin-Session': adminHeader } : undefined;
     const res = await fetch(`${API_URL}/api/blog?${qs.toString()}`, { headers });
     if (!res.ok) throw new Error('Failed to fetch paginated blog posts');

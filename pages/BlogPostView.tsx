@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ApiService } from '../services/storage';
 import { BlogPost, BlogComment, AdConfig } from '../types';
-import { Loader2, ThumbsUp, Heart, Hand, MessageSquare, ArrowLeft, Send, Calendar, User, Shield, Share2, Eye, ArrowUp, Copy, Flag, Sparkles } from 'lucide-react';
+import { Loader2, ThumbsUp, Heart, Hand, MessageSquare, ArrowLeft, Send, Calendar, User, Shield, Share2, Eye, ArrowUp, Copy, Flag, Sparkles, ExternalLink } from 'lucide-react';
 import { AdSlot } from '../components/AdSlot';
 import { FacebookShareButton, TwitterShareButton, WhatsappShareButton, LinkedinShareButton, FacebookIcon, WhatsappIcon, LinkedinIcon } from 'react-share';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
@@ -138,7 +138,7 @@ const formatListsInHtml = (html: string): string => {
 
   // 1. Process paragraphs that contain lists split by <br />
   let processed = html.replace(/<p\b[^>]*>([\s\S]*?)<\/p>/gi, (match, content) => {
-    if (!/(\*|-|•|&bull;)\s+/.test(content)) return match;
+    if (!/(\*|-|•|&bull;|✳)\s+/.test(content)) return match;
     
     const parts = content.split(/<br\s*\/?>|\n/gi);
     let result = '';
@@ -146,7 +146,7 @@ const formatListsInHtml = (html: string): string => {
     
     for (const part of parts) {
       const trimmed = part.trim();
-      const listMatch = trimmed.match(/^\s*(\*|-|•|&bull;)\s+(.*)/i);
+      const listMatch = trimmed.match(/^\s*(\*|-|•|&bull;|✳)\s+(.*)/i);
       
       if (listMatch) {
         if (!inList) {
@@ -178,9 +178,9 @@ const formatListsInHtml = (html: string): string => {
 
   // 2. Group consecutive paragraphs that are individual bullet points:
   // e.g. <p>* Item 1</p><p>* Item 2</p> or <p>• Item 1</p><p>• Item 2</p>
-  processed = processed.replace(/(?:<p\b[^>]*>\s*(?:\*|-|•|&bull;)\s+([\s\S]*?)<\/p>\s*)+/gi, (match) => {
+  processed = processed.replace(/(?:<p\b[^>]*>\s*(?:\*|-|•|&bull;|✳)\s+([\s\S]*?)<\/p>\s*)+/gi, (match) => {
     const liItems: string[] = [];
-    const itemRegex = /<p\b[^>]*>\s*(?:\*|-|•|&bull;)\s+([\s\S]*?)<\/p>/gi;
+    const itemRegex = /<p\b[^>]*>\s*(?:\*|-|•|&bull;|✳)\s+([\s\S]*?)<\/p>/gi;
     let itemMatch;
     while ((itemMatch = itemRegex.exec(match)) !== null) {
       liItems.push(`<li>${itemMatch[1].trim()}</li>`);
@@ -297,6 +297,7 @@ export const BlogPostView: React.FC = () => {
   const [commentsSort, setCommentsSort] = useState<'oldest' | 'newest' | 'helpful'>('oldest');
   const [myLikedComments, setMyLikedComments] = useState<Record<string, boolean>>({});
   const [isAdmin, setIsAdmin] = useState(false);
+  const [premiumSponsors, setPremiumSponsors] = useState<any[]>([]);
 
   useEffect(() => {
     try {
@@ -461,6 +462,17 @@ export const BlogPostView: React.FC = () => {
         if (canceled) return;
         setAds(null);
       });
+
+    ApiService.getActiveSponsoredListings()
+      .then((listings) => {
+        if (canceled) return;
+        const premium = (listings || []).filter((s: any) => {
+          const name = String(s.tier_name || '').toLowerCase();
+          return name.includes('premium') || name.includes('gold') || name.includes('enterprise');
+        });
+        setPremiumSponsors(premium);
+      })
+      .catch(() => {});
 
     return () => {
       canceled = true;
@@ -885,6 +897,46 @@ export const BlogPostView: React.FC = () => {
                         ))}
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Premium Spotlight Newsletter Editorial Slot */}
+                {premiumSponsors.length > 0 && (
+                  <div className="mt-8 p-6 rounded-3xl bg-gradient-to-br from-indigo-900/10 via-grantify-gold/10 to-indigo-900/10 dark:from-indigo-950/30 dark:via-grantify-gold/5 dark:to-indigo-950/30 border border-grantify-gold/30">
+                    <div className="flex items-center justify-between gap-3 mb-4">
+                      <span className="bg-grantify-gold text-gray-900 text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm">
+                        Newsletter Spotlight
+                      </span>
+                      <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Sponsored Editorial</span>
+                    </div>
+                    {premiumSponsors.map((sponsor, idx) => (
+                      <div key={idx} className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        <div className="max-w-xl">
+                          <h4 className="text-base font-black text-gray-900 dark:text-white flex items-center gap-2">
+                            {sponsor.provider_name}
+                            <span className="text-xs font-normal text-gray-500">(Verified Partner)</span>
+                          </h4>
+                          <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 leading-relaxed italic">
+                            "{sponsor.campaign_note || sponsor.description || 'Special credit solutions for small businesses and households.'}"
+                          </p>
+                        </div>
+                        <a
+                          href={sponsor.provider_website || '#'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={async () => {
+                            try {
+                              await ApiService.trackSponsorClick(sponsor.id);
+                            } catch (e) {
+                              console.error(e);
+                            }
+                          }}
+                          className="w-full md:w-auto inline-flex items-center justify-center gap-2 bg-grantify-green hover:bg-green-700 text-white font-black text-xs px-5 py-3 rounded-xl shadow-md transition-all whitespace-nowrap"
+                        >
+                          Apply Now <ExternalLink size={14} />
+                        </a>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>

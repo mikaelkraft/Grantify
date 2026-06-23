@@ -12,6 +12,8 @@ export const LoanProviders: React.FC = () => {
   const [activeSponsorships, setActiveSponsorships] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [highlightProviderId, setHighlightProviderId] = useState<string>('');
+  const [lookupRefId, setLookupRefId] = useState('');
+  const [lookupResult, setLookupResult] = useState<any>(null);
 
   // User submission (suggest a provider/app)
   const [showSuggestForm, setShowSuggestForm] = useState(false);
@@ -319,6 +321,46 @@ export const LoanProviders: React.FC = () => {
     return 1;
   };
 
+  const handleLookupSponsorId = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLookupResult(null);
+    const cleanId = lookupRefId.replace(/SPO-/i, '').trim();
+    const idNum = Number(cleanId);
+    if (Number.isNaN(idNum)) {
+      setLookupResult({
+        success: false,
+        title: 'Invalid Format',
+        details: 'Sponsorship Reference ID must be a numeric ID (e.g. 101 or SPO-101).'
+      });
+      return;
+    }
+
+    const match = activeSponsorships.find(s => Number(s.id) === idNum);
+    if (match) {
+      const isCurrentlyActive = match.payment_status === 'paid' && (!match.end_at || new Date(match.end_at) > new Date());
+      if (isCurrentlyActive) {
+        setLookupResult({
+          success: true,
+          title: 'Verified Active Sponsorship',
+          details: `Reference ID SPO-${match.id} is an ACTIVE, CBN-compliant sponsorship slot for ${match.provider_name || 'Custom Brand'}. Tier: ${match.tier_name || 'Basic'}. Active until ${match.end_at ? new Date(match.end_at).toLocaleDateString() : 'indefinite'}.`,
+          providerId: match.provider_id
+        });
+      } else {
+        setLookupResult({
+          success: false,
+          title: 'Expired Sponsorship',
+          details: `Reference ID SPO-${match.id} exists but is currently expired or inactive.`
+        });
+      }
+    } else {
+      setLookupResult({
+        success: false,
+        title: 'Not Found',
+        details: `Reference ID SPO-${idNum} could not be found or is not active.`
+      });
+    }
+  };
+
   const sortedRecommended = React.useMemo(() => {
     const recommended = providers.filter(p => p.isRecommended);
     return [...recommended].sort((a, b) => {
@@ -596,6 +638,63 @@ export const LoanProviders: React.FC = () => {
           )}
         </div>
 
+        {/* Direct Sponsor Reference ID Lookup Widget */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm mb-12 p-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="max-w-xl">
+              <h2 className="text-lg font-black text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <ShieldCheck size={20} className="text-grantify-green" /> Verify Sponsor Reference ID
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                Verify the legitimacy and active status of any microfinance bank, fintech platform, or loan provider's sponsorship slot using their unique Sponsor Reference ID.
+              </p>
+            </div>
+            <form onSubmit={handleLookupSponsorId} className="flex gap-2 w-full md:w-auto">
+              <input
+                type="text"
+                className="w-full md:w-64 p-3 rounded-xl bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 outline-none focus:ring-2 focus:ring-grantify-green text-sm text-gray-800 dark:text-gray-150"
+                placeholder="Enter Reference ID (e.g. SPO-101)"
+                value={lookupRefId}
+                onChange={(e) => setLookupRefId(e.target.value)}
+                required
+              />
+              <button
+                type="submit"
+                className="bg-grantify-green hover:bg-green-700 text-white text-xs font-black uppercase tracking-widest px-5 py-3 rounded-xl transition-all"
+              >
+                Verify
+              </button>
+            </form>
+          </div>
+          {lookupResult && (
+            <div className={`mt-4 p-4 rounded-xl border ${
+              lookupResult.success 
+                ? 'bg-green-50 border-green-200 text-green-800 dark:bg-green-950/20 dark:border-green-900 dark:text-green-300' 
+                : 'bg-red-50 border-red-200 text-red-800 dark:bg-red-950/20 dark:border-red-900 dark:text-red-300'
+            } text-sm flex items-start gap-3`}>
+              <Info className="flex-shrink-0 mt-0.5" size={16} />
+              <div>
+                <p className="font-bold">{lookupResult.title}</p>
+                <p className="text-xs mt-1">{lookupResult.details}</p>
+                {lookupResult.providerId && (
+                  <button
+                    onClick={() => {
+                      setHighlightProviderId(String(lookupResult.providerId));
+                      const el = providerCardRefs.current[String(lookupResult.providerId)];
+                      if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }
+                    }}
+                    className="mt-2 text-xs font-black underline hover:no-underline text-grantify-green dark:text-grantify-gold"
+                  >
+                    Scroll to Provider Card &rarr;
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Header Ad Slot */}
         {ads?.header && (
           <div className="mb-12 flex justify-center">
@@ -714,6 +813,12 @@ export const LoanProviders: React.FC = () => {
                       href={provider.website} 
                       target="_blank" 
                       rel="noopener noreferrer"
+                      onClick={() => {
+                        const sponsorship = activeSponsorships.find(s => s.provider_id === provider.id);
+                        if (sponsorship?.id) {
+                          void ApiService.trackSponsorClick(sponsorship.id);
+                        }
+                      }}
                       className="flex-[2] flex items-center justify-center gap-2 bg-grantify-green text-white py-3 rounded-lg text-xs font-bold transition-all group-hover:bg-green-700 group-hover:shadow-md"
                     >
                       APPLY NOW <ExternalLink size={14} />
@@ -847,6 +952,12 @@ export const LoanProviders: React.FC = () => {
                       href={provider.website} 
                       target="_blank" 
                       rel="noopener noreferrer"
+                      onClick={() => {
+                        const sponsorship = activeSponsorships.find(s => s.provider_id === provider.id);
+                        if (sponsorship?.id) {
+                          void ApiService.trackSponsorClick(sponsorship.id);
+                        }
+                      }}
                       className="flex-[3] inline-flex items-center justify-center gap-2 bg-gray-900 text-white px-4 py-3 rounded-xl text-xs font-black hover:bg-grantify-green transition-all"
                     >
                       Visit Site <ExternalLink size={14} />

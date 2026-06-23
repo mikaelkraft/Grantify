@@ -846,7 +846,7 @@ export const Admin: React.FC = () => {
         ApiService.getLoanProviders(),
         ApiService.getLoanProviderSubmissions('pending'),
         ApiService.getProviderReviews(undefined, { includeHidden: includeHiddenReviews }),
-        ApiService.getBlogPosts(),
+        ApiService.getBlogPosts(undefined, { includeDrafts: true }),
         ApiService.getContactMessages(120),
         ApiService.getFlags('open'),
         ApiService.getAutoblogConfig()
@@ -1341,7 +1341,11 @@ export const Admin: React.FC = () => {
     }
   };
 
-  const isAutodraftPost = (post: BlogPost) => Array.isArray(post.tags) && post.tags.map(String).some(t => t.toLowerCase() === 'autodraft');
+  const isAutodraftPost = (post: BlogPost) => {
+    const isSourceUrlAutodraft = String(post.sourceUrl || '').toLowerCase() === 'autodraft';
+    const isTagAutodraft = Array.isArray(post.tags) && post.tags.map(String).some(t => t.toLowerCase() === 'autodraft');
+    return isSourceUrlAutodraft || isTagAutodraft;
+  };
 
   const handleBulkApproveBlogPosts = async () => {
     const ids = Array.from(selectedBlogPostIds);
@@ -1366,7 +1370,7 @@ export const Admin: React.FC = () => {
           image: post.image || '',
           tags: nextTags,
           sourceName: post.sourceName || '',
-          sourceUrl: post.sourceUrl || '',
+          sourceUrl: String(post.sourceUrl || '').toLowerCase() === 'autodraft' ? '' : (post.sourceUrl || ''),
           views: post.views,
           likes: post.likes,
           loves: post.loves,
@@ -1463,7 +1467,7 @@ export const Admin: React.FC = () => {
         image: post.image || '',
         tags: nextTags,
         sourceName: post.sourceName || '',
-        sourceUrl: post.sourceUrl || '',
+        sourceUrl: String(post.sourceUrl || '').toLowerCase() === 'autodraft' ? '' : (post.sourceUrl || ''),
         views: post.views,
         likes: post.likes,
         loves: post.loves,
@@ -2779,6 +2783,7 @@ export const Admin: React.FC = () => {
                               <th className="p-3 text-left font-bold text-gray-700 dark:text-gray-200">Provider & Website</th>
                               <th className="p-3 text-left font-bold text-gray-700 dark:text-gray-200">Tier / Price</th>
                               <th className="p-3 text-left font-bold text-gray-700 dark:text-gray-200">Payer Details</th>
+                              <th className="p-3 text-left font-bold text-gray-700 dark:text-gray-200">Performance</th>
                               <th className="p-3 text-left font-bold text-gray-700 dark:text-gray-200">Status & Schedule</th>
                               <th className="p-3 text-left font-bold text-gray-700 dark:text-gray-200">Invoicing</th>
                               <th className="p-3 text-left font-bold text-gray-700 dark:text-gray-200">Actions</th>
@@ -2828,6 +2833,11 @@ export const Admin: React.FC = () => {
                                         Note: {listing.campaign_note}
                                       </div>
                                     )}
+                                  </td>
+                                  <td className="p-3 text-xs leading-relaxed text-gray-800 dark:text-gray-200">
+                                    <div>Clicks: <span className="font-bold text-gray-950 dark:text-gray-50">{listing.clicks || 0}</span></div>
+                                    <div>Leads: <span className="font-bold text-gray-950 dark:text-gray-50">{listing.conversions || 0}</span></div>
+                                    <div className="text-[10px] text-gray-400">CTR: {listing.clicks ? ((listing.conversions || 0) / listing.clicks * 100).toFixed(1) + '%' : '0.0%'}</div>
                                   </td>
                                   <td className="p-3 text-xs text-gray-800 dark:text-gray-200">
                                     <div className="mb-1.5">

@@ -274,7 +274,7 @@ export default async function handler(req, res) {
           params.push('autodraft');
           where += `${where ? ' AND' : ' WHERE'} COALESCE(source_url, '') <> $${params.length}`;
           params.push('autodraft');
-          where += `${where ? ' AND' : ' WHERE'} NOT (tags @> ARRAY[$${params.length}]::text[])`;
+          where += `${where ? ' AND' : ' WHERE'} (tags IS NULL OR NOT (tags @> ARRAY[$${params.length}]::text[]))`;
         }
         if (excludeId) {
           params.push(excludeId);
@@ -326,7 +326,7 @@ export default async function handler(req, res) {
         params.push('autodraft');
         whereParts.push(`COALESCE(source_url, '') <> $${params.length}`);
         params.push('autodraft');
-        whereParts.push(`NOT (tags @> ARRAY[$${params.length}]::text[])`);
+        whereParts.push(`(tags IS NULL OR NOT (tags @> ARRAY[$${params.length}]::text[]))`);
       }
 
       let query = 'SELECT *, (SELECT COUNT(*) FROM blog_comments WHERE post_id = blog_posts.id) as comments_count FROM blog_posts';

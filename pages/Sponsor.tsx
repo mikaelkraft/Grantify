@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ApiService } from '../services/storage';
 import { LoanProvider } from '../types';
-import { ArrowRight, CheckCircle, ExternalLink, Loader2, Sparkles, Zap, Shield, Lock, RefreshCw, Star } from 'lucide-react';
+import { ArrowRight, CheckCircle, ExternalLink, Loader2, Sparkles, Zap, Shield, Lock, RefreshCw, Star, Building2, CreditCard, Copy } from 'lucide-react';
 
 type PricingTier = { id: number; tierName: string; priceCents: number; durationDays: number; description: string };
 
@@ -16,6 +16,7 @@ export const Sponsor: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
   const [activePreviewTab, setActivePreviewTab] = useState<'homepage' | 'directory'>('homepage');
+  const [copiedField, setCopiedField] = useState<string | null>(null);
   const [form, setForm] = useState({
     providerId: '',
     tierId: '',
@@ -373,15 +374,65 @@ export const Sponsor: React.FC = () => {
                   <input type="radio" name="paymentProvider" value="opay" checked={form.paymentProvider === 'opay'} onChange={(e) => setForm(prev => ({ ...prev, paymentProvider: e.target.value }))} className="w-4 h-4 text-grantify-green" />
                   <span className="text-sm font-bold text-gray-700 dark:text-gray-200">OPay (Nigeria)</span>
                 </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="paymentProvider" value="bankwire" checked={form.paymentProvider === 'bankwire'} onChange={(e) => setForm(prev => ({ ...prev, paymentProvider: e.target.value }))} className="w-4 h-4 text-grantify-green" />
+                  <span className="text-sm font-bold text-gray-700 dark:text-gray-200">Bank Wire / Corporate Invoice</span>
+                </label>
               </div>
             </div>
 
+            {/* Bank Wire Details Panel */}
+            {form.paymentProvider === 'bankwire' && (
+              <div className="md:col-span-2">
+                <div className="rounded-2xl border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-900/10 p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Building2 className="text-amber-600 dark:text-amber-400 flex-shrink-0" size={18} />
+                    <div>
+                      <div className="text-xs font-black uppercase tracking-widest text-amber-700 dark:text-amber-400">Bank Wire Transfer Details</div>
+                      <p className="text-[11px] text-amber-700/70 dark:text-amber-400/70 mt-0.5">Transfer the package amount to the account below, then submit this form. Our team will verify and activate within 24hrs.</p>
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    {([
+                      { label: 'Bank Name', value: 'Zenith Bank PLC' },
+                      { label: 'Account Name', value: 'Grantify Media Ltd' },
+                      { label: 'Account Number', value: '2212345678' },
+                      { label: 'Sort Code / SWIFT', value: '057 / ZENITHNG' },
+                      { label: 'Reference', value: form.email ? `SPONSOR-${form.email.split('@')[0].toUpperCase()}` : 'SPONSOR-[YOUR-EMAIL-PREFIX]' },
+                    ] as const).map(({ label, value }) => (
+                      <div key={label} className="flex items-center justify-between gap-3 bg-white dark:bg-gray-900 border border-amber-100 dark:border-amber-800/40 rounded-xl px-4 py-2.5">
+                        <div>
+                          <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">{label}</span>
+                          <span className="text-sm font-black text-gray-800 dark:text-gray-100 font-mono">{value}</span>
+                        </div>
+                        <button
+                          type="button"
+                          title={`Copy ${label}`}
+                          onClick={() => {
+                            navigator.clipboard.writeText(value).catch(() => {});
+                            setCopiedField(label);
+                            setTimeout(() => setCopiedField(null), 2000);
+                          }}
+                          className="text-gray-400 hover:text-grantify-green transition-colors flex-shrink-0"
+                        >
+                          {copiedField === label ? <CheckCircle size={14} className="text-grantify-green" /> : <Copy size={14} />}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-amber-700/60 dark:text-amber-400/60 mt-3 leading-relaxed">
+                    <strong>Note:</strong> Include your email as payment reference. VAT-compliant corporate invoices are issued upon payment confirmation. Wire transfers are processed within 1–2 business days.
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="md:col-span-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between pt-2">
-              <div className="text-xs text-gray-500 dark:text-gray-400">
-                {message || 'We will create the booking and either open checkout or queue an invoice for confirmation.'}
+              <div className={`text-xs ${message ? (message.toLowerCase().includes('fail') || message.toLowerCase().includes('error') ? 'text-red-500' : 'text-grantify-green font-bold') : 'text-gray-500 dark:text-gray-400'}`}>
+                {message || (form.paymentProvider === 'bankwire' ? 'Submit this form after completing your bank transfer. We will verify and activate your sponsorship.' : 'We will create the booking and either open checkout or queue an invoice for confirmation.')}
               </div>
               <button type="submit" disabled={submitting} className="inline-flex items-center justify-center gap-2 bg-grantify-green text-white font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-60">
-                {submitting ? <Loader2 className="animate-spin" size={16} /> : <><CheckCircle size={16} /> Launch Sponsorship</>}
+                {submitting ? <Loader2 className="animate-spin" size={16} /> : form.paymentProvider === 'bankwire' ? <><CreditCard size={16} /> Request Invoice</> : <><CheckCircle size={16} /> Launch Sponsorship</>}
               </button>
             </div>
           </form>
