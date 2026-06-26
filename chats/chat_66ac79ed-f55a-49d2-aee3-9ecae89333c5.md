@@ -38,3 +38,14 @@
 1. *Designing and embedding the official WhatsApp Business vector logo (SVG with a 'B' centered inside the speech bubble) for the floating button.*
 2. *Implementing a robust link normalizer in `fixLinksInHtml` that strips domains like `grantify.help` or `localhost` from internal links to convert them into root-relative paths. It also intercepts clicks in `handleContentClick` to perform client-side Single Page App navigation via `navigate()` and ensures successful canonical redirects when loading posts via title slugs.*
 3. *Fully executing the implementation plan and verifying it against a production build via `npm run build` which succeeded.*
+
+### User
+> check out the open page, you will see towards the footer, the list in the last paragraph didn't work
+> I mean the post content list represented by asterisks is still not working...
+> App footer credit should be below footer links, and footer links should be vertically aligned to look professional
+
+### Assistant
+*Assistant resolved the user's new feedback by:*
+1. *Upgrading the list formatter `formatListsInHtml` in `BlogPostView.tsx` to handle inline lists written inside a single contiguous paragraph separated by spaces and asterisks (e.g. `Steps: * Point 1 * Point 2...`). The parser splits the text, structures it into HTML list elements, and cleanly extracts trailing concluding paragraphs using sentence-starting keywords (like `By`, `This`, etc.).*
+2. *Redesigning the app footer in `Layout.tsx` to align the navigation links vertically using Flexbox, styling them with interactive golden hover transitions, and moving the copyright notice underneath the links.*
+3. *Re-running `npm run build` to verify the compiled application compiles correctly for production.*

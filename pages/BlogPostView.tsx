@@ -155,10 +155,60 @@ const formatListsInHtml = (html: string): string => {
   // Normalize spaces first to make regex matching reliable
   let normalized = html.replace(/&nbsp;|\u00A0/g, ' ');
 
-  // 1. Process paragraphs that contain lists split by <br />
+  // 1. Process paragraphs that contain lists split by <br /> or inline asterisks
   let processed = normalized.replace(/<p\b[^>]*>([\s\S]*?)<\/p>/gi, (match, content) => {
-    if (!/(\*|-|•|&bull;|✳)\s+/.test(content)) return match;
+    if (!/(\*|-|•|&bull;|✳)/.test(content)) return match;
     
+    // First, check if it's an inline list in a single paragraph (no newlines/breaks)
+    // We detect this if there are multiple asterisks/bullets separated by text.
+    const inlineBulletRegex = /\s*(\*|-|•|&bull;|✳)\s+/g;
+    const bulletsCount = (content.match(inlineBulletRegex) || []).length;
+    
+    if (bulletsCount >= 2 && !content.includes('<br') && !content.includes('\n')) {
+      const parts = content.split(inlineBulletRegex);
+      const cleanParts: string[] = [];
+      for (let i = 0; i < parts.length; i++) {
+        if (i % 2 === 0) {
+          cleanParts.push(parts[i].trim());
+        }
+      }
+      
+      const intro = cleanParts[0];
+      const items = cleanParts.slice(1);
+      
+      if (items.length > 0) {
+        let lastItem = items[items.length - 1];
+        let conclusion = '';
+        
+        // Find if there is a sentence starter in the last item to extract the conclusion paragraph
+        const sentenceStarterRegex = /\s+(By|This|For|Additionally|They|We|It|If|In|Ultimately|To|As|Our|Your|Therefore|With|So)\b/;
+        const matchStarter = lastItem.match(sentenceStarterRegex);
+        
+        if (matchStarter && matchStarter.index !== undefined) {
+          conclusion = lastItem.substring(matchStarter.index).trim();
+          lastItem = lastItem.substring(0, matchStarter.index).trim();
+        }
+        
+        let listHtml = '<ul>';
+        for (let j = 0; j < items.length - 1; j++) {
+          listHtml += `<li>${items[j]}</li>`;
+        }
+        listHtml += `<li>${lastItem}</li>`;
+        listHtml += '</ul>';
+        
+        let finalHtml = '';
+        if (intro) {
+          finalHtml += `<p>${intro}</p>`;
+        }
+        finalHtml += listHtml;
+        if (conclusion) {
+          finalHtml += `<p>${conclusion}</p>`;
+        }
+        return finalHtml;
+      }
+    }
+    
+    // Otherwise, fallback to line-break based list parsing
     const parts = content.split(/<br\s*\/?>|\n/gi);
     let result = '';
     let inList = false;
@@ -196,7 +246,6 @@ const formatListsInHtml = (html: string): string => {
   });
 
   // 2. Group consecutive paragraphs that are individual bullet points:
-  // e.g. <p>* Item 1</p><p>* Item 2</p> or <p>• Item 1</p><p>• Item 2</p>
   processed = processed.replace(/(?:<p\b[^>]*>\s*(?:\*|-|•|&bull;|✳)\s+([\s\S]*?)<\/p>\s*)+/gi, (match) => {
     const liItems: string[] = [];
     const itemRegex = /<p\b[^>]*>\s*(?:\*|-|•|&bull;|✳)\s+([\s\S]*?)<\/p>/gi;

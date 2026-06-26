@@ -644,23 +644,27 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       {ads?.footer && <AdSlot htmlContent={ads.footer} className="bg-gray-900 py-4" label="Sponsor" />}
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-gray-400 py-8">
-        <div className="mx-auto w-full max-w-7xl px-3 sm:px-4 md:px-6 text-center">
-          <div className="flex flex-col items-center justify-center gap-2 mb-4">
-             <div className="flex items-center gap-2 text-yellow-500 text-xs bg-yellow-900/30 px-3 py-1 rounded-full border border-yellow-700/50">
+      <footer className="bg-gray-950 text-gray-400 py-10 border-t border-gray-900">
+        <div className="mx-auto w-full max-w-7xl px-3 sm:px-4 md:px-6 text-center flex flex-col items-center">
+          <div className="flex flex-col items-center justify-center gap-2 mb-6">
+             <div className="flex items-center gap-2 text-yellow-500 text-xs bg-yellow-900/20 px-3 py-1.5 rounded-full border border-yellow-700/30">
                <AlertTriangle size={12} />
                <span>For best results, disable Adblockers and avoid VPNs.</span>
              </div>
           </div>
-          <p className="mb-4 text-sm">
-            &copy; {new Date().getFullYear()} Grantify Nigeria. Empowering communities.
+          
+          {/* Footer Links - vertically aligned */}
+          <nav className="flex flex-col items-center gap-3 mb-6 text-sm font-semibold tracking-wide">
+            <Link to="/privacy" className="hover:text-grantify-gold transition-colors">Privacy Policy</Link>
+            <Link to="/terms" className="hover:text-grantify-gold transition-colors">Terms & Conditions</Link>
+            <Link to="/quiz" className="hover:text-grantify-gold transition-colors">Eligibility Quiz</Link>
+            <Link to="/pitch" className="hover:text-grantify-gold transition-colors">Pitch Competition</Link>
+          </nav>
+          
+          {/* App Footer Credit - below links */}
+          <p className="text-xs text-gray-500">
+            &copy; {new Date().getFullYear()} Grantify Nigeria. Empowering families and businesses nationwide.
           </p>
-          <div className="flex justify-center gap-4 text-xs">
-            <Link to="/privacy" className="hover:text-white">Privacy Policy</Link>
-            <Link to="/terms" className="hover:text-white">Terms & Conditions</Link>
-            <Link to="/quiz" className="hover:text-white">Eligibility Quiz</Link>
-            <Link to="/pitch" className="hover:text-white">Pitch Competition</Link>
-          </div>
         </div>
       </footer>
 
