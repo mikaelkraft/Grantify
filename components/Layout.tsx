@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AdSlot } from './AdSlot';
 import { ApiService } from '../services/storage';
-import { AdConfig, BlogPost, LoanProvider } from '../types';
+import { AdConfig, BlogPost, LoanProvider, WhatsappConfig } from '../types';
 import { makeBlogPath } from '../utils/blogRouting';
 import { Menu, X, AlertTriangle, ShieldAlert, RefreshCw, HelpCircle, Moon, Sun, Search, MessageCircle, Trophy } from 'lucide-react';
 import { AiChatbot } from './AiChatbot';
@@ -14,6 +14,7 @@ type HeaderSearchResult =
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [ads, setAds] = useState<AdConfig | null>(null);
+  const [whatsappConfig, setWhatsappConfig] = useState<WhatsappConfig | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showCompliance, setShowCompliance] = useState(false);
   const [blockerDetected, setBlockerDetected] = useState(false);
@@ -51,6 +52,17 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     };
     
     loadAds();
+
+    const loadWhatsappConfig = async () => {
+      try {
+        const config = await ApiService.getWhatsappConfig();
+        setWhatsappConfig(config);
+      } catch (error) {
+        console.error('Error loading WhatsApp config:', error);
+      }
+    };
+    
+    loadWhatsappConfig();
     
     // Modal only shows if adblocker/VPN detected (not on every page load)
     // Adblock Detection - run after a delay to ensure page is loaded
@@ -656,17 +668,26 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       <AiChatbot />
 
       {/* WhatsApp Floating Button */}
-      <a
-        href={`https://wa.me/?text=${encodeURIComponent('Hi Grantify! I want to:\n1️⃣ Check my grant eligibility\n2️⃣ Get today\'s grants\n3️⃣ Find a loan provider\n\nCheck yours at: https://grantify.help/quiz')}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        title="Chat on WhatsApp"
-        aria-label="Chat on WhatsApp"
-        className="fixed bottom-24 left-4 z-50 flex items-center gap-2 bg-[#25D366] text-white font-black text-xs px-4 py-3 rounded-full shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-200 group"
-      >
-        <MessageCircle size={18} className="flex-shrink-0" />
-        <span className="hidden sm:inline group-hover:inline transition-all">Get Grant Alerts</span>
-      </a>
+      {whatsappConfig && whatsappConfig.isEnabled && (
+        <a
+          href={whatsappConfig.phoneNumber
+            ? `https://wa.me/${whatsappConfig.phoneNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(whatsappConfig.preFilledText)}`
+            : `https://wa.me/?text=${encodeURIComponent(whatsappConfig.preFilledText)}`
+          }
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Chat on WhatsApp"
+          aria-label="Chat on WhatsApp"
+          className="fixed bottom-24 left-4 z-50 flex items-center gap-2 bg-[#25D366] text-white font-black text-xs px-4 py-3 rounded-full shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-200 group"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-[18px] h-[18px] flex-shrink-0" aria-hidden="true">
+            <path d="M12.004 2c-5.523 0-10 4.477-10 10 0 1.762.455 3.42 1.257 4.87L2 22l5.3-.98A9.972 9.972 0 0012.004 22c5.523 0 10-4.477 10-10s-4.477-10-10-10z" fill="#ffffff" />
+            <path d="M12.004 2C6.48 2 2 6.48 2 12.004c0 1.762.455 3.42 1.257 4.87L2 22l5.3-.98A9.972 9.972 0 0012.004 22c5.523 0 10-4.477 10-10S17.527 2 12.004 2zm0 18.004c-1.63 0-3.153-.416-4.49-1.144l-.322-.172-3.14.58.59-3.06-.188-.302c-.792-1.3-1.24-2.83-1.24-4.46a8.006 8.006 0 018.004-8.004c4.413 0 8.004 3.591 8.004 8.004s-3.591 8.004-8.004 8.004z" fill="#25D366" />
+            <text x="12" y="15.5" font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif" font-weight="900" font-size="10" text-anchor="middle" fill="#25D366">B</text>
+          </svg>
+          <span className="hidden sm:inline group-hover:inline transition-all">{whatsappConfig.buttonLabel || 'Get Grant Alerts'}</span>
+        </a>
+      )}
     </div>
   );
 };

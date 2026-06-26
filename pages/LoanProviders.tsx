@@ -1369,7 +1369,12 @@ export const LoanProviders: React.FC = () => {
                           <span className="w-3 text-right font-bold text-gray-500">{stars}</span>
                           <span className="text-[9px] text-gray-450">★</span>
                           <div className="flex-grow h-1.5 bg-gray-250 dark:bg-gray-800 rounded-full overflow-hidden">
-                            <div className="h-full bg-yellow-400 rounded-full" style={{ width: `${percent}%` }}></div>
+                            <div
+                              className="h-full bg-yellow-400 rounded-full"
+                              ref={(el) => {
+                                if (el) el.style.width = `${percent}%`;
+                              }}
+                            />
                           </div>
                           <span className="w-8 text-right font-bold text-gray-400">{Math.round(percent)}%</span>
                         </div>

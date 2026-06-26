@@ -7,7 +7,7 @@ import { AdSlot } from '../components/AdSlot';
 import { FacebookShareButton, TwitterShareButton, WhatsappShareButton, LinkedinShareButton, FacebookIcon, WhatsappIcon, LinkedinIcon } from 'react-share';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
 import { derivePostImage, withImageCacheBuster } from '../utils/blogImage';
-import { makeBlogSlug, parseBlogParam } from '../utils/blogRouting';
+import { makeBlogSlug, parseBlogParam, slugifyTitle } from '../utils/blogRouting';
 
 const XShareIcon: React.FC<{ size?: number; round?: boolean; iconFillColor?: string }> = ({
   size = 32,
@@ -118,26 +118,45 @@ const stripTrailingAlsoReadBlocks = (html: string) => {
   return input;
 };
 
+
 const fixLinksInHtml = (html: string): string => {
   if (!html) return '';
   return html.replace(/<a\b([^>]*)\bhref=(["'])(.*?)\2([^>]*)/gi, (match, before, quote, href, after) => {
-    const trimmedHref = href.trim();
-    const hasProtocol = /^(https?:\/\/|mailto:|tel:|sms:|javascript:)/i.test(trimmedHref);
-    const isSpecial = trimmedHref.startsWith('/') || trimmedHref.startsWith('#') || trimmedHref === '';
+    let trimmedHref = href.trim();
     
-    if (!hasProtocol && !isSpecial) {
-      const fixedHref = `https://${trimmedHref}`;
-      return `<a${before}href=${quote}${fixedHref}${quote}${after}`;
+    // Normalize absolute internal links (grantify.help or localhost or the current window origin)
+    // to root-relative links starting with /
+    const internalDomainRegex = /^(https?:\/\/)?(www\.)?(grantify\.help|localhost(:\d+)?)/i;
+    if (internalDomainRegex.test(trimmedHref)) {
+      trimmedHref = trimmedHref.replace(internalDomainRegex, '');
     }
-    return match;
+
+    const hasProtocol = /^(https?:\/\/|mailto:|tel:|sms:|javascript:)/i.test(trimmedHref);
+    const isRootRelative = trimmedHref.startsWith('/');
+    const isSpecial = trimmedHref.startsWith('#') || trimmedHref === '';
+    
+    // If it's a relative path without a leading slash and not a special link,
+    // ensure it starts with /
+    if (!hasProtocol && !isRootRelative && !isSpecial) {
+      if (trimmedHref.startsWith('blog/')) {
+        trimmedHref = '/' + trimmedHref;
+      } else {
+        trimmedHref = `/blog/${trimmedHref}`;
+      }
+    }
+    
+    return `<a${before}href=${quote}${trimmedHref}${quote}${after}`;
   });
 };
 
 const formatListsInHtml = (html: string): string => {
   if (!html) return '';
 
+  // Normalize spaces first to make regex matching reliable
+  let normalized = html.replace(/&nbsp;|\u00A0/g, ' ');
+
   // 1. Process paragraphs that contain lists split by <br />
-  let processed = html.replace(/<p\b[^>]*>([\s\S]*?)<\/p>/gi, (match, content) => {
+  let processed = normalized.replace(/<p\b[^>]*>([\s\S]*?)<\/p>/gi, (match, content) => {
     if (!/(\*|-|•|&bull;|✳)\s+/.test(content)) return match;
     
     const parts = content.split(/<br\s*\/?>|\n/gi);
@@ -491,11 +510,12 @@ export const BlogPostView: React.FC = () => {
   useEffect(() => {
     if (!post || !slugOrId) return;
     if (post.id === 'preview' || slugOrId === 'preview') return;
-    // Only canonicalize if the URL already refers to this post's id.
-    // Otherwise (e.g., user clicked a recommended post), we may still be showing
-    // the previous post while the new one is loading.
+    // Only canonicalize if the URL already refers to this post's ID or slugified title.
     const routeId = parseBlogParam(slugOrId).id;
-    if (String(routeId) !== String(post.id)) return;
+    const isMatchingId = String(routeId) === String(post.id);
+    const isMatchingSlug = slugifyTitle(post.title) === routeId;
+    if (!isMatchingId && !isMatchingSlug) return;
+    
     const canonical = makeBlogSlug(post.title, post.id);
     if (slugOrId !== canonical) {
       navigate(`/blog/${canonical}`, { replace: true });
@@ -788,12 +808,27 @@ export const BlogPostView: React.FC = () => {
     if (anchor) {
       const href = anchor.getAttribute('href');
       if (href) {
-        const isExternal = /^(https?:\/\/)/i.test(href);
-        if (isExternal) {
+        // Identify internal links: root-relative paths starting with / (excluding //)
+        // or links matching current window origin.
+        const isInternal = (href.startsWith('/') && !href.startsWith('//')) ||
+                           href.startsWith(window.location.origin);
+        
+        if (isInternal) {
           e.preventDefault();
-          const proceed = window.confirm(`You are leaving Grantify to visit: ${href}\n\nDo you want to proceed to this external website?`);
-          if (proceed) {
-            window.open(href, '_blank', 'noopener,noreferrer');
+          let path = href;
+          if (href.startsWith(window.location.origin)) {
+            path = href.substring(window.location.origin.length);
+          }
+          // Client-side navigation to preserve Single Page App flow
+          navigate(path);
+        } else {
+          const isSpecial = /^(mailto:|tel:|sms:|javascript:)/i.test(href) || href.startsWith('#');
+          if (!isSpecial) {
+            e.preventDefault();
+            const proceed = window.confirm(`You are leaving Grantify to visit: ${href}\n\nDo you want to proceed to this external website?`);
+            if (proceed) {
+              window.open(href, '_blank', 'noopener,noreferrer');
+            }
           }
         }
       }

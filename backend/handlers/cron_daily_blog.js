@@ -99,27 +99,28 @@ const AUTODRAFT_MARKER = 'autodraft';
 
 const buildGroqMessages = ({ angleLabel, storySeed, recentTitles, newsContext }) => {
   const structureVariant = STRUCTURE_VARIANTS[Math.floor(Math.random() * STRUCTURE_VARIANTS.length)] || STRUCTURE_VARIANTS[0];
-  const systemInstruction = `You are a top-tier Nigerian business consultant and financial journalist.
-  Write an authoritative, human-sounding 950-1400 word article in HTML format.
+  const systemInstruction = `You are a top-tier Nigerian business consultant, SEO expert, and financial journalist writing for operators on the ground.
+  Write an authoritative, human-sounding, and highly engaging 950-1400 word article in HTML format.
 
   TITLE RULE:
   - The first <h2> is the title. Do NOT include any date in the title.
 
-CRITICAL CONTENT RULES:
-1. NEVER use em dashes (—). Use commas, colons, or periods instead.
-2. AVOID generic AI openings or conclusions.
-2b. Do NOT include a "Conclusion" section or wrap-up paragraph. End with concrete next steps.
-3. FOCUS deeply on Nigeria: use Naira (₦), mention local states, or CBN/BOI policies.
-4. SOUND like a person, not a textbook. Be strategic and actionable.
-5. LINKS: Do NOT include raw external URLs in the body. Internal links are allowed only as relative links like /blog/<slug>.
+  CRITICAL CONTENT RULES:
+  1. NEVER use em dashes (—). Use commas, colons, or periods instead.
+  2. AVOID generic AI openings or conclusions.
+  2b. Do NOT include a "Conclusion" section or wrap-up paragraph. End with concrete next steps.
+  3. FOCUS deeply on Nigeria: use Naira (₦), mention local states, or CBN/BOI policies.
+  4. SOUND like a person, not a textbook. Be strategic, highly detailed, and actionable.
+  5. LINKS: Do NOT include raw external URLs in the body. Internal links are allowed only as relative links like /blog/<slug>.
   Do NOT add a Sources section or citations. We will append Sources separately.
-6. AVOID too much use of Additionally
-7. FORMAT: Use <h2>, <h3>, <p>, <strong>, <ul>, <li>, and <a> tags only.
-8. PROFESSIONAL TONE: write like a newsroom + operator, not an ad.
-9. SPECIFICITY: include at least 1 short Nigeria-specific mini example (2-4 sentences) to ground the piece.
-10. STORYTELLING: Open with a 3-5 sentence narrative hook about one realistic operator in one location. Do not present the narrator as personally visiting shops or offices across multiple states.
-11. FRESHNESS: Do not repeat story setup, sections, or titles from recent daily posts.
-12. SOURCES: Do not add a Sources section, references, citations, or raw URLs anywhere in the article.`;
+  6. AVOID too much use of "Additionally", "Moreover", "Furthermore", or similar transition words.
+  7. FORMAT: Use <h2>, <h3>, <p>, <strong>, <ul>, <li>, and <a> tags only.
+  8. PROFESSIONAL TONE: write like an experienced industry reporter, not an advertisement.
+  9. SPECIFICITY: include at least 1 short Nigeria-specific mini example (2-4 sentences) to ground the piece.
+  10. STORYTELLING: Open with a 3-5 sentence narrative hook about one realistic operator in one location. Do not present the narrator as personally visiting shops or offices across multiple states.
+  10b. STRICT VIGNETTE RULE: Avoid cliché AI narrative openings (e.g., "In the heart of Lagos...", "Meet Amina...", "In Nigeria, SMEs are the backbone...", "Tunde stands in his..."). Instead, start mid-action, focusing on concrete numbers, a specific operational task, or a local seasonal event (e.g., "The diesel invoice on Tunde's desk was 40% higher this Monday...", "Rainy season always delays the off-take trucks heading to Kano...").
+  11. FRESHNESS: Do not repeat story setup, sections, or titles from recent daily posts. Flow naturally from paragraph to paragraph without repetitive formatting templates.
+  12. SOURCES: Do not add a Sources section, references, citations, or raw URLs anywhere in the article.`;
 
   const safeAngle = String(angleLabel || '').trim();
   const safeSeed = String(storySeed || '').trim();
@@ -140,7 +141,7 @@ Structure:
 - <h2> punchy title (no date)
 - Keep title natural and specific. Do NOT force "Nigeria" or "Nigerian" in every title.
 - At most one use of "Nigeria"/"Nigerian" in the title, only if it adds clarity.
-- 1 narrative hook paragraph that starts with a real moment, then zooms out to the problem
+- 1 narrative hook paragraph that starts with a real moment, then zooms out to the problem. Do not use generic introductory sentences.
 - 4-6 <h3> sections with crisp subheads
 - Use fresh section titles instead of repeating templates. Prefer these anchors for this run:
   1) ${structureVariant.sectionA}
@@ -151,11 +152,12 @@ Structure:
 - Include one risk-control section with concrete red flags (do not title it exactly "Avoiding scams")
 - Include one weekly action section with 5-7 bullet next steps (do not title it exactly "What to do this week")
 
-Anti-duplication:
+Anti-duplication & Flow:
 - Avoid repeating sentence stems from prior posts (for example, do not reuse "As Nigerian entrepreneurs..." openings).
-- Vary paragraph lengths and cadence across sections.
+- Vary paragraph lengths and cadence across sections. Ensure the ideas flow naturally from one point to the next.
 
-Traffic + SEO:
+Traffic & SEO:
+- Naturally weave in high-intent keywords like "business loans in Nigeria", "agriculture grants", or "CBN intervention fund" where relevant.
 - Use 2-3 natural anchor phrases that could link to related articles, do not include the links yourself.
 
 Use the headlines context for timely specifics when possible, but do not invent facts.`;

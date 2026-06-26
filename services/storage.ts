@@ -14,7 +14,8 @@ import {
   ProviderReview,
   ReactionType,
   ContentFlag,
-  ContactMessage
+  ContactMessage,
+  WhatsappConfig
 } from '../types';
 
 
@@ -314,6 +315,22 @@ export const ApiService = {
     const res = await fetch(`${API_URL}/api/config?type=autoblog`);
     if (!res.ok) throw new Error('Failed to fetch autoblog config');
     return await res.json();
+  },
+
+  // -- WhatsApp Config --
+  getWhatsappConfig: async (): Promise<WhatsappConfig> => {
+    const res = await fetch(`${API_URL}/api/config?type=whatsapp`);
+    if (!res.ok) throw new Error('Failed to fetch WhatsApp config');
+    return await res.json();
+  },
+
+  saveWhatsappConfig: async (data: WhatsappConfig): Promise<void> => {
+    const res = await fetch(`${API_URL}/api/config?type=whatsapp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to save WhatsApp config');
   },
 
   // -- Offsite Uploads (S3/R2 via presigned PUT) --

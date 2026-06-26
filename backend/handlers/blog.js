@@ -185,7 +185,7 @@ export default async function handler(req, res) {
 
       if (id) {
         const countView = shouldCountView(req, id);
-        const postRes = countView
+        let postRes = countView
           ? await client.query(
             'UPDATE blog_posts SET views = COALESCE(views, 0) + 1 WHERE id = $1 RETURNING *',
             [id]
@@ -194,6 +194,34 @@ export default async function handler(req, res) {
             'SELECT * FROM blog_posts WHERE id = $1',
             [id]
           );
+
+        if (postRes.rows.length === 0) {
+          const allPosts = await client.query('SELECT id, title FROM blog_posts');
+          const slugify = (text) => {
+            return String(text || '')
+              .normalize('NFKD')
+              .replace(/[\u0300-\u036f]/g, '')
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, ' ')
+              .trim()
+              .replace(/\s+/g, '-');
+          };
+          const targetSlug = String(id).toLowerCase().trim();
+          const matched = allPosts.rows.find(p => slugify(p.title) === targetSlug);
+          if (matched) {
+            const realId = matched.id;
+            postRes = countView
+              ? await client.query(
+                'UPDATE blog_posts SET views = COALESCE(views, 0) + 1 WHERE id = $1 RETURNING *',
+                [realId]
+              )
+              : await client.query(
+                'SELECT * FROM blog_posts WHERE id = $1',
+                [realId]
+              );
+          }
+        }
+
         if (postRes.rows.length === 0) return res.status(404).json({ error: 'Not found' });
 
         const post = postRes.rows[0];
@@ -218,7 +246,7 @@ export default async function handler(req, res) {
            FROM blog_comments
            ${whereSql}
            ${sortSql}`,
-          [id]
+          [post.id]
         );
 
         const payload = {

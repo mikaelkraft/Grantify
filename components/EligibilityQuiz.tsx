@@ -190,7 +190,9 @@ export const EligibilityQuiz: React.FC<Props> = ({ onComplete }) => {
               <div className="mt-3 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all ${i === 0 ? 'bg-grantify-green' : 'bg-gray-400'}`}
-                  style={{ width: `${result.percentage}%` }}
+                  ref={(el) => {
+                    if (el) el.style.width = `${result.percentage}%`;
+                  }}
                 />
               </div>
               <div className="flex justify-end mt-3">
@@ -259,7 +261,9 @@ export const EligibilityQuiz: React.FC<Props> = ({ onComplete }) => {
         <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-grantify-green to-grantify-gold rounded-full transition-all duration-500"
-            style={{ width: `${((step + 1) / steps.length) * 100}%` }}
+            ref={(el) => {
+              if (el) el.style.width = `${((step + 1) / steps.length) * 100}%`;
+            }}
           />
         </div>
         <div className="flex justify-between mt-1.5">

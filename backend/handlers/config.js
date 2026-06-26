@@ -163,6 +163,58 @@ export default async function handler(req, res) {
       }
     }
 
+    if (type === 'whatsapp') {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS whatsapp_config (
+          id INTEGER PRIMARY KEY DEFAULT 1,
+          is_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+          phone_number TEXT NOT NULL DEFAULT '',
+          button_label TEXT NOT NULL DEFAULT '',
+          pre_filled_text TEXT NOT NULL DEFAULT '',
+          CONSTRAINT single_row_whatsapp_config CHECK (id = 1)
+        )
+      `);
+      await pool.query(`
+        INSERT INTO whatsapp_config (id, is_enabled, phone_number, button_label, pre_filled_text)
+        VALUES (1, FALSE, '', 'Chat with an Expert', 'Hello Grantify, I want to inquire about grant opportunities.')
+        ON CONFLICT (id) DO NOTHING
+      `);
+
+      if (req.method === 'GET') {
+        const result = await pool.query('SELECT * FROM whatsapp_config WHERE id=1');
+        if (result.rows.length > 0) {
+          const row = result.rows[0];
+          return res.status(200).json({
+            isEnabled: Boolean(row.is_enabled),
+            phoneNumber: String(row.phone_number || ''),
+            buttonLabel: String(row.button_label || ''),
+            preFilledText: String(row.pre_filled_text || '')
+          });
+        }
+        return res.status(200).json({
+          isEnabled: false,
+          phoneNumber: '',
+          buttonLabel: 'Chat with an Expert',
+          preFilledText: 'Hello Grantify, I want to inquire about grant opportunities.'
+        });
+      }
+
+      if (req.method === 'POST') {
+        const { isEnabled, phoneNumber, buttonLabel, preFilledText } = req.body;
+        await pool.query(
+          `INSERT INTO whatsapp_config (id, is_enabled, phone_number, button_label, pre_filled_text)
+           VALUES (1, $1, $2, $3, $4)
+           ON CONFLICT (id) DO UPDATE SET
+           is_enabled = EXCLUDED.is_enabled,
+           phone_number = EXCLUDED.phone_number,
+           button_label = EXCLUDED.button_label,
+           pre_filled_text = EXCLUDED.pre_filled_text`,
+          [Boolean(isEnabled), String(phoneNumber || ''), String(buttonLabel || ''), String(preFilledText || '')]
+        );
+        return res.status(200).json({ success: true });
+      }
+    }
+
     return res.status(405).json({ error: 'Method not allowed or invalid type' });
   } catch (err) {
     console.error('Config handler error:', err);

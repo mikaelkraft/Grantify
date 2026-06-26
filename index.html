@@ -116,6 +116,20 @@
       .quill-content p {
         margin: 0.9em 0;
       }
+      /* Newspaper-style drop caps (initial letter) for blog post content */
+      .quill-content p:first-of-type::first-letter {
+        font-size: 3.25em;
+        font-weight: 850;
+        float: left;
+        line-height: 0.8;
+        margin-right: 0.12em;
+        margin-top: 0.1em;
+        color: #006400; /* brand green */
+        font-family: Georgia, 'Playfair Display', serif;
+      }
+      .dark .quill-content p:first-of-type::first-letter {
+        color: #FFD700; /* brand gold */
+      }
       .quill-content h1,
       .quill-content h2,
       .quill-content h3 {
@@ -157,10 +171,10 @@
         left: 0;
         top: 0.05em;
         font-size: 0.85em;
-        color: rgba(0, 100, 0, 0.75);
+        color: #FFD700; /* brand gold asterisk */
       }
       .dark .quill-content ul > li::before {
-        color: rgba(255, 215, 0, 0.7);
+        color: #FFD700;
       }
       .quill-content ol > li { margin: 0.35em 0; }
       .quill-content blockquote {

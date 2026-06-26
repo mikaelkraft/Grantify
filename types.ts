@@ -201,6 +201,13 @@ export interface GrantNetwork {
   >;
 }
 
+export interface WhatsappConfig {
+  isEnabled: boolean;
+  phoneNumber: string;
+  buttonLabel: string;
+  preFilledText: string;
+}
+
 // Ad network type definitions for window object
 declare global {
   interface Window {

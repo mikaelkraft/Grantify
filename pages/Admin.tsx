@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import React, { useEffect, useRef, useState, useTransition } from 'react';
 import { ApiService } from '../services/storage';
-import { AdminUser, LoanApplication, Testimonial, AdConfig, UserRole, RepaymentContent, LoanProvider, LoanProviderSubmission, BlogPost, ProviderReview, ContactMessage, ContentFlag } from '../types';
+import { AdminUser, LoanApplication, Testimonial, AdConfig, UserRole, RepaymentContent, LoanProvider, LoanProviderSubmission, BlogPost, ProviderReview, ContactMessage, ContentFlag, WhatsappConfig } from '../types';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { formatNaira } from '../utils/currency';
@@ -66,6 +66,7 @@ export const Admin: React.FC = () => {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [ads, setAds] = useState<AdConfig | null>(null);
   const [repayment, setRepayment] = useState<RepaymentContent | null>(null);
+  const [whatsappConfig, setWhatsappConfig] = useState<WhatsappConfig | null>(null);
   const [autoblogEnabled, setAutoblogEnabled] = useState<boolean>(false);
   const [autoblogUpdatedAt, setAutoblogUpdatedAt] = useState<string | null>(null);
   const [autoblogLastRun, setAutoblogLastRun] = useState<any>(null);
@@ -825,6 +826,7 @@ export const Admin: React.FC = () => {
   const [hasUnsavedTestimonials, setHasUnsavedTestimonials] = useState(false);
   const [hasUnsavedAds, setHasUnsavedAds] = useState(false);
   const [hasUnsavedRepayment, setHasUnsavedRepayment] = useState(false);
+  const [hasUnsavedWhatsapp, setHasUnsavedWhatsapp] = useState(false);
   const [hasUnsavedProviders, setHasUnsavedProviders] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingPost, setIsSavingPost] = useState(false);
@@ -837,7 +839,7 @@ export const Admin: React.FC = () => {
   const refreshData = async () => {
     setIsLoading(true);
     try {
-      const [apps, tests, adConfig, repay, adminList, providers, submissions, reviews, posts, contact, flagsData, autoblogCfg] = await Promise.all([
+      const [apps, tests, adConfig, repay, adminList, providers, submissions, reviews, posts, contact, flagsData, autoblogCfg, whatsappCfg] = await Promise.all([
         ApiService.getApplications(),
         ApiService.getTestimonials(),
         ApiService.getAds(),
@@ -849,12 +851,14 @@ export const Admin: React.FC = () => {
         ApiService.getBlogPosts(undefined, { includeDrafts: true }),
         ApiService.getContactMessages(120),
         ApiService.getFlags('open'),
-        ApiService.getAutoblogConfig()
+        ApiService.getAutoblogConfig(),
+        ApiService.getWhatsappConfig()
       ]);
       setApplications(apps);
       setTestimonials(tests);
       setAds(adConfig);
       setRepayment(repay);
+      setWhatsappConfig(whatsappCfg);
       setAdmins(adminList);
       setLoanProviders(providers);
       setLoanProviderSubmissions(submissions);
@@ -1319,6 +1323,26 @@ export const Admin: React.FC = () => {
   const handleRepaymentUpdate = async (newContent: RepaymentContent) => {
     setRepayment(newContent);
     await ApiService.saveRepaymentContent(newContent);
+  };
+
+  const handleWhatsappUpdateLocal = (newConfig: WhatsappConfig) => {
+    setWhatsappConfig(newConfig);
+    setHasUnsavedWhatsapp(true);
+  };
+
+  const handleSaveWhatsapp = async () => {
+    if (!whatsappConfig) return;
+    setIsSaving(true);
+    try {
+      await ApiService.saveWhatsappConfig(whatsappConfig);
+      setHasUnsavedWhatsapp(false);
+      alert('WhatsApp button configuration saved successfully!');
+    } catch (e) {
+      console.error('Failed to save WhatsApp config', e);
+      alert('Failed to save WhatsApp config. Please check database connectivity.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleDeleteReview = async (id: string) => {
@@ -2569,7 +2593,7 @@ export const Admin: React.FC = () => {
               )}
 
               {/* Content Tab */}
-              {activeTab === 'content' && repayment && (
+              {activeTab === 'content' && repayment && whatsappConfig && (
                 <div>
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-xl font-bold">Repayment Page Content</h3>
@@ -2616,6 +2640,81 @@ export const Admin: React.FC = () => {
                         placeholder="Fast-Track Loan Note"
                         aria-label="Fast-Track Loan Note"
                       />
+                    </div>
+                  </div>
+
+                  {/* WhatsApp Floating Button Settings */}
+                  <div className="mt-10 pt-6 border-t border-gray-200 dark:border-gray-800">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-bold">Floating WhatsApp Button Configuration</h3>
+                      <button 
+                        onClick={handleSaveWhatsapp} 
+                        disabled={!hasUnsavedWhatsapp || isSaving}
+                        className={`flex items-center gap-2 px-3 py-1 rounded text-sm ${hasUnsavedWhatsapp ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                      >
+                        <Save size={16} /> {isSaving ? 'Saving...' : 'Save Changes'}
+                      </button>
+                    </div>
+                    {hasUnsavedWhatsapp && (
+                      <div className="mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm">
+                        You have unsaved changes. Click "Save Changes" to sync with the database.
+                      </div>
+                    )}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 mb-4">
+                        <input
+                          type="checkbox"
+                          id="whatsapp-enabled"
+                          checked={whatsappConfig.isEnabled}
+                          onChange={(e) => handleWhatsappUpdateLocal({...whatsappConfig, isEnabled: e.target.checked})}
+                          className="w-4 h-4 text-grantify-green border-gray-300 rounded focus:ring-grantify-green"
+                        />
+                        <label htmlFor="whatsapp-enabled" className="text-sm font-medium select-none">
+                          Enable Floating WhatsApp Button
+                        </label>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium">WhatsApp Phone Number</label>
+                        <input 
+                          type="text"
+                          className={inputClass}
+                          value={whatsappConfig.phoneNumber}
+                          onChange={(e) => handleWhatsappUpdateLocal({...whatsappConfig, phoneNumber: e.target.value})}
+                          placeholder="Phone Number (e.g. 2348123456789)"
+                          aria-label="WhatsApp Phone Number"
+                        />
+                        <p className="text-[10px] text-gray-400 mt-1">
+                          Use international format without leading + or 00 (e.g. 2348123456789 for Nigeria).
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium">Button Label Text</label>
+                        <input 
+                          type="text"
+                          className={inputClass}
+                          value={whatsappConfig.buttonLabel}
+                          onChange={(e) => handleWhatsappUpdateLocal({...whatsappConfig, buttonLabel: e.target.value})}
+                          placeholder="Button Label (e.g. Chat with an Expert)"
+                          aria-label="Button Label Text"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium">Pre-filled Message Template</label>
+                        <textarea 
+                          className={inputClass}
+                          value={whatsappConfig.preFilledText}
+                          onChange={(e) => handleWhatsappUpdateLocal({...whatsappConfig, preFilledText: e.target.value})}
+                          placeholder="Pre-filled text message"
+                          aria-label="Pre-filled Message Template"
+                          rows={3}
+                        />
+                        <p className="text-[10px] text-gray-400 mt-1">
+                          This is the message that will automatically appear in the user's chat input box when they click the button.
+                        </p>
+                      </div>
                     </div>
                   </div>
 
