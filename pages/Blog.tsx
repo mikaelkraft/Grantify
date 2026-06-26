@@ -6,6 +6,7 @@ import { Loader2, MessageSquare, ThumbsUp, Heart, Hand, Calendar, ChevronRight, 
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
 import { derivePostImage, withImageCacheBuster } from '../utils/blogImage';
 import { makeBlogPath } from '../utils/blogRouting';
+import { FundingAlertCard } from '../components/FundingAlertCard';
 
 export const Blog: React.FC = () => {
   const PAGE_SIZE = 9;
@@ -320,6 +321,29 @@ export const Blog: React.FC = () => {
           </div>
           
         </div>
+      </div>
+
+      {/* Daily Funding Alert Card Widget */}
+      <div className="grid lg:grid-cols-[1fr_400px] gap-8 mb-12 items-start">
+        <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2.5rem] p-8 md:p-10 shadow-sm h-full flex flex-col justify-center text-left">
+          <div className="inline-flex items-center gap-2 bg-grantify-gold/10 border border-grantify-gold/20 text-grantify-gold rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest mb-4 w-fit">
+            <Sparkles size={10} /> Viral Status Tool
+          </div>
+          <h2 className="text-3xl font-black text-gray-900 dark:text-gray-100 uppercase tracking-tighter leading-tight mb-4">
+            Spread the word. Help other founders grow.
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed mb-6">
+            Every day, the Grantify database compiles active government and private capital opportunities. 
+            Use our daily status tool to generate a shareable image with today's highlights. 
+            Download it to your phone, share it on your social status, and direct fellow entrepreneurs to legitimate, verified capital.
+          </p>
+          <div className="flex items-center gap-3">
+            <Link to="/quiz" className="inline-flex items-center gap-2 bg-grantify-green hover:bg-green-700 text-white font-black text-xs px-5 py-3.5 rounded-xl shadow-md transition-all">
+              <Zap size={14} /> Calculate Eligibility Match
+            </Link>
+          </div>
+        </div>
+        <FundingAlertCard />
       </div>
 
       {error && (

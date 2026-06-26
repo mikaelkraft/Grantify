@@ -29,6 +29,8 @@ import oneDriveCallback from '../backend/handlers/onedrive_callback.js';
 import oneDriveFinalize from '../backend/handlers/onedrive_finalize.js';
 import oneDriveStatus from '../backend/handlers/onedrive_status.js';
 import sponsored from '../backend/handlers/sponsored.js';
+import pitch from '../backend/handlers/pitch.js';
+import fundingAlertImage from '../backend/handlers/funding_alert_image.js';
 
 const ensureJsonBody = async (req) => {
   // Vercel may not populate req.body for non-POST methods.
@@ -155,6 +157,14 @@ export default async function handler(req, res) {
     }
 
     if (root === 'sponsored') return sponsored(req, res);
+
+    if (root === 'pitch') {
+      // Pass remaining segments as sub-path for clap/winner actions
+      req.query = { ...(req.query || {}), path: ['pitch', ...rest].join('/') };
+      return pitch(req, res);
+    }
+
+    if (root === 'funding-alert-image') return fundingAlertImage(req, res);
 
     return res.status(404).json({ error: 'Not found' });
   } catch (err) {

@@ -11,6 +11,9 @@ import { Privacy } from './pages/Privacy';
 import { Contact } from './pages/Contact';
 import { LoanProviders } from './pages/LoanProviders';
 import { Sponsor } from './pages/Sponsor';
+import { Quiz } from './pages/Quiz';
+import { Pitch } from './pages/Pitch';
+import { Grants } from './pages/Grants';
 import { ApiService } from './services/storage';
 
 function App() {
@@ -43,6 +46,9 @@ function App() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/sponsor" element={<Sponsor />} />
           <Route path="/loan-providers" element={<LoanProviders />} />
+          <Route path="/quiz" element={<Quiz />} />
+          <Route path="/pitch" element={<Pitch />} />
+          <Route path="/grants/:state" element={<Grants />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>

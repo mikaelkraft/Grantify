@@ -393,6 +393,15 @@ export const BlogPostView: React.FC = () => {
         },
         mainEntityOfPage: `${window.location.origin}${window.location.pathname}`,
         image: image ? [image] : undefined,
+        comment: Array.isArray(post.comments) ? post.comments.map(c => ({
+          '@type': 'Comment',
+          'text': normalizeNbsp(c.content),
+          'author': {
+            '@type': 'Person',
+            'name': normalizeNbsp(c.name)
+          },
+          'dateCreated': String(c.createdAt)
+        })) : []
       };
 
       const script = document.createElement('script');

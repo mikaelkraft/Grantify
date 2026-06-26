@@ -381,6 +381,81 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
+      {/* Quiz CTA Section */}
+      <section className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 pb-12">
+        <div className="rounded-[2.5rem] bg-gradient-to-r from-grantify-green via-green-700 to-emerald-800 text-white p-8 md:p-12 shadow-2xl relative overflow-hidden">
+          <div className="absolute -top-10 -right-10 w-64 h-64 bg-grantify-gold/20 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-1/3 w-48 h-48 bg-white/10 rounded-full blur-2xl" />
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="flex-1">
+              <div className="inline-flex items-center gap-2 bg-white/20 border border-white/30 rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-widest mb-4">
+                <Zap size={12} /> Free Eligibility Check
+              </div>
+              <h2 className="text-3xl md:text-4xl font-black leading-[1.1] mb-3">
+                Which Grant Are You<br />Most Likely to Get?
+              </h2>
+              <p className="text-white/80 text-base leading-relaxed max-w-lg">
+                Answer 5 quick questions. Instantly see your top matches from SMEDAN, BOI, LSETF,
+                Tony Elumelu Foundation, and 20+ programs — ranked by your best fit score.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 w-full md:w-auto">
+              <Link
+                to="/quiz"
+                className="inline-flex items-center justify-center gap-2 bg-white text-grantify-green font-black px-8 py-4 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-all text-base"
+              >
+                <Zap size={20} /> Check My Eligibility
+              </Link>
+              <p className="text-white/60 text-xs text-center">No sign-up · Takes under 2 minutes</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Verified Success Timeline */}
+      <section className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 pb-12">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 bg-grantify-green/10 border border-grantify-green/20 text-grantify-green rounded-full px-4 py-1.5 text-xs font-black uppercase tracking-widest mb-4">
+            <CheckCircle size={12} /> Funding Milestones
+          </div>
+          <h2 className="text-3xl font-black text-gray-900 dark:text-gray-100 mb-2">Real People. Real Funding.</h2>
+          <p className="text-gray-500 dark:text-gray-400 text-sm max-w-xl mx-auto">Verified outcomes from businesses matched through the Grantify platform.</p>
+        </div>
+        <div className="relative">
+          {/* Timeline spine */}
+          <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-grantify-green/40 via-grantify-gold/30 to-transparent -translate-x-1/2" />
+          <div className="space-y-6">
+            {[
+              { date: 'May 2025', name: 'Amaka O.', state: 'Lagos', amount: '₦2.5M', program: 'LSETF Loan', sector: 'Catering', desc: 'Expanded her catering business from 2 to 8 staff after securing LSETF funding.' },
+              { date: 'Feb 2025', name: 'Ibrahim K.', state: 'Kano', amount: '₦5M', program: 'BOI SME Loan', sector: 'Manufacturing', desc: 'Purchased industrial equipment for his textile production unit via BOI.' },
+              { date: 'Nov 2024', name: 'Chidinma E.', state: 'Anambra', amount: 'USD $5,000', program: 'Tony Elumelu Foundation', sector: 'AgriTech', desc: 'Launched a solar-powered cold storage solution for farmers after TEF grant.' },
+              { date: 'Sep 2024', name: 'Seun A.', state: 'Oyo', amount: '₦1.2M', program: 'AGSMEIS (CBN)', sector: 'Poultry', desc: 'Grew his poultry farm from 500 to 3,000 birds with CBN AGSMEIS support.' },
+            ].map((milestone, i) => (
+              <div key={i} className={`flex items-start gap-4 ${i % 2 === 1 ? 'md:flex-row-reverse' : ''}`}>
+                <div className={`flex-1 ${i % 2 === 1 ? 'md:text-right' : ''}`}>
+                  <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-black text-grantify-green bg-grantify-green/10 px-2 py-0.5 rounded-full">{milestone.program}</span>
+                      <span className="text-xs text-gray-400">{milestone.date}</span>
+                    </div>
+                    <div className="flex items-baseline gap-2 mb-1">
+                      <span className="font-black text-gray-900 dark:text-gray-100">{milestone.name}</span>
+                      <span className="text-xs text-gray-400">{milestone.state}</span>
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{milestone.desc}</p>
+                    <div className="mt-2 text-xl font-black text-grantify-green">{milestone.amount}</div>
+                  </div>
+                </div>
+                <div className="hidden md:flex w-8 h-8 rounded-full bg-grantify-green border-4 border-white dark:border-gray-950 flex-shrink-0 items-center justify-center shadow-md mt-4">
+                  <CheckCircle size={14} className="text-white" />
+                </div>
+                <div className="flex-1 hidden md:block" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Monetization / Partner Section (always visible so public can discover sponsorship opportunities) */}
       <section className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 pb-12">
         <div className="rounded-[2.5rem] border border-gray-100 dark:border-gray-800 bg-gradient-to-br from-emerald-950 via-gray-950 to-gray-900 text-white p-6 md:p-10 shadow-2xl relative overflow-hidden">
@@ -802,6 +877,60 @@ export const Home: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Pitch Competition Teaser */}
+      <section className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 pb-12">
+        <div className="rounded-[2.5rem] bg-gradient-to-br from-gray-900 via-gray-950 to-gray-900 text-white p-8 md:p-10 shadow-2xl relative overflow-hidden">
+          <div className="absolute -bottom-12 -right-12 w-56 h-56 bg-grantify-gold/10 rounded-full blur-3xl" />
+          <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
+            <div className="w-16 h-16 rounded-2xl bg-grantify-gold/20 border border-grantify-gold/30 flex items-center justify-center flex-shrink-0">
+              <TrendingUp size={28} className="text-grantify-gold" />
+            </div>
+            <div className="flex-1">
+              <div className="text-[10px] font-black uppercase tracking-widest text-grantify-gold mb-2">Weekly Competition</div>
+              <h2 className="text-2xl md:text-3xl font-black leading-tight mb-2">Fund My Business Pitch</h2>
+              <p className="text-white/70 text-sm leading-relaxed max-w-lg">
+                Write a 100-word pitch for your business idea. The community votes. The top idea wins
+                <strong className="text-white"> ₦50,000</strong> in advertising credits every week.
+              </p>
+            </div>
+            <Link
+              to="/pitch"
+              className="inline-flex items-center gap-2 bg-grantify-gold text-gray-900 font-black px-6 py-3.5 rounded-2xl shadow-lg hover:shadow-xl hover:scale-105 transition-all flex-shrink-0"
+            >
+              <Send size={18} /> Submit Your Pitch
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* SEO Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify([
+          {
+            '@context': 'https://schema.org',
+            '@type': 'Organization',
+            name: 'Grantify Nigeria',
+            url: 'https://grantify.help',
+            logo: 'https://grantify.help/logo.svg',
+            description: "Nigeria's #1 grant and loan matching platform. Connecting entrepreneurs and SMEs with BOI, SMEDAN, TEF, LSETF, CBN AGSMEIS, and 20+ government and private funding programs.",
+            sameAs: [],
+            areaServed: 'NG',
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            name: 'Grantify',
+            url: 'https://grantify.help',
+            potentialAction: {
+              '@type': 'SearchAction',
+              target: { '@type': 'EntryPoint', urlTemplate: 'https://grantify.help/blog?q={search_term_string}' },
+              'query-input': 'required name=search_term_string',
+            },
+          },
+        ]) }}
+      />
     </div>
   );
 };

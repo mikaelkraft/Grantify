@@ -4,7 +4,7 @@ import { AdSlot } from './AdSlot';
 import { ApiService } from '../services/storage';
 import { AdConfig, BlogPost, LoanProvider } from '../types';
 import { makeBlogPath } from '../utils/blogRouting';
-import { Menu, X, AlertTriangle, ShieldAlert, RefreshCw, HelpCircle, Moon, Sun, Search } from 'lucide-react';
+import { Menu, X, AlertTriangle, ShieldAlert, RefreshCw, HelpCircle, Moon, Sun, Search, MessageCircle, Trophy } from 'lucide-react';
 import { AiChatbot } from './AiChatbot';
 
 type HeaderSearchResult =
@@ -261,6 +261,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const navLinks = [
     { to: "/", label: "Home", shortLabel: "Home" },
     { to: "/blog", label: "Blog Intel", shortLabel: "Blog" },
+    { to: "/quiz", label: "Eligibility Quiz", shortLabel: "Quiz" },
+    { to: "/pitch", label: "Pitch Competition", shortLabel: "Pitch" },
     { to: "/sponsor", label: "Sponsor", shortLabel: "Sponsor" },
     { to: "/loan-providers", label: "Instant Loans", shortLabel: "Loans" },
     { to: "/contact", label: "Contact Us", shortLabel: "Contact" },
@@ -644,12 +646,27 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           <div className="flex justify-center gap-4 text-xs">
             <Link to="/privacy" className="hover:text-white">Privacy Policy</Link>
             <Link to="/terms" className="hover:text-white">Terms & Conditions</Link>
+            <Link to="/quiz" className="hover:text-white">Eligibility Quiz</Link>
+            <Link to="/pitch" className="hover:text-white">Pitch Competition</Link>
           </div>
         </div>
       </footer>
 
       {/* AI Chat Assistant */}
       <AiChatbot />
+
+      {/* WhatsApp Floating Button */}
+      <a
+        href={`https://wa.me/?text=${encodeURIComponent('Hi Grantify! I want to:\n1️⃣ Check my grant eligibility\n2️⃣ Get today\'s grants\n3️⃣ Find a loan provider\n\nCheck yours at: https://grantify.help/quiz')}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Chat on WhatsApp"
+        aria-label="Chat on WhatsApp"
+        className="fixed bottom-24 left-4 z-50 flex items-center gap-2 bg-[#25D366] text-white font-black text-xs px-4 py-3 rounded-full shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-200 group"
+      >
+        <MessageCircle size={18} className="flex-shrink-0" />
+        <span className="hidden sm:inline group-hover:inline transition-all">Get Grant Alerts</span>
+      </a>
     </div>
   );
 };

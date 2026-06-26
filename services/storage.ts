@@ -1212,5 +1212,41 @@ export const ApiService = {
       throw new Error(String(payload?.error || 'Failed to trigger daily cron'));
     }
     return payload;
-  }
+  },
+
+  // ── Pitch Competition ─────────────────────────────────────────────────────
+
+  getPitches: async (): Promise<{ pitches: any[] }> => {
+    const res = await fetch(`${API_URL}/api/pitch`);
+    if (!res.ok) throw new Error('Failed to load pitches');
+    return res.json();
+  },
+
+  submitPitch: async (data: { name: string; sector: string; content: string }): Promise<{ pitch: any }> => {
+    const res = await fetch(`${API_URL}/api/pitch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(payload?.error || 'Submission failed');
+    return payload;
+  },
+
+  clapPitch: async (pitchId: string): Promise<{ claps: number }> => {
+    const res = await fetch(`${API_URL}/api/pitch/${pitchId}/clap`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(payload?.error || 'Clap failed');
+    return payload;
+  },
+
+  // ── Funding Alert Image ───────────────────────────────────────────────────
+
+  getFundingAlertImageUrl: (): string => {
+    return `${API_URL}/api/funding-alert-image`;
+  },
 };
+
