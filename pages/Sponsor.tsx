@@ -30,6 +30,51 @@ export const Sponsor: React.FC = () => {
   });
 
   useEffect(() => {
+    document.title = 'Sponsor & Advertise | Grantify Nigeria';
+    
+    const setMeta = (selector: string, attr: string, value: string) => {
+      const el = document.head.querySelector(selector);
+      if (el) el.setAttribute(attr, value);
+    };
+    
+    const desc = 'Advertise your microfinance bank, fintech platform, or loan institution on Grantify Nigeria. Choose from premium top-of-funnel placement and listing features.';
+    setMeta('meta[property="og:title"]', 'content', 'Sponsor & Advertise | Grantify Nigeria');
+    setMeta('meta[property="og:description"]', 'content', desc);
+    setMeta('meta[name="twitter:title"]', 'content', 'Sponsor & Advertise | Grantify');
+    setMeta('meta[name="twitter:description"]', 'content', desc);
+    
+    const schemaId = 'grantify-sponsor-schema';
+    const prev = document.getElementById(schemaId);
+    if (prev) prev.remove();
+    
+    const schema = {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      'name': 'Grantify Sponsorship Packages',
+      'description': desc,
+      'image': 'https://grantify.help/logo.svg',
+      'offers': {
+        '@type': 'AggregateOffer',
+        'priceCurrency': 'NGN',
+        'lowPrice': '25000',
+        'highPrice': '150000',
+        'offerCount': '3'
+      }
+    };
+    
+    const script = document.createElement('script');
+    script.id = schemaId;
+    script.type = 'application/ld+json';
+    script.innerHTML = JSON.stringify(schema);
+    document.head.appendChild(script);
+    
+    return () => {
+      const el = document.getElementById(schemaId);
+      if (el) el.remove();
+    };
+  }, []);
+
+  useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {

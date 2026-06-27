@@ -4076,9 +4076,19 @@ export const Admin: React.FC = () => {
                     <div className="bg-white dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-800 overflow-x-auto">
                       <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 sticky top-0 z-10">
                         <div className="text-xs text-gray-500">
-                          {selectedBlogPostIds.size > 0 ? `${selectedBlogPostIds.size} selected` : 'Select drafts to approve in bulk'}
+                          {selectedBlogPostIds.size > 0 ? `${selectedBlogPostIds.size} selected` : 'Select posts/drafts to manage in bulk'}
                         </div>
                         <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const allIds = blogPosts.map(p => String(p.id));
+                              setSelectedBlogPostIds(new Set(allIds));
+                            }}
+                            className="text-xs font-bold px-3 py-2 rounded border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
+                          >
+                            Select all
+                          </button>
                           <button
                             type="button"
                             onClick={() => {
@@ -4135,11 +4145,11 @@ export const Admin: React.FC = () => {
                             <th className="p-3 text-left w-10">
                               <input
                                 type="checkbox"
-                                aria-label="Select all drafts"
-                                checked={blogPosts.filter(isAutodraftPost).length > 0 && blogPosts.filter(isAutodraftPost).every(p => selectedBlogPostIds.has(String(p.id)))}
+                                aria-label="Select all posts"
+                                checked={blogPosts.length > 0 && blogPosts.every(p => selectedBlogPostIds.has(String(p.id)))}
                                 onChange={(e) => {
                                   if (e.target.checked) {
-                                    setSelectedBlogPostIds(new Set(blogPosts.filter(isAutodraftPost).map(p => String(p.id))));
+                                    setSelectedBlogPostIds(new Set(blogPosts.map(p => String(p.id))));
                                   } else {
                                     setSelectedBlogPostIds(new Set());
                                   }
@@ -4157,21 +4167,19 @@ export const Admin: React.FC = () => {
                           {blogPosts.map(post => (
                             <tr key={post.id} className={newPost.id === post.id ? 'bg-blue-50' : ''}>
                               <td className="p-3 align-top">
-                                {isAutodraftPost(post) && (
-                                  <input
-                                    type="checkbox"
-                                    aria-label={`Select ${post.title}`}
-                                    checked={selectedBlogPostIds.has(String(post.id))}
-                                    onChange={(e) => {
-                                      setSelectedBlogPostIds(prev => {
-                                        const next = new Set(prev);
-                                        if (e.target.checked) next.add(String(post.id));
-                                        else next.delete(String(post.id));
-                                        return next;
-                                      });
-                                    }}
-                                  />
-                                )}
+                                <input
+                                  type="checkbox"
+                                  aria-label={`Select ${post.title}`}
+                                  checked={selectedBlogPostIds.has(String(post.id))}
+                                  onChange={(e) => {
+                                    setSelectedBlogPostIds(prev => {
+                                      const next = new Set(prev);
+                                      if (e.target.checked) next.add(String(post.id));
+                                      else next.delete(String(post.id));
+                                      return next;
+                                    });
+                                  }}
+                                />
                               </td>
                               <td className="p-3">
                                 <span className="font-bold block truncate max-w-[200px]" title={post.title}>{post.title}</span>

@@ -1318,8 +1318,8 @@ export const LoanProviders: React.FC = () => {
                 Upgrade to a featured slot, run a sponsored listing, or capture lead-intent traffic from people comparing offers in real time.
               </p>
             </div>
-            <Link to="/contact" className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all w-full lg:w-auto">
-              Request Pricing <ExternalLink size={16} />
+            <Link to="/sponsor" className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all w-full lg:w-auto">
+              View Sponsorship Packages <ExternalLink size={16} />
             </Link>
           </div>
         </div>

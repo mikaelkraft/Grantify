@@ -53,6 +53,7 @@ export const Home: React.FC = () => {
   const [referralData] = useState(ApiService.getMyReferralData());
 
   useEffect(() => {
+    document.title = 'Grantify - Empowering Families & Businesses with Legitimate Funding';
     let cancelled = false;
 
     const withTimeout = async <T,>(p: Promise<T>, ms: number, label: string): Promise<T> => {

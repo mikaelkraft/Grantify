@@ -181,12 +181,13 @@ const formatListsInHtml = (html: string): string => {
         let conclusion = '';
         
         // Find if there is a sentence starter in the last item to extract the conclusion paragraph
-        const sentenceStarterRegex = /\s+(By|This|For|Additionally|They|We|It|If|In|Ultimately|To|As|Our|Your|Therefore|With|So)\b/;
+        const sentenceStarterRegex = /[.\?!]\s+(By|This|For|Additionally|They|We|It|If|In|Ultimately|To|As|Our|Your|Therefore|With|So|These|Those|How|What|When|Why|Where)\b/;
         const matchStarter = lastItem.match(sentenceStarterRegex);
         
         if (matchStarter && matchStarter.index !== undefined) {
-          conclusion = lastItem.substring(matchStarter.index).trim();
-          lastItem = lastItem.substring(0, matchStarter.index).trim();
+          const splitIndex = matchStarter.index + 1; // Split right after the punctuation
+          conclusion = lastItem.substring(splitIndex).trim();
+          lastItem = lastItem.substring(0, splitIndex).trim();
         }
         
         let listHtml = '<ul>';
@@ -262,11 +263,6 @@ const formatListsInHtml = (html: string): string => {
   return processed;
 };
 
-const extractParagraphHtml = (html: string) => {
-  const matches = String(html || '').match(/<p\b[^>]*>[\s\S]*?<\/p>/gi);
-  return matches || [];
-};
-
 const buildInlineAlsoReadHtml = (rec: BlogPost) => {
   const title = String(rec.title || '').trim();
   const href = `/blog/${makeBlogSlug(title, rec.id)}`;
@@ -284,44 +280,66 @@ const buildInlineAlsoReadHtml = (rec: BlogPost) => {
 
 const injectInlineRecommendations = (html: string, recs: BlogPost[], title: string) => {
   const cleaned = stripTrailingAlsoReadBlocks(String(html || ''));
-  let paragraphs: string[] = extractParagraphHtml(cleaned);
+  
+  // Split HTML into top-level block element chunks. Positive lookahead prevents consuming the tags.
+  const chunks = cleaned.split(/(?=<p\b|<h[1-6]\b|<ul\b|<ol\b|<blockquote\b|<pre\b|<div\b)/i).filter(Boolean);
+  
+  if (chunks.length === 0) return cleaned;
 
-  // If there are no <p> elements (content may be plain text with headings),
-  // split on heading boundaries and wrap text fragments as paragraphs so
-  // we can reliably inject inline callouts.
-  if (!paragraphs || paragraphs.length === 0) {
-    const parts = String(cleaned || '').split(/(?=<h[1-6]\b)/i).filter(Boolean);
-    paragraphs = parts.map((part) => (part.trim().startsWith('<h') ? part : `<p>${part}</p>`));
-  }
   const links = (Array.isArray(recs) ? recs : [])
     .filter((rec) => String(rec?.id || '') && String(rec?.title || '').trim())
     .filter((rec) => String(rec.title || '').trim().toLowerCase() !== String(title || '').trim().toLowerCase())
     .slice(0, 4);
 
-  if (paragraphs.length === 0 || links.length === 0) return cleaned;
+  if (links.length === 0) return cleaned;
 
-  const slotCount = Math.min(3, links.length, paragraphs.length);
-  const slots = new Set<number>();
+  // Track the indices of elements that are paragraphs (<p>)
+  const paragraphIndices: number[] = [];
+  for (let i = 0; i < chunks.length; i += 1) {
+    if (/^<p\b/i.test(chunks[i].trim())) {
+      paragraphIndices.push(i);
+    }
+  }
+
+  // If we don't have any paragraph blocks, fall back to chunk-based slots
+  if (paragraphIndices.length === 0) {
+    const slotCount = Math.min(3, links.length, chunks.length);
+    const slots = new Set<number>();
+    for (let i = 0; i < slotCount; i += 1) {
+      const idx = Math.floor(((i + 1) * chunks.length) / (slotCount + 1));
+      slots.add(Math.min(Math.max(idx, 0), chunks.length - 1));
+    }
+
+    let output = '';
+    let used = 0;
+
+    for (let i = 0; i < chunks.length; i += 1) {
+      output += chunks[i];
+      if (slots.has(i) && used < links.length) {
+        output += buildInlineAlsoReadHtml(links[used]);
+        used += 1;
+      }
+    }
+    return output;
+  }
+
+  // We have paragraphs! Calculate slots aligned to paragraph block transitions.
+  const slotCount = Math.min(3, links.length, paragraphIndices.length);
+  const targetParagraphSlots = new Set<number>();
   for (let i = 0; i < slotCount; i += 1) {
-    const idx = Math.floor(((i + 1) * paragraphs.length) / (slotCount + 1));
-    slots.add(Math.min(Math.max(idx, 0), paragraphs.length - 1));
+    const pIdx = Math.floor(((i + 1) * paragraphIndices.length) / (slotCount + 1));
+    targetParagraphSlots.add(paragraphIndices[Math.min(Math.max(pIdx, 0), paragraphIndices.length - 1)]);
   }
 
   let output = '';
   let used = 0;
 
-  for (let i = 0; i < paragraphs.length; i += 1) {
-    output += paragraphs[i];
-    if (slots.has(i) && used < links.length) {
+  for (let i = 0; i < chunks.length; i += 1) {
+    output += chunks[i];
+    if (targetParagraphSlots.has(i) && used < links.length) {
       output += buildInlineAlsoReadHtml(links[used]);
       used += 1;
     }
-  }
-
-  // If for some reason the slotting didn't insert anything but we have links,
-  // ensure at least one inline card appears after the first paragraph.
-  if (output === cleaned && links.length > 0 && paragraphs.length > 0) {
-    return paragraphs[0] + buildInlineAlsoReadHtml(links[0]) + paragraphs.slice(1).join('');
   }
 
   return output;

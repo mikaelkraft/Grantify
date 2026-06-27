@@ -7,6 +7,7 @@ export const Privacy: React.FC = () => {
   const [ads, setAds] = React.useState<AdConfig | null>(null);
 
   React.useEffect(() => {
+    document.title = 'Privacy Policy | Grantify Nigeria';
     ApiService.getAds().then(setAds).catch(console.error);
   }, []);
 

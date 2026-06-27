@@ -8,6 +8,7 @@ export const Contact: React.FC = () => {
   const [ads, setAds] = React.useState<AdConfig | null>(null);
 
   React.useEffect(() => {
+    document.title = 'Contact Us - Reach Out to the Grantify Team';
     ApiService.getAds().then(setAds).catch(console.error);
   }, []);
 

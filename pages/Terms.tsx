@@ -7,6 +7,7 @@ export const Terms: React.FC = () => {
   const [ads, setAds] = React.useState<AdConfig | null>(null);
 
   React.useEffect(() => {
+    document.title = 'Terms & Conditions | Grantify Nigeria';
     ApiService.getAds().then(setAds).catch(console.error);
   }, []);
 

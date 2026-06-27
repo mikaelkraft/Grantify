@@ -405,21 +405,45 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       {/* Header Ad Slot - REMOVED for cleaner site header */}
 
       {/* Navbar */}
-      <header className="bg-grantify-green/95 dark:bg-gray-950 backdrop-blur-md text-white shadow-lg sticky top-0 z-[60] transition-all duration-300">
-        <div className="mx-auto w-full max-w-7xl px-3 sm:px-4 md:px-6 py-4 flex justify-between items-center">
-          <Link to="/" className="flex items-center gap-2 text-2xl font-bold font-heading text-grantify-gold">
+      <header className="relative bg-gradient-to-r from-green-950 via-grantify-green to-green-900 text-white shadow-lg sticky top-0 z-[60] transition-all duration-300 overflow-hidden">
+        {/* Wavy Background SVG */}
+        <div className="absolute inset-0 z-0 pointer-events-none select-none overflow-hidden opacity-10 dark:opacity-5">
+          <svg className="w-full h-[200%] -top-1/2 left-0" viewBox="0 0 1440 240" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+            <path d="M0,96C240,140 480,140 720,96C960,52 1200,52 1440,96L1440,240L0,240Z" fill="url(#wave-grad-1)"/>
+            <path d="M0,140C300,90 600,180 900,130C1200,80 1350,110 1440,120L1440,240L0,240Z" fill="url(#wave-grad-2)"/>
+            <defs>
+              <linearGradient id="wave-grad-1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#FFD700" />
+                <stop offset="100%" stopColor="#006400" />
+              </linearGradient>
+              <linearGradient id="wave-grad-2" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#006400" />
+                <stop offset="100%" stopColor="#FFD700" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        {/* Additional wavy design path at the bottom of the header */}
+        <div className="absolute bottom-0 left-0 right-0 h-1.5 pointer-events-none z-10 overflow-hidden">
+          <svg className="absolute bottom-0 w-full h-[15px]" viewBox="0 0 1440 15" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0,7 C360,15 720,0 1080,7 L1440,0 L1440,15 L0,15 Z" fill="currentColor" className="text-gray-50 dark:text-gray-950 transition-colors duration-300" />
+          </svg>
+        </div>
+
+        <div className="relative z-10 mx-auto w-full max-w-7xl px-3 sm:px-4 md:px-6 py-4 flex justify-between items-center">
+          <Link to="/" className="flex items-center gap-1.5 text-lg lg:text-xl xl:text-2xl font-black font-heading text-grantify-gold shrink-0">
             <img
               src="/logo.svg"
               alt="Grantify"
-              className="w-7 h-7"
+              className="w-6 h-6 lg:w-7 lg:h-7"
               loading="eager"
               decoding="async"
             />
-            <span>Grantify</span>
+            <span className="font-outfit tracking-tight">Grantify</span>
           </Link>
 
           {/* Desktop Search + Nav */}
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-3 lg:gap-4">
             <div ref={searchBoxRef} className="relative">
               <div className="flex items-center gap-2 bg-white/10 hover:bg-white/15 transition rounded-full px-3 py-2">
                 <Search size={16} className="text-white/80" />
@@ -434,7 +458,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                     void ensureSearchIndex();
                   }}
                   placeholder="Search blog, loans, grants…"
-                  className="w-[160px] md:w-[220px] lg:w-[300px] bg-transparent outline-none text-sm placeholder:text-white/70"
+                  className="w-[100px] lg:w-[150px] xl:w-[220px] bg-transparent outline-none text-xs placeholder:text-white/70 animate-all"
                   aria-label="Search"
                 />
                 {Boolean(searchQuery.trim()) && (
@@ -488,27 +512,27 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               )}
             </div>
 
-            <nav className="flex gap-4 md:gap-6 items-center text-sm">
+            <nav className="flex gap-1.5 lg:gap-3 xl:gap-4 items-center text-xs lg:text-sm font-outfit uppercase tracking-wider">
             {navLinks.map(link => (
               <Link 
                 key={link.to} 
                 to={link.to} 
-                className={`hover:text-grantify-gold transition-colors font-medium px-2 py-1 rounded-sm ${location.pathname === link.to ? 'text-grantify-gold border-b-2 border-grantify-gold' : ''}`}
+                className={`hover:text-grantify-gold transition-colors font-bold px-1.5 py-1 rounded-sm ${location.pathname === link.to ? 'text-grantify-gold border-b-2 border-grantify-gold' : ''}`}
               >
-                <span className="sm:hidden">{link.shortLabel}</span>
-                <span className="hidden sm:inline">{link.label}</span>
+                <span className="lg:hidden">{link.shortLabel}</span>
+                <span className="hidden lg:inline">{link.label}</span>
               </Link>
             ))}
 
             <button
               type="button"
               onClick={() => setTheme(isDarkMode ? 'light' : 'dark')}
-              className="ml-2 inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white/10 hover:bg-white/15 transition text-xs font-bold"
+              className="ml-1 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/10 hover:bg-white/15 transition text-[10px] lg:text-xs font-bold"
               aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
               title={isDarkMode ? 'Light mode' : 'Dark mode'}
             >
-              {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
-              <span className="hidden lg:inline">{isDarkMode ? 'Light' : 'Dark'}</span>
+              {isDarkMode ? <Sun size={14} /> : <Moon size={14} />}
+              <span className="hidden xl:inline">{isDarkMode ? 'Light' : 'Dark'}</span>
             </button>
             </nav>
           </div>
@@ -644,27 +668,64 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       {ads?.footer && <AdSlot htmlContent={ads.footer} className="bg-gray-900 py-4" label="Sponsor" />}
 
       {/* Footer */}
-      <footer className="bg-gray-950 text-gray-400 py-10 border-t border-gray-900">
-        <div className="mx-auto w-full max-w-7xl px-3 sm:px-4 md:px-6 text-center flex flex-col items-center">
-          <div className="flex flex-col items-center justify-center gap-2 mb-6">
-             <div className="flex items-center gap-2 text-yellow-500 text-xs bg-yellow-900/20 px-3 py-1.5 rounded-full border border-yellow-700/30">
-               <AlertTriangle size={12} />
-               <span>For best results, disable Adblockers and avoid VPNs.</span>
-             </div>
+      <footer className="bg-gray-950 text-gray-400 py-12 border-t border-gray-900">
+        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mb-8 text-left">
+            {/* Column 1: About */}
+            <div className="space-y-4">
+              <Link to="/" className="flex items-center gap-2 text-xl font-bold font-heading text-grantify-gold">
+                <img src="/logo.svg" alt="Grantify" className="w-6 h-6" />
+                <span className="font-outfit tracking-tight">Grantify</span>
+              </Link>
+              <p className="text-xs text-gray-500 leading-relaxed max-w-xs">
+                Empowering entrepreneurs, families, and businesses across Nigeria with smart grant matches, funding alerts, and financial intelligence.
+              </p>
+              <div className="flex items-start gap-2 text-yellow-500 text-[11px] bg-yellow-900/10 p-2.5 rounded-lg border border-yellow-700/20 max-w-xs">
+                <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
+                <span>For best results, disable Adblockers and avoid VPNs when applying.</span>
+              </div>
+            </div>
+
+            {/* Column 2: Platform */}
+            <div>
+              <h3 className="text-xs font-bold text-gray-200 mb-4 uppercase tracking-widest font-outfit">Platform</h3>
+              <ul className="space-y-2.5 text-sm font-medium">
+                <li><Link to="/" className="hover:text-grantify-gold transition-colors block">Home</Link></li>
+                <li><Link to="/blog" className="hover:text-grantify-gold transition-colors block">Blog Intel</Link></li>
+                <li><Link to="/contact" className="hover:text-grantify-gold transition-colors block">Contact Us</Link></li>
+                <li><Link to="/sponsor" className="hover:text-grantify-gold transition-colors block">Sponsorships</Link></li>
+              </ul>
+            </div>
+
+            {/* Column 3: Services */}
+            <div>
+              <h3 className="text-xs font-bold text-gray-200 mb-4 uppercase tracking-widest font-outfit">Services</h3>
+              <ul className="space-y-2.5 text-sm font-medium">
+                <li><Link to="/quiz" className="hover:text-grantify-gold transition-colors block">Eligibility Quiz</Link></li>
+                <li><Link to="/pitch" className="hover:text-grantify-gold transition-colors block">Pitch Competition</Link></li>
+                <li><Link to="/loan-providers" className="hover:text-grantify-gold transition-colors block">Instant Loans</Link></li>
+              </ul>
+            </div>
+
+            {/* Column 4: Legal & Admin */}
+            <div>
+              <h3 className="text-xs font-bold text-gray-200 mb-4 uppercase tracking-widest font-outfit">Legal</h3>
+              <ul className="space-y-2.5 text-sm font-medium">
+                <li><Link to="/privacy" className="hover:text-grantify-gold transition-colors block">Privacy Policy</Link></li>
+                <li><Link to="/terms" className="hover:text-grantify-gold transition-colors block">Terms & Conditions</Link></li>
+                <li><Link to="/admin" className="hover:text-grantify-gold transition-colors block font-bold text-grantify-gold/80 hover:text-grantify-gold">Admin Dashboard</Link></li>
+              </ul>
+            </div>
           </div>
-          
-          {/* Footer Links - vertically aligned */}
-          <nav className="flex flex-col items-center gap-3 mb-6 text-sm font-semibold tracking-wide">
-            <Link to="/privacy" className="hover:text-grantify-gold transition-colors">Privacy Policy</Link>
-            <Link to="/terms" className="hover:text-grantify-gold transition-colors">Terms & Conditions</Link>
-            <Link to="/quiz" className="hover:text-grantify-gold transition-colors">Eligibility Quiz</Link>
-            <Link to="/pitch" className="hover:text-grantify-gold transition-colors">Pitch Competition</Link>
-          </nav>
-          
-          {/* App Footer Credit - below links */}
-          <p className="text-xs text-gray-500">
-            &copy; {new Date().getFullYear()} Grantify Nigeria. Empowering families and businesses nationwide.
-          </p>
+
+          <div className="pt-6 border-t border-gray-900 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <p className="text-xs text-gray-500 text-center sm:text-left">
+              &copy; {new Date().getFullYear()} Grantify Nigeria. Empowering families and businesses nationwide.
+            </p>
+            <p className="text-xs text-gray-650 text-center sm:text-right">
+              Empowering Nigerian SME Growth
+            </p>
+          </div>
         </div>
       </footer>
 
