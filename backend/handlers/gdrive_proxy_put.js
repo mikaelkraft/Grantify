@@ -53,12 +53,14 @@ export default async function handler(req, res) {
       headers: {
         'Content-Type': contentType,
         'Content-Length': String(body.length),
+        'Content-Range': `bytes 0-${body.length - 1}/${body.length}`,
       },
       body,
     }, { attempts: 3, baseDelayMs: 400 });
 
     const text = await putRes.text().catch(() => '');
-    if (!putRes.ok) {
+    const isSuccess = putRes.ok || putRes.status === 200 || putRes.status === 201;
+    if (!isSuccess) {
       return res.status(400).json({
         error: text || `Google Drive upload failed (${putRes.status})`,
         status: putRes.status,

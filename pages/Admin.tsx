@@ -1622,6 +1622,16 @@ export const Admin: React.FC = () => {
     }
   };
 
+  const handleClearFeaturedImage = () => {
+    setFeaturedImageLocalPreview((prev) => {
+      try { if (prev) URL.revokeObjectURL(prev); } catch {}
+      return '';
+    });
+    setNewPost(prev => ({ ...prev, image: '' }));
+    setFeaturedImagePreviewNonce((n) => n + 1);
+    setFeaturedImageUploadKey((k) => k + 1);
+  };
+
   const handleAddBlogPost = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSavingPost(true);
@@ -3906,48 +3916,83 @@ export const Admin: React.FC = () => {
                            </div>
                          )}
                          
-                         <div className="md:col-span-2 flex flex-col md:flex-row gap-3">
-                           <input
-                             className={inputClassSmall + " flex-grow"}
-                             placeholder="Feature Image URL (optional)"
-                             value={newPost.image}
-                             onChange={e => setNewPost({ ...newPost, image: e.target.value })}
-                           />
-                           <input
-                             key={featuredImageUploadKey}
-                             type="file"
-                             accept="image/jpeg,image/png,image/webp,image/gif"
-                             className={inputClassSmall + " p-1 text-xs"}
-                             onChange={(e) => handleFeaturedImageUpload(e.target.files?.[0])}
-                             aria-label="Upload featured image"
-                           />
-                         </div>
+                         <div className="md:col-span-2 flex flex-col gap-2">
+                            <div className="flex flex-col md:flex-row gap-2 items-center">
+                              <input
+                                className={inputClassSmall + " flex-grow w-full"}
+                                placeholder="Featured Image URL (e.g. Unsplash, GDrive, or direct URL)"
+                                value={newPost.image}
+                                onChange={e => setNewPost({ ...newPost, image: e.target.value })}
+                              />
+                              <label className="flex items-center gap-1.5 cursor-pointer bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-xs font-semibold px-3 py-2 rounded-lg transition-colors shrink-0 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700">
+                                <span>Upload New</span>
+                                <input
+                                  key={featuredImageUploadKey}
+                                  type="file"
+                                  accept="image/jpeg,image/png,image/webp,image/gif"
+                                  className="hidden"
+                                  onChange={(e) => handleFeaturedImageUpload(e.target.files?.[0])}
+                                  aria-label="Upload featured image"
+                                />
+                              </label>
+                              {(Boolean(newPost.image) || Boolean(featuredImageLocalPreview)) && (
+                                <button
+                                  type="button"
+                                  onClick={handleClearFeaturedImage}
+                                  className="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-950/40 dark:hover:bg-red-900/60 dark:text-red-300 text-xs font-semibold px-3 py-2 rounded-lg transition-colors shrink-0 border border-red-200 dark:border-red-900/50"
+                                  title="Remove image completely so post has no image"
+                                >
+                                  <Trash2 size={13} />
+                                  <span>Remove Image</span>
+                                </button>
+                              )}
+                            </div>
+                            {Boolean(newPost.image) && (
+                              <div className="flex items-center gap-2 text-[11px] text-gray-500">
+                                <span className="font-semibold uppercase tracking-wider text-[9px] bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-gray-600 dark:text-gray-300">
+                                  {newPost.image.includes('/api/uploads/gdrive') ? 'Google Drive Hosted' :
+                                   newPost.image.includes('unsplash.com') ? 'Unsplash Curated' :
+                                   newPost.image.includes('onedrive') ? 'OneDrive Hosted' : 'External Link'}
+                                </span>
+                                <span className="truncate max-w-md text-gray-400">{newPost.image}</span>
+                              </div>
+                            )}
+                          </div>
 
-                         {(newPost.image || featuredImageLocalPreview) && (
-                           <div className="md:col-span-2">
-                             <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Featured Image Preview</div>
-                             <div className="bg-white dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-800 overflow-hidden">
-                               <img
-                                 src={(() => {
-                                   if (featuredImageLocalPreview) return featuredImageLocalPreview;
-                                   const raw = String(newPost.image || '').trim();
-                                   if (!raw) return raw;
-                                   if (raw.startsWith('data:')) return raw;
-                                   const join = raw.includes('?') ? '&' : '?';
-                                   return `${raw}${join}v=${featuredImagePreviewNonce}`;
-                                 })()}
-                                 alt={newPost.title || 'Featured'}
-                                 className="w-full h-48 object-cover"
-                                 loading="lazy"
+                          {(newPost.image || featuredImageLocalPreview) && (
+                            <div className="md:col-span-2">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Featured Image Preview</div>
+                                <button
+                                  type="button"
+                                  onClick={handleClearFeaturedImage}
+                                  className="text-[11px] text-red-500 hover:text-red-700 font-semibold flex items-center gap-1"
+                                >
+                                  <Trash2 size={11} /> Clear Image
+                                </button>
+                              </div>
+                              <div className="bg-white dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-800 overflow-hidden relative">
+                                <img
+                                  src={(() => {
+                                    if (featuredImageLocalPreview) return featuredImageLocalPreview;
+                                    const raw = String(newPost.image || '').trim();
+                                    if (!raw) return raw;
+                                    if (raw.startsWith('data:')) return raw;
+                                    const join = raw.includes('?') ? '&' : '?';
+                                    return `${raw}${join}v=${featuredImagePreviewNonce}`;
+                                  })()}
+                                  alt={newPost.title || 'Featured'}
+                                  className="w-full h-48 object-cover"
+                                  loading="lazy"
                                />
-                               {isUploadingFeaturedImage && (
-                                 <div className="p-2 text-xs text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
-                                   Uploading image…
-                                 </div>
-                               )}
-                             </div>
-                           </div>
-                         )}
+                                {isUploadingFeaturedImage && (
+                                  <div className="p-2 text-xs text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
+                                    Uploading image…
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
                          
                          <div className="md:col-span-2 bg-white dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-800 overflow-visible min-h-[300px] flex flex-col min-w-0 max-w-full">
                             <div className="p-2 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Article Content</div>

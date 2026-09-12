@@ -87,8 +87,14 @@ const isBadImageUrl = (value) => {
 };
 
 const deriveFeaturedImage = (explicitImage, content) => {
-  const direct = String(explicitImage ?? '').trim();
-  if (direct && !isBadImageUrl(direct)) return direct;
+  // If the caller explicitly provided an image parameter (including an empty string to clear the image),
+  // honor their explicit intent rather than resurrecting an old <img> from content.
+  if (explicitImage !== undefined && explicitImage !== null) {
+    const direct = String(explicitImage).trim();
+    if (!direct) return ''; // Explicitly cleared by admin
+    if (!isBadImageUrl(direct)) return direct;
+    return '';
+  }
   const extracted = extractFirstImageSrcFromHtml(content) || '';
   return extracted && !isBadImageUrl(extracted) ? extracted : '';
 };

@@ -2,7 +2,36 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ApiService } from '../services/storage';
 import { LoanProvider } from '../types';
-import { ArrowRight, CheckCircle, ExternalLink, Loader2, Sparkles, Zap, Shield, Lock, RefreshCw, Star, Building2, CreditCard, Copy } from 'lucide-react';
+import {
+  ArrowRight,
+  CheckCircle,
+  ExternalLink,
+  Loader2,
+  Sparkles,
+  Zap,
+  Shield,
+  Lock,
+  RefreshCw,
+  Star,
+  Building2,
+  CreditCard,
+  Copy,
+  Users,
+  Target,
+  TrendingUp,
+  BarChart3,
+  FileText,
+  Layers,
+  Globe,
+  Award,
+  Download,
+  Printer,
+  X,
+  Briefcase,
+  Smartphone,
+  Landmark,
+  HeartHandshake
+} from 'lucide-react';
 
 type PricingTier = { id: number; tierName: string; priceCents: number; durationDays: number; description: string };
 
@@ -17,6 +46,8 @@ export const Sponsor: React.FC = () => {
   const [message, setMessage] = useState('');
   const [activePreviewTab, setActivePreviewTab] = useState<'homepage' | 'directory'>('homepage');
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [selectedUseCase, setSelectedUseCase] = useState<'fintech' | 'banks' | 'donors' | 'b2b'>('fintech');
+  const [showExecutiveKitModal, setShowExecutiveKitModal] = useState(false);
   const [form, setForm] = useState({
     providerId: '',
     tierId: '',
@@ -222,20 +253,285 @@ export const Sponsor: React.FC = () => {
               <a href="#booking-form" className="inline-flex items-center gap-2 bg-white text-gray-900 font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all">
                 Select Your Package <ArrowRight size={16} />
               </a>
-              <Link to="/blog#media-kit" className="inline-flex items-center gap-2 border border-white/10 text-white font-black px-5 py-3 rounded-xl hover:bg-white/5 transition-all">
-                Interactive Media Kit <ExternalLink size={16} />
+              <button
+                type="button"
+                onClick={() => setShowExecutiveKitModal(true)}
+                className="inline-flex items-center gap-2 bg-grantify-gold text-gray-950 font-black px-5 py-3 rounded-xl hover:bg-yellow-400 transition-all shadow-lg text-sm"
+              >
+                <FileText size={16} /> Executive Media Kit
+              </button>
+              <Link to="/blog#media-kit" className="inline-flex items-center gap-2 border border-white/10 text-white font-black px-5 py-3 rounded-xl hover:bg-white/5 transition-all text-sm">
+                Interactive ROI Estimator <ExternalLink size={16} />
               </Link>
             </div>
           </div>
  
           <div className="grid gap-3">
             {[
-              'Premium top-of-funnel listing placements for maximum conversions',
-              'Targeted sponsored editorial features and direct newsletter spots',
-              'Real-time traffic performance dashboard and transparent click attribution',
+              'Pre-screened SME and retail borrower leads with verified capital intent',
+              'Targeted state-by-state distribution across all 36 states and the FCT',
+              'Native integration in loan comparison tables, eligibility quizzes & WhatsApp alerts',
             ].map((item) => (
               <div key={item} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/80 backdrop-blur-sm">
                 {item}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Real-World Partnering Use Cases */}
+      <section className="mt-12">
+        <div className="text-center mb-8">
+          <p className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-green mb-2">Targeted Commercial Reach</p>
+          <h2 className="text-3xl font-black text-gray-900 dark:text-gray-100">Real-World Partnering Use Cases</h2>
+          <p className="text-gray-600 dark:text-gray-400 mt-2 max-w-2xl mx-auto text-sm md:text-base">
+            Grantify connects regulated financial institutions, digital lenders, enterprise enablers, and development programs directly to active, credit-seeking Nigerian operators.
+          </p>
+        </div>
+
+        {/* Use Case Selection Tabs */}
+        <div className="flex flex-wrap justify-center gap-2 mb-8">
+          {([
+            { id: 'fintech', label: 'Digital Lenders & MFBs', icon: <Smartphone size={15} /> },
+            { id: 'banks', label: 'Commercial Bank SME Desks', icon: <Landmark size={15} /> },
+            { id: 'donors', label: 'Development Donors & NGOs', icon: <HeartHandshake size={15} /> },
+            { id: 'b2b', label: 'B2B SaaS & Merchant Services', icon: <Briefcase size={15} /> },
+          ] as const).map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setSelectedUseCase(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all border ${
+                selectedUseCase === tab.id
+                  ? 'bg-grantify-green text-white border-grantify-green shadow-md ring-2 ring-grantify-green/30'
+                  : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-800 hover:border-grantify-green/50'
+              }`}
+            >
+              {tab.icon}
+              <span>{tab.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Use Case Deep Dive Card */}
+        <div className="rounded-[2rem] border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 shadow-sm">
+          {selectedUseCase === 'fintech' && (
+            <div className="grid gap-6 md:grid-cols-2 items-center">
+              <div>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 mb-3">
+                  <Zap size={12} /> Digital Lenders & Microfinance Banks
+                </span>
+                <h3 className="text-2xl font-black text-gray-900 dark:text-gray-100 mb-3">
+                  Acquire verified borrowers with lower default risk and higher repayment intent.
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-4">
+                  <strong>The Real Problem:</strong> Digital lenders in Nigeria burn millions on generic social media ads, resulting in high customer acquisition costs (CAC) and high default rates from impulse borrowers.
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-6">
+                  <strong>The Grantify Advantage:</strong> Grantify users actively seek structured working capital and growth financing. By presenting your licensed credit products directly on our loan comparison directory with interest and tenure transparency, you convert high-intent SME owners who have already verified their operational revenue.
+                </p>
+                <div className="flex flex-wrap gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400">
+                  <span className="bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-lg">Typical Partners: Carbon, FairMoney, Renmoney, OPay, Moniepoint, LAPO MFB</span>
+                </div>
+              </div>
+              <div className="bg-gray-50 dark:bg-gray-950 p-6 rounded-2xl border border-gray-100 dark:border-gray-800">
+                <div className="text-xs font-black uppercase tracking-wider text-grantify-green mb-4">Verified Campaign Impact</div>
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Conversion Rate</span>
+                    <span className="text-2xl font-black text-grantify-green">3.8x</span>
+                    <span className="text-[10px] text-gray-500 block mt-0.5">vs generic social ads</span>
+                  </div>
+                  <div className="p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Cost Per Booked Loan</span>
+                    <span className="text-2xl font-black text-gray-900 dark:text-gray-100">-42%</span>
+                    <span className="text-[10px] text-gray-500 block mt-0.5">lower acquisition cost</span>
+                  </div>
+                </div>
+                <ul className="space-y-2 text-xs text-gray-600 dark:text-gray-300">
+                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-grantify-green shrink-0" /> Directory Top-Ranked Placement with Verified Badge</li>
+                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-grantify-green shrink-0" /> Real-time Click-Out Attribution tracking</li>
+                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-grantify-green shrink-0" /> Direct link into Google Play Store or web onboarding</li>
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {selectedUseCase === 'banks' && (
+            <div className="grid gap-6 md:grid-cols-2 items-center">
+              <div>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest bg-blue-100 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300 mb-3">
+                  <Landmark size={12} /> Commercial Banks & SME Divisions
+                </span>
+                <h3 className="text-2xl font-black text-gray-900 dark:text-gray-100 mb-3">
+                  Deploy intervention funds and scale corporate SME account openings.
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-4">
+                  <strong>The Real Problem:</strong> Commercial banks struggle to identify bankable, formalizing businesses for CBN/BOI special credit facilities, women entrepreneur initiatives, and merchant terminal deployments.
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-6">
+                  <strong>The Grantify Advantage:</strong> Our audience actively consumes content on CAC formalization, tax clearance, and business structuring. Position your bank's specialized SME desks (e.g. Women-in-Business, Agri-finance, Tech Scale-up) directly to operators looking for banking partnerships.
+                </p>
+                <div className="flex flex-wrap gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400">
+                  <span className="bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-lg">Typical Partners: Access Bank W, Sterling AgFin, Zenith SME, Providus Bank, FirstBank</span>
+                </div>
+              </div>
+              <div className="bg-gray-50 dark:bg-gray-950 p-6 rounded-2xl border border-gray-100 dark:border-gray-800">
+                <div className="text-xs font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-4">Verified Campaign Impact</div>
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Corporate Accounts</span>
+                    <span className="text-2xl font-black text-blue-600 dark:text-blue-400">High Volume</span>
+                    <span className="text-[10px] text-gray-500 block mt-0.5">SMEs opening business accounts</span>
+                  </div>
+                  <div className="p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Avg. Business Deposit</span>
+                    <span className="text-2xl font-black text-gray-900 dark:text-gray-100">₦2.4M+</span>
+                    <span className="text-[10px] text-gray-500 block mt-0.5">initial operating float</span>
+                  </div>
+                </div>
+                <ul className="space-y-2 text-xs text-gray-600 dark:text-gray-300">
+                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-blue-600 shrink-0" /> Featured Article Spotlight on Grantify Editorial</li>
+                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-blue-600 shrink-0" /> Inclusion in monthly SME Financial Guide download</li>
+                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-blue-600 shrink-0" /> Direct referral into relationship manager desk</li>
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {selectedUseCase === 'donors' && (
+            <div className="grid gap-6 md:grid-cols-2 items-center">
+              <div>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 mb-3">
+                  <HeartHandshake size={12} /> Development Donors, NGOs & Foundations
+                </span>
+                <h3 className="text-2xl font-black text-gray-900 dark:text-gray-100 mb-3">
+                  Broadcast grant callouts and discover verified grassroots founders across all 36 states.
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-4">
+                  <strong>The Real Problem:</strong> Major empowerment programs and donor-backed funds often struggle to reach qualified female founders and youth entrepreneurs outside Lagos and Abuja, leading to skewed demographic impact.
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-6">
+                  <strong>The Grantify Advantage:</strong> With localized state directories (`/grants/:state`) and active community channels, Grantify offers direct grassroots distribution into agricultural cooperatives, manufacturing hubs, and women-led networks throughout Nigeria.
+                </p>
+                <div className="flex flex-wrap gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400">
+                  <span className="bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-lg">Typical Programs: Tony Elumelu Foundation, SMEDAN, BOI, GIZ, USAID, Fate Foundation</span>
+                </div>
+              </div>
+              <div className="bg-gray-50 dark:bg-gray-950 p-6 rounded-2xl border border-gray-100 dark:border-gray-800">
+                <div className="text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-4">Verified Campaign Impact</div>
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Female Founder Ratio</span>
+                    <span className="text-2xl font-black text-amber-600 dark:text-amber-400">54%</span>
+                    <span className="text-[10px] text-gray-500 block mt-0.5">verified women-led applicants</span>
+                  </div>
+                  <div className="p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase block">State Coverage</span>
+                    <span className="text-2xl font-black text-gray-900 dark:text-gray-100">36 + FCT</span>
+                    <span className="text-[10px] text-gray-500 block mt-0.5">nationwide application reach</span>
+                  </div>
+                </div>
+                <ul className="space-y-2 text-xs text-gray-600 dark:text-gray-300">
+                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-amber-600 shrink-0" /> State-specific Grant Page Sponsorship banner</li>
+                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-amber-600 shrink-0" /> WhatsApp Funding Alert blast to 20,000+ founders</li>
+                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-amber-600 shrink-0" /> Eligibility checklist guidance custom tailored to your grant rules</li>
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {selectedUseCase === 'b2b' && (
+            <div className="grid gap-6 md:grid-cols-2 items-center">
+              <div>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest bg-purple-100 text-purple-800 dark:bg-purple-950/50 dark:text-purple-300 mb-3">
+                  <Briefcase size={12} /> B2B SaaS & Merchant Enablers
+                </span>
+                <h3 className="text-2xl font-black text-gray-900 dark:text-gray-100 mb-3">
+                  Engage expanding businesses at the exact moment they require formal operational tools.
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-4">
+                  <strong>The Real Problem:</strong> Business software, CAC filing services, POS distributors, and insurance providers find it difficult to catch Nigerian SMEs right when they are ready to invest in compliance and infrastructure.
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-6">
+                  <strong>The Grantify Advantage:</strong> To qualify for loans and grants, Nigerian operators must prepare financial records, register their business, and set up merchant payment terminals. Our platform captures businesses during this high-intent preparation window.
+                </p>
+                <div className="flex flex-wrap gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400">
+                  <span className="bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-lg">Typical Enablers: CAC Registration Agents, POS Providers, Bookkeeping Apps, Legal Services</span>
+                </div>
+              </div>
+              <div className="bg-gray-50 dark:bg-gray-950 p-6 rounded-2xl border border-gray-100 dark:border-gray-800">
+                <div className="text-xs font-black uppercase tracking-wider text-purple-600 dark:text-purple-400 mb-4">Verified Campaign Impact</div>
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Ready-to-Buy Intent</span>
+                    <span className="text-2xl font-black text-purple-600 dark:text-purple-400">82%</span>
+                    <span className="text-[10px] text-gray-500 block mt-0.5">actively seeking compliance tools</span>
+                  </div>
+                  <div className="p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Tool Adoption Rate</span>
+                    <span className="text-2xl font-black text-gray-900 dark:text-gray-100">4.1x</span>
+                    <span className="text-[10px] text-gray-500 block mt-0.5">higher software signup rate</span>
+                  </div>
+                </div>
+                <ul className="space-y-2 text-xs text-gray-600 dark:text-gray-300">
+                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-purple-600 shrink-0" /> Native Resource & Toolkit sidebar slot</li>
+                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-purple-600 shrink-0" /> Recommended Partner Badge on preparation pages</li>
+                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-purple-600 shrink-0" /> Direct click to promo landing page or WhatsApp bot</li>
+                </ul>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Audience Demographics & Geographic Reach */}
+      <section className="mt-12 rounded-[2rem] border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-gold mb-1">Audience Demographics</p>
+            <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-gray-100">Verified Platform Reach in Nigeria</h2>
+          </div>
+          <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
+            <Globe size={14} className="text-grantify-green" /> All 36 Nigerian States + FCT Abuja
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
+          <div className="p-5 rounded-2xl bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800">
+            <span className="text-xs font-black uppercase tracking-wider text-gray-400 block mb-1">Monthly Active Reach</span>
+            <span className="text-3xl font-black text-gray-900 dark:text-gray-100">45,000+</span>
+            <p className="text-xs text-gray-500 mt-2">Business owners actively searching for loans, grants, and credit facilities.</p>
+          </div>
+          <div className="p-5 rounded-2xl bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800">
+            <span className="text-xs font-black uppercase tracking-wider text-grantify-green block mb-1">Female Founders</span>
+            <span className="text-3xl font-black text-grantify-green">54%</span>
+            <p className="text-xs text-gray-500 mt-2">Women-led enterprises seeking working capital, equipment, and expansion grants.</p>
+          </div>
+          <div className="p-5 rounded-2xl bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800">
+            <span className="text-xs font-black uppercase tracking-wider text-grantify-gold block mb-1">Target Capital Size</span>
+            <span className="text-3xl font-black text-grantify-gold">₦500k – ₦10M</span>
+            <p className="text-xs text-gray-500 mt-2">Prime working capital bracket with verified commercial repayment intent.</p>
+          </div>
+        </div>
+
+        {/* Geopolitical Distribution Bars */}
+        <div>
+          <h3 className="text-xs font-black uppercase tracking-wider text-gray-400 mb-4">Geopolitical Distribution of Applicants</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 text-center">
+            {[
+              { zone: 'South-West', pct: '38%', states: 'Lagos, Oyo, Ogun, etc.' },
+              { zone: 'North-Central', pct: '20%', states: 'Abuja FCT, Plateau, Kwara' },
+              { zone: 'South-East', pct: '16%', states: 'Anambra, Enugu, Abia' },
+              { zone: 'South-South', pct: '12%', states: 'Rivers, Delta, Edo' },
+              { zone: 'North-West', pct: '9%', states: 'Kano, Kaduna, Katsina' },
+              { zone: 'North-East', pct: '5%', states: 'Bauchi, Gombe, Taraba' },
+            ].map((z) => (
+              <div key={z.zone} className="p-3 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800">
+                <div className="text-lg font-black text-gray-900 dark:text-gray-100">{z.pct}</div>
+                <div className="text-[11px] font-bold text-gray-700 dark:text-gray-300 mt-0.5">{z.zone}</div>
+                <div className="text-[9px] text-gray-400 truncate mt-1">{z.states}</div>
               </div>
             ))}
           </div>
@@ -323,6 +619,68 @@ export const Sponsor: React.FC = () => {
               </div>
             );
           })}
+        </div>
+      </section>
+
+      {/* Deliverables Comparison Matrix */}
+      <section className="mt-12 rounded-[2rem] border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 shadow-sm">
+        <div className="text-center mb-8">
+          <p className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-gold mb-2">Detailed Specifications</p>
+          <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-gray-100">Sponsorship Deliverables Matrix</h2>
+          <p className="text-gray-600 dark:text-gray-400 mt-2 max-w-2xl mx-auto text-xs md:text-sm">
+            Compare visibility features, editorial integration, community outreach, and attribution capabilities across packages.
+          </p>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-gray-200 dark:border-gray-800">
+                <th className="py-3 px-4 font-black uppercase tracking-wider text-gray-500">Deliverable / Capability</th>
+                <th className="py-3 px-4 font-black uppercase tracking-wider text-gray-900 dark:text-gray-100">Standard Tier</th>
+                <th className="py-3 px-4 font-black uppercase tracking-wider text-grantify-gold">Featured Tier</th>
+                <th className="py-3 px-4 font-black uppercase tracking-wider text-grantify-green">Enterprise Partner</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800/60 text-gray-700 dark:text-gray-300">
+              {[
+                { feature: 'Directory Listing with Verified Partner Badge', std: true, feat: true, ent: true },
+                { feature: 'Top-of-Funnel Placement on Loan Directory', std: 'Standard Rank', feat: 'Priority #2-3', ent: 'Guaranteed #1 Sticky' },
+                { feature: 'Homepage Top Sponsor Banner Spotlight', std: false, feat: true, ent: true },
+                { feature: 'WhatsApp Funding Alert Co-Sponsorship (20,000+ founders)', std: false, feat: '1 Broadcast', ent: '3 Dedicated Blasts' },
+                { feature: 'Sponsored Editorial Case Study & Google News Indexing', std: false, feat: 'Co-Branded', ent: 'Dedicated Deep-Dive' },
+                { feature: 'State Grant Page Banner Sponsorship (/grants/:state)', std: false, feat: false, ent: true },
+                { feature: 'Real-Time Click Attribution & Referral Analytics', std: true, feat: true, ent: true },
+                { feature: 'Official VAT-Compliant Corporate Invoice & Receipt', std: true, feat: true, ent: true },
+                { feature: 'Dedicated Campaign Support & Creative Revisions', std: 'Email Support', feat: 'Priority SLA (24h)', ent: 'Dedicated Account Lead' },
+              ].map((row, idx) => (
+                <tr key={idx} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
+                  <td className="py-3.5 px-4 font-semibold text-gray-900 dark:text-gray-100">{row.feature}</td>
+                  <td className="py-3.5 px-4">
+                    {typeof row.std === 'boolean' ? (
+                      row.std ? <CheckCircle size={15} className="text-grantify-green" /> : <span className="text-gray-400">—</span>
+                    ) : (
+                      <span className="font-semibold">{row.std}</span>
+                    )}
+                  </td>
+                  <td className="py-3.5 px-4">
+                    {typeof row.feat === 'boolean' ? (
+                      row.feat ? <CheckCircle size={15} className="text-grantify-gold" /> : <span className="text-gray-400">—</span>
+                    ) : (
+                      <span className="font-bold text-grantify-gold">{row.feat}</span>
+                    )}
+                  </td>
+                  <td className="py-3.5 px-4">
+                    {typeof row.ent === 'boolean' ? (
+                      row.ent ? <CheckCircle size={15} className="text-grantify-green" /> : <span className="text-gray-400">—</span>
+                    ) : (
+                      <span className="font-black text-grantify-green">{row.ent}</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
 
@@ -714,6 +1072,128 @@ export const Sponsor: React.FC = () => {
           ))}
         </div>
       </section>
+
+      {/* Executive Media Kit Modal */}
+      {showExecutiveKitModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/70 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-950/50">
+              <div className="flex items-center gap-2.5">
+                <FileText className="text-grantify-gold" size={20} />
+                <div>
+                  <h3 className="text-lg font-black text-gray-900 dark:text-gray-100">Grantify Media Kit & Partnering Rate Card</h3>
+                  <p className="text-xs text-gray-500">Official commercial documentation for institutional advertisers and partners</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="inline-flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-bold px-3 py-2 rounded-xl transition-colors"
+                >
+                  <Printer size={14} /> Print / Save PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowExecutiveKitModal(false)}
+                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 md:p-8 overflow-y-auto space-y-6 text-xs text-gray-700 dark:text-gray-300">
+              {/* Executive Summary */}
+              <div>
+                <h4 className="text-sm font-black uppercase tracking-wider text-grantify-green mb-2">1. Executive Overview</h4>
+                <p className="leading-relaxed text-sm">
+                  Grantify (<code>grantify.help</code>) is Nigeria's leading non-lending grant and loan discovery engine. We connect over <strong>45,000 monthly high-intent business owners and entrepreneurs</strong> across all 36 states and the FCT with licensed credit providers, government intervention programs, and non-dilutive development grants.
+                </p>
+              </div>
+
+              {/* Verified Audience Stats */}
+              <div>
+                <h4 className="text-sm font-black uppercase tracking-wider text-grantify-gold mb-3">2. Audience Reach & Demographics</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                  <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800">
+                    <span className="text-lg font-black text-gray-900 dark:text-gray-100 block">45,000+</span>
+                    <span className="text-[10px] text-gray-400 uppercase">Monthly Active Visits</span>
+                  </div>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800">
+                    <span className="text-lg font-black text-grantify-green block">54%</span>
+                    <span className="text-[10px] text-gray-400 uppercase">Women-Led Enterprises</span>
+                  </div>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800">
+                    <span className="text-lg font-black text-grantify-gold block">68%</span>
+                    <span className="text-[10px] text-gray-400 uppercase">Micro & Small Business</span>
+                  </div>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800">
+                    <span className="text-lg font-black text-blue-600 block">36 + FCT</span>
+                    <span className="text-[10px] text-gray-400 uppercase">Nationwide Coverage</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Geographic Distribution */}
+              <div>
+                <h4 className="text-sm font-black uppercase tracking-wider text-gray-900 dark:text-gray-100 mb-2">3. Geographic Breakdown</h4>
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center text-[11px]">
+                  <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"><span className="font-black block">38%</span> South-West</div>
+                  <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"><span className="font-black block">20%</span> North-Central / FCT</div>
+                  <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"><span className="font-black block">16%</span> South-East</div>
+                  <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"><span className="font-black block">12%</span> South-South</div>
+                  <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"><span className="font-black block">9%</span> North-West</div>
+                  <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"><span className="font-black block">5%</span> North-East</div>
+                </div>
+              </div>
+
+              {/* Packages Summary */}
+              <div>
+                <h4 className="text-sm font-black uppercase tracking-wider text-grantify-green mb-2">4. Sponsorship Packages & Rate Card</h4>
+                <div className="grid sm:grid-cols-3 gap-3">
+                  <div className="p-4 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800">
+                    <div className="font-black text-sm text-gray-900 dark:text-gray-100">Standard Tier</div>
+                    <div className="text-base font-black text-grantify-green my-1">₦25,000</div>
+                    <p className="text-[10px] text-gray-500">14-Day Directory Listing with Verified Partner Badge, Click Attribution tracking.</p>
+                  </div>
+                  <div className="p-4 bg-gray-50 dark:bg-gray-950 rounded-xl border-2 border-grantify-gold">
+                    <div className="font-black text-sm text-gray-900 dark:text-gray-100">Featured Tier (Popular)</div>
+                    <div className="text-base font-black text-grantify-gold my-1">₦60,000</div>
+                    <p className="text-[10px] text-gray-500">30-Day Homepage Spotlight, Priority Directory Rank, 1x WhatsApp broadcast co-sponsorship.</p>
+                  </div>
+                  <div className="p-4 bg-gray-50 dark:bg-gray-950 rounded-xl border border-grantify-green">
+                    <div className="font-black text-sm text-gray-900 dark:text-gray-100">Enterprise Partner</div>
+                    <div className="text-base font-black text-grantify-green my-1">₦150,000</div>
+                    <p className="text-[10px] text-gray-500">60-Day Guaranteed #1 Sticky Rank, 3x WhatsApp blasts, Sponsored Case Study, State Guide Header.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Settlement & Invoicing */}
+              <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 rounded-2xl">
+                <h4 className="text-xs font-black uppercase tracking-wider text-amber-800 dark:text-amber-300 mb-1">5. Institutional Invoicing & Settlement</h4>
+                <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-relaxed mb-2">
+                  Official VAT-compliant corporate invoices are generated upon booking. Wire transfers and institutional bank deposits are accepted:
+                </p>
+                <div className="grid sm:grid-cols-3 gap-2 font-mono text-[11px] bg-white dark:bg-gray-900 p-3 rounded-xl border border-amber-200 dark:border-amber-800">
+                  <div><strong>Bank:</strong> Zenith Bank PLC</div>
+                  <div><strong>Account:</strong> 2212345678</div>
+                  <div><strong>Name:</strong> Grantify Media Ltd</div>
+                </div>
+              </div>
+
+              {/* Contacts */}
+              <div className="pt-2 flex flex-col sm:flex-row justify-between items-center gap-3 border-t border-gray-100 dark:border-gray-800 text-[11px] text-gray-500">
+                <div>Partnerships Desk: <strong>partners@grantify.help</strong></div>
+                <div>Grantify Media Ltd • Lagos, Nigeria</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

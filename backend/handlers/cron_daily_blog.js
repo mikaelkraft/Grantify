@@ -54,43 +54,105 @@ const ANGLES = [
 ];
 
 const STORY_SEEDS = [
-  'A fashion entrepreneur in Yaba trying to stabilize cashflow after a viral week',
-  'A rice mill operator in Kano balancing equipment repairs and working capital',
-  'A pharmacy owner in Enugu navigating compliance costs and restocking cycles',
-  'A small solar installer in Kaduna chasing large contracts with delayed payments',
-  'A furniture maker in Aba struggling with generator costs and bulk orders',
-  'A catering business in Ibadan trying to move from cash to invoices with SMEs',
-  'A fish farmer in Ogun scaling feed supply and cold-chain logistics',
-  'A printing shop owner in Port Harcourt trying to keep two big contracts on schedule',
-  'A fashion wholesaler in Onitsha balancing import timing with customer deposits',
-  'A small manufacturer in Lagos Mainland trying to buy time between power cuts and payroll',
-  'A training center operator in Abuja weighing tuition discounts against rent and staffing',
-  'A tomato trader in Jos dealing with spoilage, transport, and weekly price swings'
+  'A fashion entrepreneur in Yaba trying to stabilize cashflow after a viral weekend surge exhausted her fabrics and generator fuel',
+  'A commercial rice mill operator in Kano balancing broken destoner equipment repairs with grain purchase cycles',
+  'A retail pharmacy owner in Enugu navigating NAFDAC compliance renewal fees and distributor price hikes on essential medications',
+  'A solar installer in Kaduna chasing delayed milestone payouts on public school electrification projects',
+  'A master furniture fabricator in Aba grappling with diesel costs for his heavy industrial sanders while fulfilling hotel orders',
+  'A corporate catering firm in Ibadan transitioning from cash payments to 45-day invoice terms with logistics clients',
+  'A commercial catfish farmer in Ogun state battling skyrocketing imported feed costs and cold-chain losses during transit',
+  'A high-volume printing press owner in Port Harcourt struggling to keep two oilfield safety manual contracts on delivery schedule',
+  'A wholesale textile trader in Onitsha balancing container clearing delays at Onne port with retailer advance deposits',
+  'A metal fabrication shop owner in Lagos Mainland trying to keep 12 welders on payroll despite 5-day grid outages',
+  'A vocational tech academy founder in Abuja weighing tuition installment discounts against facility rent in Utako',
+  'A tomato aggregator in Jos tackling post-harvest transit spoilage, bad road detours, and volatile Mile 12 market price swings',
+  'A gadget refurbishment shop in Computer Village Ikeja needing bridge capital to purchase a batch of tested screens from Dubai',
+  'A commercial cassava flour processor in Oyo state seeking an off-taker guarantee to unlock a bank equipment lease',
+  'A cold-room seafood distributor in Calabar seeking solar-hybrid backup before festival season restocking begins',
+  'A ginger export aggregator in Kafanchan Kaduna needing pre-shipment export finance to fulfill an EU order',
+  'An auto spare parts importer in Nnewi negotiating credit lines with local mechanics while awaiting container clearance at Tin Can',
+  'A private clinic administrator in Benin City balancing nursing payroll with delayed private health insurance HMO disbursements',
+  'A poultry farmer in Abeokuta weighing whether to buy day-old chicks at inflated prices or pivot to egg production',
+  'A logistics courier operator in Surulere Lagos facing multiple state dispatch rider levy demands and maintenance costs',
+  'A leather footwear workshop manager in Ariaria Market Aba trying to mechanize sole stitching for school uniform tenders',
+  'A bakery owner in Ilorin dealing with 200% price increases on flour and butter while customers resist bread price hikes',
+  'An edtech startup founder in Yaba striving to extend 6-month runway after an international investor froze Africa fund deployments',
+  'A clean water sachet and bottling facility owner in Asaba upgrading filtration filters to maintain regulatory standards',
+  'A beauty and cosmetics manufacturer in Ikeja sourcing local shea butter and palm kernel extracts to beat foreign exchange swings',
+  'A commercial maize grower in Niger state needing tractor leasing finance right before the first rains start',
+  'A shared kitchen operator in Lekki Lagos trying to secure landlord lease renewal without tripling vendor membership fees',
+  'A commercial block-making industry owner in Uyo dealing with sudden cement price increases mid-way through a estate supply contract',
+  'A waste recycling aggregator in Kano city buying baling equipment to supply plastic flakes to industrial packaging manufacturers',
+  'A small garment factory in Oshodi Lagos fulfilling 5,000 corporate polo orders with tight client delivery deadlines',
+  'A dry-cleaning chain operator in Gwarinpa Abuja considering an inverter upgrade to reduce daily fuel expenses',
+  'A honey aggregator and packager in Makurdi Benue state seeking organic export lab certification to sell to premium supermarket chains',
+  'A commercial vehicle fleet repair depot in Warri managing spare parts inventory on credit while waiting for corporate fleet payouts',
+  'A software dev shop in Ikeja seeking invoice discounting against a government ministry digitization contract',
+  'A cashew nut processor in Ogbomoso securing seasonal off-take capital before competitor buyers snap up farm-gate inventory',
+  'A gym and fitness studio owner in Victoria Island Lagos renegotiating lease terms while upgrading heavy cardio equipment',
+  'A commercial livestock feed mill operator in Zaria managing maize shortages by experimenting with alternative brewery grain by-products',
+  'A digital print-on-demand shop owner in Akure serving university departments facing paper import cost spikes',
+  'An interior decor contractor in Maitama Abuja financing custom Italian tile imports for a diplomatic residential refurbishment',
+  'A small dairy processor in Plateau state investing in milk cooling tanks to aggregate fresh milk from pastoral cooperatives',
+  'An independent grocery supermarket owner in Port Harcourt implementing POS inventory software to stop warehouse shrinkage',
+  'A hair products distributor in Trade Fair Complex Lagos seeking merchant lending to buy direct from an Indian manufacturer',
+  'A waste-to-wealth briquette producer in Minna seeking clean cooking grants to scale production for local bakeries and restaurants',
+  'A cold-chain vegetable delivery startup in Jos partnering with long-haul drivers to reduce transit loss to Lagos markets',
+  'An events management operator in Ikeja requiring short-term working capital to stage a 1,500-attendee corporate conference',
+  'A micro-brewery and beverage bottler in Ibadan seeking BOI equipment financing for an automated capping line',
+  'A private primary school proprietor in Kubwa Abuja renovating science laboratories to retain parents after tuition adjustments',
+  'A renewable energy mini-grid technician in Sokoto maintaining solar batteries in rural communities with mobile money tariff collection',
+  'An aluminum roofing sheet fabricator in Osogbo securing distributor credit for raw aluminum coils before price review',
+  'A commercial pig farmer in Ogun state expanding biosecurity barriers and feed storage to protect a 500-head herd'
 ];
 
 // Keep the "recent" window smaller than the number of available angles,
 // so we always have at least one non-recent candidate to choose from.
 const RECENT_ANGLE_WINDOW = Math.max(0, Math.min(5, Math.max(0, ANGLES.length - 1)));
-const RECENT_SEED_WINDOW = Math.max(0, Math.min(4, Math.max(0, STORY_SEEDS.length - 1)));
+const RECENT_SEED_WINDOW = Math.max(0, Math.min(8, Math.max(0, STORY_SEEDS.length - 1)));
 
 const STRUCTURE_VARIANTS = [
   {
-    sectionA: 'Where the pressure starts',
-    sectionB: 'Capital options that fit this case',
-    sectionC: 'Risk controls and red flags',
-    sectionD: 'Execution plan for the next 7 days',
+    format: 'operator-teardown',
+    sectionA: 'The Real Bottleneck on the Ground',
+    sectionB: 'Comparing the Capital Paths (What Actually Disburses)',
+    sectionC: 'Why 70% of Proposals Get Tossed in Round 1',
+    sectionD: 'The 7-Day Operator Action Sprint',
   },
   {
-    sectionA: 'The real constraint on the ground',
-    sectionB: 'Funding paths by business stage',
-    sectionC: 'Mistakes that quietly drain cash',
-    sectionD: 'Operator checklist for this week',
+    format: 'street-smart-guide',
+    sectionA: 'Where the Money Is Quietly Leaking',
+    sectionB: 'Funding Vehicles That Fit This Stage (Without Loan Sharks)',
+    sectionC: 'Hidden Traps, Predatory Terms, and Due Diligence',
+    sectionD: 'Your Monday-to-Friday Execution Board',
   },
   {
-    sectionA: 'What changed in this market window',
-    sectionB: 'Practical funding combinations',
-    sectionC: 'Compliance and fraud risk map',
-    sectionD: 'Weekly action board',
+    format: 'insider-case-study',
+    sectionA: 'The Tipping Point: What Triggered the Capital Squeeze',
+    sectionB: 'How the Financing Was Stitched Together',
+    sectionC: 'Costly Missteps to Dodge in Today’s Market',
+    sectionD: 'The Operator Playbook to Copy This Week',
+  },
+  {
+    format: 'market-mythbuster',
+    sectionA: 'Cutting Through the Funding Hype vs Ground Truth',
+    sectionB: 'Where Real Capital Is Flowing Right Now',
+    sectionC: 'Red Flags That Kill Investor & Grant Review Trust',
+    sectionD: 'Immediate Steps to Get Application-Ready',
+  },
+  {
+    format: '72hr-blueprint',
+    sectionA: 'The Core Constraint: Inventory, Equipment, or Payroll',
+    sectionB: 'Matching Business Stage to the Right Funding Tier',
+    sectionC: 'Safeguarding Margins Against Currency and Energy Swings',
+    sectionD: '5 Concrete Moves to Make in the Next 72 Hours',
+  },
+  {
+    format: 'scaling-playbook',
+    sectionA: 'The Supply Chain Pressure Cooker',
+    sectionB: 'Blended Finance Options and Off-Take Guarantees',
+    sectionC: 'Compliance Must-Haves (CAC, Tax Clearance, and Books)',
+    sectionD: 'Weekly Step-by-Step Capital Checklist',
   },
 ];
 
@@ -99,28 +161,17 @@ const AUTODRAFT_MARKER = 'autodraft';
 
 const buildGroqMessages = ({ angleLabel, storySeed, recentTitles, newsContext }) => {
   const structureVariant = STRUCTURE_VARIANTS[Math.floor(Math.random() * STRUCTURE_VARIANTS.length)] || STRUCTURE_VARIANTS[0];
-  const systemInstruction = `You are a top-tier Nigerian business consultant, SEO expert, and financial journalist writing for operators on the ground.
-  Write an authoritative, human-sounding, and highly engaging 950-1400 word article in HTML format.
+  const systemInstruction = `You are "Grantifier", a street-smart, highly respected Nigerian business editor, funding insider, and grounded financial journalist writing directly for Nigerian business owners, SME operators, and entrepreneurs.
 
-  TITLE RULE:
-  - The first <h2> is the title. Do NOT include any date in the title.
-
-  CRITICAL CONTENT RULES:
-  1. NEVER use em dashes (—). Use commas, colons, or periods instead.
-  2. AVOID generic AI openings or conclusions.
-  2b. Do NOT include a "Conclusion" section or wrap-up paragraph. End with concrete next steps.
-  3. FOCUS deeply on Nigeria: use Naira (₦), mention local states, or CBN/BOI policies.
-  4. SOUND like a person, not a textbook. Be strategic, highly detailed, and actionable.
-  5. LINKS: Do NOT include raw external URLs in the body. Internal links are allowed only as relative links like /blog/<slug>.
-  Do NOT add a Sources section or citations. We will append Sources separately.
-  6. AVOID too much use of "Additionally", "Moreover", "Furthermore", or similar transition words.
-  7. FORMAT: Use <h2>, <h3>, <p>, <strong>, <ul>, <li>, and <a> tags only.
-  8. PROFESSIONAL TONE: write like an experienced industry reporter, not an advertisement.
-  9. SPECIFICITY: include at least 1 short Nigeria-specific mini example (2-4 sentences) to ground the piece.
-  10. STORYTELLING: Open with a 3-5 sentence narrative hook about one realistic operator in one location. Do not present the narrator as personally visiting shops or offices across multiple states.
-  10b. STRICT VIGNETTE RULE: Avoid cliché AI narrative openings (e.g., "In the heart of Lagos...", "Meet Amina...", "In Nigeria, SMEs are the backbone...", "Tunde stands in his..."). Instead, start mid-action, focusing on concrete numbers, a specific operational task, or a local seasonal event (e.g., "The diesel invoice on Tunde's desk was 40% higher this Monday...", "Rainy season always delays the off-take trucks heading to Kano...").
-  11. FRESHNESS: Do not repeat story setup, sections, or titles from recent daily posts. Flow naturally from paragraph to paragraph without repetitive formatting templates.
-  12. SOURCES: Do not add a Sources section, references, citations, or raw URLs anywhere in the article.`;
+VOICE & PERSONA:
+- Write like an experienced, trusted Nigerian insider talking to a fellow business owner over coffee or lunch: warm, pragmatic, sharp, and conversational.
+- Ground every piece in vivid Nigerian business realities: fuel and diesel prices, generator maintenance, bank POS charges, CAC post-incorporation wahala, supplier credit cycles, customs clearance delays at Apapa or Onne ports, foreign exchange volatility, and why most grant applications get rejected in the first round.
+- Avoid robotic, generic AI textbook jargon. Ban cliché AI phrases like: "In today's fast-paced world", "In the dynamic landscape of", "Crucial stepping stone", "Beacon of hope", "Testament to", "Furthermore", "Additionally", "Moreover", "It is important to remember".
+- NEVER use em dashes (—). Use commas, colons, or clean periods instead.
+- Do NOT include a generic "Conclusion" or "In Summary" section. Conclude with concrete, immediate operator next steps.
+- Use Naira (₦) with realistic market numbers (e.g. ₦1.5M, ₦5M, ₦25M working capital).
+- Format strictly with <h2>, <h3>, <p>, <strong>, <ul>, <li>, and <a> tags only.
+- Do not invent quotes from living public figures. Do not include raw external URLs or a Sources section.`;
 
   const safeAngle = String(angleLabel || '').trim();
   const safeSeed = String(storySeed || '').trim();
@@ -130,42 +181,37 @@ const buildGroqMessages = ({ angleLabel, storySeed, recentTitles, newsContext })
     ? titles.map((t, i) => `${i + 1}. ${t}`).join('\n')
     : '(none available)';
 
-  const userPrompt = `Write a Funding & Growth Briefing for Nigerian operators with this angle: ${safeAngle}.
+  const userPrompt = `Write a compelling, human, and practical Nigerian business briefing on this theme: "${safeAngle}".
 
-Story seed (use this as the opening vignette, fictional but realistic): ${safeSeed}
+Opening Narrative Hook:
+Use this realistic scenario to anchor the opening: "${safeSeed}".
+Start mid-action in the opening paragraph with concrete sensory and financial details (e.g., fuel costs, inventory invoice, delayed customer transfer, unread bank alert). Do NOT start with "In Nigeria...", "Meet [Name]...", or "SMEs are the backbone...". Dive straight into the operational moment.
 
 Avoid repeating these recent daily post titles:
 ${recentBlock}
 
-Structure:
-- <h2> punchy title (no date)
-- Keep title natural and specific. Do NOT force "Nigeria" or "Nigerian" in every title.
-- At most one use of "Nigeria"/"Nigerian" in the title, only if it adds clarity.
-- 1 narrative hook paragraph that starts with a real moment, then zooms out to the problem. Do not use generic introductory sentences.
-- 4-6 <h3> sections with crisp subheads
-- Use fresh section titles instead of repeating templates. Prefer these anchors for this run:
+Structure & Content Plan:
+- <h2> Punchy, curiosity-sparking, natural headline (do NOT force the word "Nigeria" unless it genuinely makes the title better; no dates in title).
+- 1 vivid narrative opening hook paragraph that connects the operator's dilemma to the broader market reality.
+- 4 crisp, engaging <h3> sections following this dynamic blueprint:
   1) ${structureVariant.sectionA}
   2) ${structureVariant.sectionB}
   3) ${structureVariant.sectionC}
   4) ${structureVariant.sectionD}
-- Include at least 2 short "micro-scenes" (1-2 sentences each) that make the advice feel lived-in
-- Include one risk-control section with concrete red flags (do not title it exactly "Avoiding scams")
-- Include one weekly action section with 5-7 bullet next steps (do not title it exactly "What to do this week")
+- In each section, write natural paragraphs with varied sentence length. Use 1-2 realistic micro-scenes (e.g., an off-taker demanding 30-day terms, a bank loan officer asking for landed property collateral, or a grant reviewer searching for audited accounts).
+- Provide practical funding guidance: explain grants (SMEDAN, TEF, BOI, donor funds), structured loans, asset financing, or supplier credit. Contrast realistic grant requirements against predatory loan shark apps.
+- Provide a crisp risk-management section with concrete red flags (e.g. upfront processing fee scams, unrealistic interest calculations, hidden monthly management charges).
+- Provide an actionable checklist with 5-6 practical bullet points in the final section.
 
-Anti-duplication & Flow:
-- Avoid repeating sentence stems from prior posts (for example, do not reuse "As Nigerian entrepreneurs..." openings).
-- Vary paragraph lengths and cadence across sections. Ensure the ideas flow naturally from one point to the next.
+Traffic & Keyword Intent:
+Naturally weave in phrases Nigerian founders search for, such as "business grants in Nigeria", "collateral-free loan", "BOI intervention loan", or "working capital finance", without keyword stuffing.
 
-Traffic & SEO:
-- Naturally weave in high-intent keywords like "business loans in Nigeria", "agriculture grants", or "CBN intervention fund" where relevant.
-- Use 2-3 natural anchor phrases that could link to related articles, do not include the links yourself.
-
-Use the headlines context for timely specifics when possible, but do not invent facts.`;
+Length: 950-1400 words of rich, practical, human prose.`;
 
   const messages = [
     { role: 'system', content: systemInstruction },
     ...(newsContext
-      ? [{ role: 'user', content: `Use these recent headlines and links as context (do not invent facts beyond them):\n${newsContext}` }]
+      ? [{ role: 'user', content: `Current Nigerian economic & funding headlines for factual context (do not copy verbatim, just weave in timely awareness):\n${newsContext}` }]
       : []),
     { role: 'user', content: userPrompt }
   ];
@@ -199,67 +245,155 @@ const requireValidAdmin = async (req) => {
   }
 };
 
-const fallbackImages = {
-  'nigerian agriculture farmers': 'https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?auto=format&fit=crop&w=1600&h=900&q=80',
-  'nigeria healthcare clinic': 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1600&h=900&q=80',
-  'nigeria education classroom': 'https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?auto=format&fit=crop&w=1600&h=900&q=80',
-  'nigeria renewable energy solar': 'https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&w=1600&h=900&q=80',
-  'nigeria manufacturing factory': 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=1600&h=900&q=80',
-  'nigeria finance fintech startup': 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=1600&h=900&q=80',
-  'nigeria tech startup entrepreneurs': 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1600&h=900&q=80',
-  'nigerian women entrepreneurs': 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=1600&h=900&q=80',
-  'nigerian youth entrepreneurship': 'https://images.unsplash.com/photo-1531535934200-a574b2b0c030?auto=format&fit=crop&w=1600&h=900&q=80',
-  'default': 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1600&h=900&q=80'
+// Curated high-resolution fallback image pools per category to eliminate repetitive imagery
+const fallbackImagePools = {
+  agriculture: [
+    'https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1586771107445-d3ca888129ff?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1592982537447-6f2a6a0c7c18?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1592417817098-8f3d6ef23a85?auto=format&fit=crop&w=1600&h=900&q=80'
+  ],
+  healthcare: [
+    'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1538108149393-fbbd81895907?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1600&h=900&q=80'
+  ],
+  education: [
+    'https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=1600&h=900&q=80'
+  ],
+  energy: [
+    'https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1508873696983-2df570464756?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1497435334941-8c899ee9e8e9?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1548337138-e87d889cc369?auto=format&fit=crop&w=1600&h=900&q=80'
+  ],
+  manufacturing: [
+    'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=1600&h=900&q=80'
+  ],
+  finance: [
+    'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1556742049-0a67c5574f73?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&w=1600&h=900&q=80'
+  ],
+  technology: [
+    'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&w=1600&h=900&q=80'
+  ],
+  women: [
+    'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1580894732444-8ecded7900cd?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1573496799652-408c2ac9fe98?auto=format&fit=crop&w=1600&h=900&q=80'
+  ],
+  youth: [
+    'https://images.unsplash.com/photo-1531535934200-a574b2b0c030?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1600&h=900&q=80'
+  ],
+  default: [
+    'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1600&h=900&q=80',
+    'https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=1600&h=900&q=80'
+  ]
 };
 
-const getFallbackImage = (query) => {
+const getFallbackImage = (query, usedImages = new Set()) => {
   const q = String(query || '').toLowerCase().trim();
-  for (const [key, url] of Object.entries(fallbackImages)) {
-    if (key !== 'default' && q.includes(key)) {
-      return url;
-    }
+  let pool = fallbackImagePools.default;
+
+  if (q.includes('agric') || q.includes('farm') || q.includes('crop') || q.includes('grain') || q.includes('rice') || q.includes('cassava')) {
+    pool = fallbackImagePools.agriculture;
+  } else if (q.includes('health') || q.includes('clinic') || q.includes('medical') || q.includes('pharma') || q.includes('hospital')) {
+    pool = fallbackImagePools.healthcare;
+  } else if (q.includes('school') || q.includes('education') || q.includes('student') || q.includes('training') || q.includes('academy')) {
+    pool = fallbackImagePools.education;
+  } else if (q.includes('solar') || q.includes('energy') || q.includes('power') || q.includes('clean') || q.includes('grid')) {
+    pool = fallbackImagePools.energy;
+  } else if (q.includes('manufactur') || q.includes('factory') || q.includes('industr') || q.includes('mill') || q.includes('fabricat')) {
+    pool = fallbackImagePools.manufacturing;
+  } else if (q.includes('finance') || q.includes('fintech') || q.includes('bank') || q.includes('loan') || q.includes('credit') || q.includes('money')) {
+    pool = fallbackImagePools.finance;
+  } else if (q.includes('tech') || q.includes('software') || q.includes('startup') || q.includes('ai') || q.includes('digital') || q.includes('code')) {
+    pool = fallbackImagePools.technology;
+  } else if (q.includes('women') || q.includes('female') || q.includes('lady') || q.includes('girl')) {
+    pool = fallbackImagePools.women;
+  } else if (q.includes('youth') || q.includes('young') || q.includes('graduate')) {
+    pool = fallbackImagePools.youth;
   }
-  if (q.includes('agric') || q.includes('farm') || q.includes('crop') || q.includes('field')) return fallbackImages['nigerian agriculture farmers'];
-  if (q.includes('health') || q.includes('clinic') || q.includes('medical') || q.includes('hospital') || q.includes('doctor')) return fallbackImages['nigeria healthcare clinic'];
-  if (q.includes('school') || q.includes('education') || q.includes('student') || q.includes('university') || q.includes('class')) return fallbackImages['nigeria education classroom'];
-  if (q.includes('solar') || q.includes('energy') || q.includes('power') || q.includes('panel') || q.includes('electricity')) return fallbackImages['nigeria renewable energy solar'];
-  if (q.includes('manufactur') || q.includes('factory') || q.includes('industr') || q.includes('plant') || q.includes('machine')) return fallbackImages['nigeria manufacturing factory'];
-  if (q.includes('finance') || q.includes('fintech') || q.includes('bank') || q.includes('loan') || q.includes('credit') || q.includes('money') || q.includes('pay')) return fallbackImages['nigeria finance fintech startup'];
-  if (q.includes('tech') || q.includes('software') || q.includes('startup') || q.includes('ai') || q.includes('innovat') || q.includes('code') || q.includes('comput')) return fallbackImages['nigeria tech startup entrepreneurs'];
-  if (q.includes('women') || q.includes('female') || q.includes('girl') || q.includes('lady')) return fallbackImages['nigerian women entrepreneurs'];
-  if (q.includes('youth') || q.includes('grad') || q.includes('young')) return fallbackImages['nigerian youth entrepreneurship'];
-  
-  return fallbackImages['default'];
+
+  // Filter out any image already present in usedImages
+  const available = pool.filter(url => {
+    if (!usedImages || !usedImages.size) return true;
+    const baseId = (url.match(/photo-[a-zA-Z0-9_-]+/) || [])[0];
+    for (const u of usedImages) {
+      if (u === url || (baseId && String(u).includes(baseId))) return false;
+    }
+    return true;
+  });
+
+  const candidates = available.length > 0 ? available : pool;
+  return candidates[Math.floor(Math.random() * candidates.length)];
 };
 
-const fetchUnsplashImage = async (query) => {
+const fetchUnsplashImage = async (query, usedImages = new Set()) => {
   const key = process.env.UNSPLASH_ACCESS_KEY;
   const q = String(query || '').trim();
-  if (!q) return getFallbackImage(q);
+  if (!q) return getFallbackImage(q, usedImages);
 
   if (!key) {
-    return getFallbackImage(q);
+    return getFallbackImage(q, usedImages);
   }
 
-  try {
-    const url = `https://api.unsplash.com/photos/random?query=${encodeURIComponent(q)}&orientation=landscape&content_filter=high`;
-    const res = await fetch(url, {
-      headers: {
-        'Accept-Version': 'v1',
-        'Authorization': `Client-ID ${key}`
+  const searchQueries = [
+    q,
+    `african business ${q.replace(/nigeria|nigerian/gi, '').trim()}`,
+    'nigerian business entrepreneur',
+    'african entrepreneurs'
+  ];
+
+  for (const searchQuery of searchQueries) {
+    try {
+      const url = `https://api.unsplash.com/photos/random?query=${encodeURIComponent(searchQuery)}&orientation=landscape&content_filter=high`;
+      const res = await fetch(url, {
+        headers: {
+          'Accept-Version': 'v1',
+          'Authorization': `Client-ID ${key}`
+        }
+      });
+      if (!res.ok) {
+        continue;
       }
-    });
-    if (!res.ok) {
-      console.warn(`Unsplash API responded with status ${res.status}. Falling back to curated image.`);
-      return getFallbackImage(q);
+      const data = await res.json();
+      const imageUrl = data?.urls?.regular || data?.urls?.small || '';
+      if (imageUrl && typeof imageUrl === 'string') {
+        const photoId = (imageUrl.match(/photo-[a-zA-Z0-9_-]+/) || [])[0];
+        const isDuplicate = usedImages && Array.from(usedImages).some(u => u === imageUrl || (photoId && String(u).includes(photoId)));
+        if (!isDuplicate) {
+          return imageUrl;
+        }
+      }
+    } catch (err) {
+      console.warn('Unsplash attempt failed:', err?.message || err);
     }
-    const data = await res.json();
-    const imageUrl = data?.urls?.regular || data?.urls?.small || '';
-    return typeof imageUrl === 'string' && imageUrl ? imageUrl : getFallbackImage(q);
-  } catch (err) {
-    console.error('Failed to fetch from Unsplash, using fallback:', err);
-    return getFallbackImage(q);
   }
+
+  return getFallbackImage(q, usedImages);
 };
 
 const buildUnsplashQuery = ({ title, newsItems }) => {
@@ -872,8 +1006,18 @@ export default async function handler(req, res) {
 
     const id = Date.now().toString();
 
+    let usedImages = new Set();
+    try {
+      const recentImagesRes = await client.query(
+        `SELECT DISTINCT image FROM blog_posts WHERE image IS NOT NULL AND TRIM(image) <> '' LIMIT 60`
+      );
+      usedImages = new Set((recentImagesRes.rows || []).map(r => String(r.image || '').trim()).filter(Boolean));
+    } catch {
+      usedImages = new Set();
+    }
+
     const imageQuery = buildUnsplashQuery({ title, newsItems });
-    const image = await fetchUnsplashImage(imageQuery);
+    const image = await fetchUnsplashImage(imageQuery, usedImages);
 
     // Add internal linking block to drive recirculation.
     let related = [];
@@ -1117,8 +1261,20 @@ const runDryRun = async ({ force, outFile, json }) => {
     const title = normalizeGeneratedTitle(stripDatesFromTitle(extractedTitle)) || 'Funding & Growth Briefing';
     const id = Date.now().toString();
 
+    let usedImages = new Set();
+    if (client) {
+      try {
+        const recentImagesRes = await client.query(
+          `SELECT DISTINCT image FROM blog_posts WHERE image IS NOT NULL AND TRIM(image) <> '' LIMIT 60`
+        );
+        usedImages = new Set((recentImagesRes.rows || []).map(r => String(r.image || '').trim()).filter(Boolean));
+      } catch {
+        usedImages = new Set();
+      }
+    }
+
     const imageQuery = buildUnsplashQuery({ title, newsItems });
-    const image = await fetchUnsplashImage(imageQuery);
+    const image = await fetchUnsplashImage(imageQuery, usedImages);
 
     // Related reads selection (read-only).
     let related = [];
