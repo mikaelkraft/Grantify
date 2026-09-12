@@ -15,7 +15,6 @@ import {
   Star,
   Building2,
   CreditCard,
-  Copy,
   Users,
   Target,
   TrendingUp,
@@ -40,12 +39,10 @@ export const Sponsor: React.FC = () => {
   const [providers, setProviders] = useState<LoanProvider[]>([]);
   const [pricing, setPricing] = useState<PricingTier[]>([]);
   const [sponsorMeta, setSponsorMeta] = useState<any>(null);
-  const [testimonials, setTestimonials] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
   const [activePreviewTab, setActivePreviewTab] = useState<'homepage' | 'directory'>('homepage');
-  const [copiedField, setCopiedField] = useState<string | null>(null);
   const [selectedUseCase, setSelectedUseCase] = useState<'fintech' | 'banks' | 'donors' | 'b2b'>('fintech');
   const [showExecutiveKitModal, setShowExecutiveKitModal] = useState(false);
   const [form, setForm] = useState({
@@ -118,7 +115,6 @@ export const Sponsor: React.FC = () => {
         setPricing(Array.isArray(pricingData) ? pricingData : []);
         if (meta) {
           setSponsorMeta(meta);
-          setTestimonials(Array.isArray(meta.testimonials) ? meta.testimonials : []);
         }
         const featuredTier = Array.isArray(pricingData)
           ? pricingData.find((tier: PricingTier, index: number) => isFeaturedTier(tier, index))
@@ -787,44 +783,16 @@ export const Sponsor: React.FC = () => {
             {/* Bank Wire Details Panel */}
             {form.paymentProvider === 'bankwire' && (
               <div className="md:col-span-2">
-                <div className="rounded-2xl border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-900/10 p-5">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Building2 className="text-amber-600 dark:text-amber-400 flex-shrink-0" size={18} />
-                    <div>
-                      <div className="text-xs font-black uppercase tracking-widest text-amber-700 dark:text-amber-400">Bank Wire Transfer Details</div>
-                      <p className="text-[11px] text-amber-700/70 dark:text-amber-400/70 mt-0.5">Transfer the package amount to the account below, then submit this form. Our team will verify and activate within 24hrs.</p>
-                    </div>
+                <div className="rounded-2xl border border-grantify-green/30 bg-green-50/50 dark:bg-green-950/20 p-5">
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <Building2 className="text-grantify-green dark:text-emerald-400 flex-shrink-0" size={18} />
+                    <div className="text-xs font-black uppercase tracking-widest text-grantify-green dark:text-emerald-400">Institutional Invoicing & Bank Wire</div>
                   </div>
-                  <div className="grid gap-2">
-                    {([
-                      { label: 'Bank Name', value: 'Zenith Bank PLC' },
-                      { label: 'Account Name', value: 'Grantify Media Ltd' },
-                      { label: 'Account Number', value: '2212345678' },
-                      { label: 'Sort Code / SWIFT', value: '057 / ZENITHNG' },
-                      { label: 'Reference', value: form.email ? `SPONSOR-${form.email.split('@')[0].toUpperCase()}` : 'SPONSOR-[YOUR-EMAIL-PREFIX]' },
-                    ] as const).map(({ label, value }) => (
-                      <div key={label} className="flex items-center justify-between gap-3 bg-white dark:bg-gray-900 border border-amber-100 dark:border-amber-800/40 rounded-xl px-4 py-2.5">
-                        <div>
-                          <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">{label}</span>
-                          <span className="text-sm font-black text-gray-800 dark:text-gray-100 font-mono">{value}</span>
-                        </div>
-                        <button
-                          type="button"
-                          title={`Copy ${label}`}
-                          onClick={() => {
-                            navigator.clipboard.writeText(value).catch(() => {});
-                            setCopiedField(label);
-                            setTimeout(() => setCopiedField(null), 2000);
-                          }}
-                          className="text-gray-400 hover:text-grantify-green transition-colors flex-shrink-0"
-                        >
-                          {copiedField === label ? <CheckCircle size={14} className="text-grantify-green" /> : <Copy size={14} />}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-[10px] text-amber-700/60 dark:text-amber-400/60 mt-3 leading-relaxed">
-                    <strong>Note:</strong> Include your email as payment reference. VAT-compliant corporate invoices are issued upon payment confirmation. Wire transfers are processed within 1–2 business days.
+                  <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed mb-2">
+                    Select your package and submit the request. We generate an official VAT-compliant corporate proforma invoice with bank settlement instructions directly for your finance or accounts team.
+                  </p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    Sponsorship slots are reserved immediately and activated within 24 hours of payment confirmation.
                   </p>
                 </div>
               </div>
@@ -832,7 +800,7 @@ export const Sponsor: React.FC = () => {
 
             <div className="md:col-span-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between pt-2">
               <div className={`text-xs ${message ? (message.toLowerCase().includes('fail') || message.toLowerCase().includes('error') ? 'text-red-500' : 'text-grantify-green font-bold') : 'text-gray-500 dark:text-gray-400'}`}>
-                {message || (form.paymentProvider === 'bankwire' ? 'Submit this form after completing your bank transfer. We will verify and activate your sponsorship.' : 'We will create the booking and either open checkout or queue an invoice for confirmation.')}
+                {message || (form.paymentProvider === 'bankwire' ? 'Submit to request a corporate invoice with bank settlement instructions.' : 'We will create the booking and either open checkout or queue an invoice for confirmation.')}
               </div>
               <button type="submit" disabled={submitting} className="inline-flex items-center justify-center gap-2 bg-grantify-green text-white font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-60">
                 {submitting ? <Loader2 className="animate-spin" size={16} /> : form.paymentProvider === 'bankwire' ? <><CreditCard size={16} /> Request Invoice</> : <><CheckCircle size={16} /> Launch Sponsorship</>}
@@ -843,27 +811,6 @@ export const Sponsor: React.FC = () => {
 
         {/* Info & Proof Sidebar */}
         <div className="grid gap-6">
-          {/* Testimonials */}
-          <div className="rounded-[1.75rem] border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 shadow-sm">
-            <div className="flex items-center justify-between gap-3 mb-4">
-              <div>
-                <div className="text-[10px] font-black uppercase tracking-[0.35em] text-gray-400 mb-1">Proof</div>
-                <h3 className="text-lg font-black text-gray-900 dark:text-gray-100">Advertiser results & testimonials</h3>
-              </div>
-              <Sparkles className="text-grantify-gold" size={18} />
-            </div>
-
-            <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1">
-              {testimonials.length ? testimonials.map((t, i) => (
-                <div key={t.id || i} className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-4">
-                  <div className="text-xs font-black text-gray-900 dark:text-gray-100 mb-1">{t.author || t.name || 'Advertiser'}</div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed italic">"{t.quote || t.content}"</p>
-                </div>
-              )) : (
-                <div className="text-xs text-gray-500">No testimonials yet — contact sales to be featured.</div>
-              )}
-            </div>
-          </div>
 
           {/* Placements Preview */}
           <div className="rounded-[1.75rem] border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 shadow-sm">
@@ -1173,22 +1120,20 @@ export const Sponsor: React.FC = () => {
               </div>
 
               {/* Settlement & Invoicing */}
-              <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 rounded-2xl">
-                <h4 className="text-xs font-black uppercase tracking-wider text-amber-800 dark:text-amber-300 mb-1">5. Institutional Invoicing & Settlement</h4>
-                <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-relaxed mb-2">
-                  Official VAT-compliant corporate invoices are generated upon booking. Wire transfers and institutional bank deposits are accepted:
+              <div className="p-4 bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 rounded-2xl">
+                <h4 className="text-xs font-black uppercase tracking-wider text-gray-800 dark:text-gray-200 mb-1">5. Institutional Invoicing & Settlement</h4>
+                <p className="text-[11px] text-gray-600 dark:text-gray-300 leading-relaxed mb-2">
+                  Official VAT-compliant corporate invoices are generated upon booking. Institutional bank wire transfers, electronic deposits, and card settlements are processed with same-day confirmation.
                 </p>
-                <div className="grid sm:grid-cols-3 gap-2 font-mono text-[11px] bg-white dark:bg-gray-900 p-3 rounded-xl border border-amber-200 dark:border-amber-800">
-                  <div><strong>Bank:</strong> Zenith Bank PLC</div>
-                  <div><strong>Account:</strong> 2212345678</div>
-                  <div><strong>Name:</strong> Grantify Media Ltd</div>
+                <div className="text-[11px] text-gray-500 dark:text-gray-400">
+                  Custom billing references and purchase orders (POs) are supported for banks, DFIs, and institutional partners.
                 </div>
               </div>
 
               {/* Contacts */}
               <div className="pt-2 flex flex-col sm:flex-row justify-between items-center gap-3 border-t border-gray-100 dark:border-gray-800 text-[11px] text-gray-500">
                 <div>Partnerships Desk: <strong>partners@grantify.help</strong></div>
-                <div>Grantify Media Ltd • Lagos, Nigeria</div>
+                <div>Grantify • Lagos, Nigeria</div>
               </div>
             </div>
           </div>

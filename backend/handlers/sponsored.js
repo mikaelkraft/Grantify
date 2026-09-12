@@ -67,11 +67,7 @@ export default async function handler(req, res) {
             const tt = await client.query('SELECT id, author, quote, provider_id FROM sponsor_testimonials ORDER BY created_at DESC LIMIT 6');
             testimonials = tt.rows.map(r => ({ id: r.id, author: r.author, quote: r.quote, providerId: r.provider_id }));
           } catch (e) {
-            // Fallback to an inline sample testimonial if table doesn't exist
-            testimonials = [
-              { id: 'sample-1', author: 'Acme Corp', quote: 'We saw a 3x uplift in referrals after sponsoring Grantify.', providerId: null },
-              { id: 'sample-2', author: 'StartUp Hub', quote: 'Great targeted audience and fast activation.', providerId: null }
-            ];
+            testimonials = [];
           }
 
           // Basic metrics
