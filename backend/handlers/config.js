@@ -215,6 +215,120 @@ export default async function handler(req, res) {
       }
     }
 
+    if (type === 'payment_gateways') {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS payment_gateways_config (
+          id INTEGER PRIMARY KEY DEFAULT 1,
+          config_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT single_row_payment_gateways CHECK (id = 1)
+        )
+      `);
+
+      const defaultGatewayConfig = {
+        flutterwave: {
+          enabled: false,
+          publicKey: '',
+          secretKey: '',
+          encryptionKey: '',
+          mode: 'test'
+        },
+        opay: {
+          enabled: false,
+          merchantId: '',
+          publicKey: '',
+          secretKey: '',
+          mode: 'sandbox'
+        },
+        paypal: {
+          enabled: false,
+          clientId: '',
+          clientSecret: '',
+          paypalEmail: '',
+          mode: 'sandbox'
+        },
+        bankwire: {
+          enabled: true,
+          bankName: '',
+          accountName: '',
+          accountNumber: '',
+          sortCodeSwift: '',
+          instructions: 'Official VAT-compliant proforma invoice with bank settlement instructions will be dispatched to your billing email upon request.',
+          invoiceNote: 'Payment is required within 7 business days to secure slot reservation.'
+        }
+      };
+
+      await pool.query(`
+        INSERT INTO payment_gateways_config (id, config_json)
+        VALUES (1, $1)
+        ON CONFLICT (id) DO NOTHING
+      `, [JSON.stringify(defaultGatewayConfig)]);
+
+      if (req.method === 'GET') {
+        const result = await pool.query('SELECT config_json, updated_at FROM payment_gateways_config WHERE id=1');
+        const row = result.rows[0];
+        const savedConfig = (row && row.config_json) ? row.config_json : {};
+        // Merge with defaults to ensure all keys exist
+        const merged = {
+          flutterwave: { ...defaultGatewayConfig.flutterwave, ...(savedConfig.flutterwave || {}) },
+          opay: { ...defaultGatewayConfig.opay, ...(savedConfig.opay || {}) },
+          paypal: { ...defaultGatewayConfig.paypal, ...(savedConfig.paypal || {}) },
+          bankwire: { ...defaultGatewayConfig.bankwire, ...(savedConfig.bankwire || {}) },
+        };
+        return res.status(200).json({
+          gateways: merged,
+          updatedAt: row?.updated_at || null
+        });
+      }
+
+      if (req.method === 'POST') {
+        const payload = req.body?.gateways || req.body || {};
+        const safeConfig = {
+          flutterwave: {
+            enabled: Boolean(payload.flutterwave?.enabled),
+            publicKey: String(payload.flutterwave?.publicKey || '').trim(),
+            secretKey: String(payload.flutterwave?.secretKey || '').trim(),
+            encryptionKey: String(payload.flutterwave?.encryptionKey || '').trim(),
+            mode: payload.flutterwave?.mode === 'live' ? 'live' : 'test'
+          },
+          opay: {
+            enabled: Boolean(payload.opay?.enabled),
+            merchantId: String(payload.opay?.merchantId || '').trim(),
+            publicKey: String(payload.opay?.publicKey || '').trim(),
+            secretKey: String(payload.opay?.secretKey || '').trim(),
+            mode: payload.opay?.mode === 'live' ? 'live' : 'sandbox'
+          },
+          paypal: {
+            enabled: Boolean(payload.paypal?.enabled),
+            clientId: String(payload.paypal?.clientId || '').trim(),
+            clientSecret: String(payload.paypal?.clientSecret || '').trim(),
+            paypalEmail: String(payload.paypal?.paypalEmail || '').trim(),
+            mode: payload.paypal?.mode === 'live' ? 'live' : 'sandbox'
+          },
+          bankwire: {
+            enabled: payload.bankwire?.enabled !== undefined ? Boolean(payload.bankwire.enabled) : true,
+            bankName: String(payload.bankwire?.bankName || '').trim(),
+            accountName: String(payload.bankwire?.accountName || '').trim(),
+            accountNumber: String(payload.bankwire?.accountNumber || '').trim(),
+            sortCodeSwift: String(payload.bankwire?.sortCodeSwift || '').trim(),
+            instructions: String(payload.bankwire?.instructions || defaultGatewayConfig.bankwire.instructions).trim(),
+            invoiceNote: String(payload.bankwire?.invoiceNote || defaultGatewayConfig.bankwire.invoiceNote).trim()
+          }
+        };
+
+        await pool.query(
+          `INSERT INTO payment_gateways_config (id, config_json, updated_at)
+           VALUES (1, $1, CURRENT_TIMESTAMP)
+           ON CONFLICT (id) DO UPDATE SET
+           config_json = EXCLUDED.config_json,
+           updated_at = CURRENT_TIMESTAMP`,
+          [JSON.stringify(safeConfig)]
+        );
+
+        return res.status(200).json({ success: true, gateways: safeConfig });
+      }
+    }
+
     return res.status(405).json({ error: 'Method not allowed or invalid type' });
   } catch (err) {
     console.error('Config handler error:', err);

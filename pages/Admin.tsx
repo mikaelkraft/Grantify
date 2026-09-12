@@ -21,13 +21,17 @@ import {
   Calendar,
   Check,
   FileText,
-  DollarSign,
   ExternalLink,
   Eye,
+  CreditCard,
+  EyeOff,
+  Lock,
+  Building2,
+  CheckCircle
 } from 'lucide-react';
 import React, { useEffect, useRef, useState, useTransition } from 'react';
 import { ApiService } from '../services/storage';
-import { AdminUser, LoanApplication, Testimonial, AdConfig, UserRole, RepaymentContent, LoanProvider, LoanProviderSubmission, BlogPost, ProviderReview, ContactMessage, ContentFlag, WhatsappConfig } from '../types';
+import { AdminUser, LoanApplication, Testimonial, AdConfig, UserRole, RepaymentContent, LoanProvider, LoanProviderSubmission, BlogPost, ProviderReview, ContactMessage, ContentFlag, WhatsappConfig, PaymentGatewaysConfig } from '../types';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { formatNaira } from '../utils/currency';
@@ -74,6 +78,23 @@ export const Admin: React.FC = () => {
   const [autoblogLastErrorRun, setAutoblogLastErrorRun] = useState<any>(null);
   const [isSavingAutoblog, setIsSavingAutoblog] = useState(false);
   const [isRunningDailyCron, setIsRunningDailyCron] = useState(false);
+  const [paymentGateways, setPaymentGateways] = useState<PaymentGatewaysConfig>({
+    flutterwave: { enabled: false, publicKey: '', secretKey: '', encryptionKey: '', mode: 'test' },
+    opay: { enabled: false, merchantId: '', publicKey: '', secretKey: '', mode: 'sandbox' },
+    paypal: { enabled: false, clientId: '', clientSecret: '', paypalEmail: '', mode: 'sandbox' },
+    bankwire: {
+      enabled: true,
+      bankName: '',
+      accountName: '',
+      accountNumber: '',
+      sortCodeSwift: '',
+      instructions: 'Official VAT-compliant proforma invoice with bank settlement instructions will be dispatched to your billing email upon request.',
+      invoiceNote: 'Payment is required within 7 business days to secure slot reservation.'
+    }
+  });
+  const [isSavingGateways, setIsSavingGateways] = useState(false);
+  const [showSecretKeys, setShowSecretKeys] = useState<{ [key: string]: boolean }>({});
+  const [gatewayNotice, setGatewayNotice] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loanProviders, setLoanProviders] = useState<LoanProvider[]>([]);
   const [loanProviderSubmissions, setLoanProviderSubmissions] = useState<LoanProviderSubmission[]>([]);
@@ -839,7 +860,7 @@ export const Admin: React.FC = () => {
   const refreshData = async () => {
     setIsLoading(true);
     try {
-      const [apps, tests, adConfig, repay, adminList, providers, submissions, reviews, posts, contact, flagsData, autoblogCfg, whatsappCfg] = await Promise.all([
+      const [apps, tests, adConfig, repay, adminList, providers, submissions, reviews, posts, contact, flagsData, autoblogCfg, whatsappCfg, gwCfg] = await Promise.all([
         ApiService.getApplications(),
         ApiService.getTestimonials(),
         ApiService.getAds(),
@@ -852,13 +873,15 @@ export const Admin: React.FC = () => {
         ApiService.getContactMessages(120),
         ApiService.getFlags('open'),
         ApiService.getAutoblogConfig(),
-        ApiService.getWhatsappConfig()
+        ApiService.getWhatsappConfig(),
+        ApiService.getPaymentGatewaysConfig().catch(() => null)
       ]);
       setApplications(apps);
       setTestimonials(tests);
       setAds(adConfig);
       setRepayment(repay);
       setWhatsappConfig(whatsappCfg);
+      if (gwCfg && gwCfg.gateways) setPaymentGateways(gwCfg.gateways);
       setAdmins(adminList);
       setLoanProviders(providers);
       setLoanProviderSubmissions(submissions);
@@ -1328,6 +1351,21 @@ export const Admin: React.FC = () => {
   const handleWhatsappUpdateLocal = (newConfig: WhatsappConfig) => {
     setWhatsappConfig(newConfig);
     setHasUnsavedWhatsapp(true);
+  };
+
+  const handleSavePaymentGateways = async () => {
+    setIsSavingGateways(true);
+    setGatewayNotice(null);
+    try {
+      await ApiService.savePaymentGatewaysConfig(paymentGateways);
+      setGatewayNotice({ kind: 'success', message: 'Payment gateway configurations saved successfully.' });
+      setTimeout(() => setGatewayNotice(null), 5000);
+    } catch (e: any) {
+      console.error('Failed to save payment gateways', e);
+      setGatewayNotice({ kind: 'error', message: e?.message || 'Failed to save payment gateway settings.' });
+    } finally {
+      setIsSavingGateways(false);
+    }
   };
 
   const handleSaveWhatsapp = async () => {
@@ -1912,13 +1950,14 @@ export const Admin: React.FC = () => {
            )}
 
             {[
-             {id: 'applications', label: 'Applications'},
-             {id: 'testimonials', label: 'Testimonials'},
-             {id: 'ads', label: 'Ad Management'},
-             {id: 'providers', label: 'Loan Providers'},
-             {id: 'sponsored', label: 'Sponsored Listings'},
-             {id: 'content', label: 'Page Content'}
-           ].map(tab => (
+              {id: 'applications', label: 'Applications'},
+              {id: 'testimonials', label: 'Testimonials'},
+              {id: 'ads', label: 'Ad Management'},
+              {id: 'providers', label: 'Loan Providers'},
+              {id: 'sponsored', label: 'Sponsored Listings'},
+              {id: 'gateways', label: 'Payment Gateways'},
+              {id: 'content', label: 'Page Content'}
+            ].map(tab => (
              <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
@@ -3264,6 +3303,511 @@ export const Admin: React.FC = () => {
                       </div>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Payment Gateways Tab */}
+              {activeTab === 'gateways' && (
+                <div className="space-y-8">
+                  <div className="bg-gray-50 dark:bg-gray-950 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                      <h3 className="text-xl font-bold flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                        <CreditCard className="text-grantify-green" size={22} /> Payment Gateways & Settlement Setup
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Configure payment gateways, toggle between Test/Sandbox and Live modes, and enter your official corporate bank wire details.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleSavePaymentGateways}
+                      disabled={isSavingGateways}
+                      className="inline-flex items-center gap-2 bg-grantify-green text-white font-black px-5 py-2.5 rounded-xl shadow hover:bg-green-700 transition disabled:opacity-60 text-sm shrink-0"
+                    >
+                      {isSavingGateways ? <Loader2 className="animate-spin" size={16} /> : <><Save size={16} /> Save Gateways</>}
+                    </button>
+                  </div>
+
+                  {gatewayNotice && (
+                    <div className={`p-4 rounded-xl text-sm font-semibold flex items-center gap-2 border ${
+                      gatewayNotice.kind === 'success'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                        : 'bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800'
+                    }`}>
+                      {gatewayNotice.kind === 'success' ? <CheckCircle size={18} /> : <X size={18} />}
+                      <span>{gatewayNotice.message}</span>
+                    </div>
+                  )}
+
+                  <div className="grid gap-6 lg:grid-cols-2">
+                    {/* Flutterwave */}
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-100 dark:border-gray-800">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-black">
+                              <CreditCard size={20} />
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-gray-900 dark:text-gray-100 text-base">Flutterwave</h4>
+                              <p className="text-[11px] text-gray-400">Card, USSD & Bank Transfer Checkout</p>
+                            </div>
+                          </div>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(paymentGateways.flutterwave?.enabled)}
+                              onChange={(e) => setPaymentGateways(prev => ({
+                                ...prev,
+                                flutterwave: { ...prev.flutterwave, enabled: e.target.checked }
+                              }))}
+                              className="w-5 h-5 rounded text-grantify-green focus:ring-grantify-green"
+                            />
+                            <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                              {paymentGateways.flutterwave?.enabled ? 'Active' : 'Disabled'}
+                            </span>
+                          </label>
+                        </div>
+
+                        {/* Mode toggle */}
+                        <div className="mb-4 bg-gray-50 dark:bg-gray-950 p-3 rounded-xl border border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                          <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Environment Mode</span>
+                          <div className="flex gap-2">
+                            {(['test', 'live'] as const).map(mode => (
+                              <button
+                                key={mode}
+                                type="button"
+                                onClick={() => setPaymentGateways(prev => ({
+                                  ...prev,
+                                  flutterwave: { ...prev.flutterwave, mode }
+                                }))}
+                                className={`px-3 py-1 text-xs font-black uppercase rounded-lg border transition ${
+                                  paymentGateways.flutterwave?.mode === mode
+                                    ? mode === 'live'
+                                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                                      : 'bg-amber-600 text-white border-amber-600 shadow-sm'
+                                    : 'border-gray-200 dark:border-gray-800 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-900'
+                                }`}
+                              >
+                                {mode === 'live' ? 'Live / Production' : 'Test Sandbox'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Keys */}
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Public Key</label>
+                            <input
+                              type="text"
+                              placeholder="FLWPUBK_TEST-... or FLWPUBK-..."
+                              value={paymentGateways.flutterwave?.publicKey || ''}
+                              onChange={(e) => setPaymentGateways(prev => ({
+                                ...prev,
+                                flutterwave: { ...prev.flutterwave, publicKey: e.target.value }
+                              }))}
+                              className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-2.5 text-xs font-mono text-gray-900 dark:text-gray-100"
+                            />
+                          </div>
+
+                          <div>
+                            <div className="flex justify-between items-center mb-1">
+                              <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-400 uppercase">Secret Key</label>
+                              <button
+                                type="button"
+                                onClick={() => setShowSecretKeys(prev => ({ ...prev, flwSecret: !prev.flwSecret }))}
+                                className="text-[10px] text-grantify-green hover:underline flex items-center gap-1 font-bold"
+                              >
+                                {showSecretKeys.flwSecret ? <><EyeOff size={12} /> Hide</> : <><Eye size={12} /> Show</>}
+                              </button>
+                            </div>
+                            <input
+                              type={showSecretKeys.flwSecret ? 'text' : 'password'}
+                              placeholder="FLWSECK_TEST-... or FLWSECK-..."
+                              value={paymentGateways.flutterwave?.secretKey || ''}
+                              onChange={(e) => setPaymentGateways(prev => ({
+                                ...prev,
+                                flutterwave: { ...prev.flutterwave, secretKey: e.target.value }
+                              }))}
+                              className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-2.5 text-xs font-mono text-gray-900 dark:text-gray-100"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Encryption Key (Optional)</label>
+                            <input
+                              type="text"
+                              placeholder="FLWSECK_..."
+                              value={paymentGateways.flutterwave?.encryptionKey || ''}
+                              onChange={(e) => setPaymentGateways(prev => ({
+                                ...prev,
+                                flutterwave: { ...prev.flutterwave, encryptionKey: e.target.value }
+                              }))}
+                              className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-2.5 text-xs font-mono text-gray-900 dark:text-gray-100"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 text-[10px] text-gray-400 flex items-center justify-between">
+                        <span>Webhook: <code>/api/sponsored/webhook?provider=flutterwave</code></span>
+                      </div>
+                    </div>
+
+                    {/* OPay */}
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-100 dark:border-gray-800">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black">
+                              <Zap size={20} />
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-gray-900 dark:text-gray-100 text-base">OPay Nigeria</h4>
+                              <p className="text-[11px] text-gray-400">Direct Wallet & Merchant POS Checkout</p>
+                            </div>
+                          </div>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(paymentGateways.opay?.enabled)}
+                              onChange={(e) => setPaymentGateways(prev => ({
+                                ...prev,
+                                opay: { ...prev.opay, enabled: e.target.checked }
+                              }))}
+                              className="w-5 h-5 rounded text-grantify-green focus:ring-grantify-green"
+                            />
+                            <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                              {paymentGateways.opay?.enabled ? 'Active' : 'Disabled'}
+                            </span>
+                          </label>
+                        </div>
+
+                        {/* Mode toggle */}
+                        <div className="mb-4 bg-gray-50 dark:bg-gray-950 p-3 rounded-xl border border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                          <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Environment Mode</span>
+                          <div className="flex gap-2">
+                            {(['sandbox', 'live'] as const).map(mode => (
+                              <button
+                                key={mode}
+                                type="button"
+                                onClick={() => setPaymentGateways(prev => ({
+                                  ...prev,
+                                  opay: { ...prev.opay, mode }
+                                }))}
+                                className={`px-3 py-1 text-xs font-black uppercase rounded-lg border transition ${
+                                  paymentGateways.opay?.mode === mode
+                                    ? mode === 'live'
+                                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                                      : 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                                    : 'border-gray-200 dark:border-gray-800 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-900'
+                                }`}
+                              >
+                                {mode === 'live' ? 'Live / Production' : 'Sandbox'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Keys */}
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Merchant ID</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. 256612345678"
+                              value={paymentGateways.opay?.merchantId || ''}
+                              onChange={(e) => setPaymentGateways(prev => ({
+                                ...prev,
+                                opay: { ...prev.opay, merchantId: e.target.value }
+                              }))}
+                              className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-2.5 text-xs font-mono text-gray-900 dark:text-gray-100"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Public Key</label>
+                            <input
+                              type="text"
+                              placeholder="OPAYPUBK_..."
+                              value={paymentGateways.opay?.publicKey || ''}
+                              onChange={(e) => setPaymentGateways(prev => ({
+                                ...prev,
+                                opay: { ...prev.opay, publicKey: e.target.value }
+                              }))}
+                              className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-2.5 text-xs font-mono text-gray-900 dark:text-gray-100"
+                            />
+                          </div>
+
+                          <div>
+                            <div className="flex justify-between items-center mb-1">
+                              <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-400 uppercase">Private / Secret Key</label>
+                              <button
+                                type="button"
+                                onClick={() => setShowSecretKeys(prev => ({ ...prev, opaySecret: !prev.opaySecret }))}
+                                className="text-[10px] text-grantify-green hover:underline flex items-center gap-1 font-bold"
+                              >
+                                {showSecretKeys.opaySecret ? <><EyeOff size={12} /> Hide</> : <><Eye size={12} /> Show</>}
+                              </button>
+                            </div>
+                            <input
+                              type={showSecretKeys.opaySecret ? 'text' : 'password'}
+                              placeholder="OPAYPRVK_..."
+                              value={paymentGateways.opay?.secretKey || ''}
+                              onChange={(e) => setPaymentGateways(prev => ({
+                                ...prev,
+                                opay: { ...prev.opay, secretKey: e.target.value }
+                              }))}
+                              className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-2.5 text-xs font-mono text-gray-900 dark:text-gray-100"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 text-[10px] text-gray-400 flex items-center justify-between">
+                        <span>Webhook: <code>/api/sponsored/webhook?provider=opay</code></span>
+                      </div>
+                    </div>
+
+                    {/* PayPal */}
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-100 dark:border-gray-800">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black">
+                              <CreditCard size={20} />
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-gray-900 dark:text-gray-100 text-base">PayPal</h4>
+                              <p className="text-[11px] text-gray-400">International Institutional Sponsors</p>
+                            </div>
+                          </div>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(paymentGateways.paypal?.enabled)}
+                              onChange={(e) => setPaymentGateways(prev => ({
+                                ...prev,
+                                paypal: { ...prev.paypal, enabled: e.target.checked }
+                              }))}
+                              className="w-5 h-5 rounded text-grantify-green focus:ring-grantify-green"
+                            />
+                            <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                              {paymentGateways.paypal?.enabled ? 'Active' : 'Disabled'}
+                            </span>
+                          </label>
+                        </div>
+
+                        {/* Mode toggle */}
+                        <div className="mb-4 bg-gray-50 dark:bg-gray-950 p-3 rounded-xl border border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                          <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Environment Mode</span>
+                          <div className="flex gap-2">
+                            {(['sandbox', 'live'] as const).map(mode => (
+                              <button
+                                key={mode}
+                                type="button"
+                                onClick={() => setPaymentGateways(prev => ({
+                                  ...prev,
+                                  paypal: { ...prev.paypal, mode }
+                                }))}
+                                className={`px-3 py-1 text-xs font-black uppercase rounded-lg border transition ${
+                                  paymentGateways.paypal?.mode === mode
+                                    ? mode === 'live'
+                                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                                      : 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                                    : 'border-gray-200 dark:border-gray-800 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-900'
+                                }`}
+                              >
+                                {mode === 'live' ? 'Live / Production' : 'Sandbox'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Keys */}
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">PayPal Business Email</label>
+                            <input
+                              type="email"
+                              placeholder="e.g. billing@grantify.help"
+                              value={paymentGateways.paypal?.paypalEmail || ''}
+                              onChange={(e) => setPaymentGateways(prev => ({
+                                ...prev,
+                                paypal: { ...prev.paypal, paypalEmail: e.target.value }
+                              }))}
+                              className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-2.5 text-xs text-gray-900 dark:text-gray-100"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Client ID (REST API)</label>
+                            <input
+                              type="text"
+                              placeholder="A..."
+                              value={paymentGateways.paypal?.clientId || ''}
+                              onChange={(e) => setPaymentGateways(prev => ({
+                                ...prev,
+                                paypal: { ...prev.paypal, clientId: e.target.value }
+                              }))}
+                              className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-2.5 text-xs font-mono text-gray-900 dark:text-gray-100"
+                            />
+                          </div>
+
+                          <div>
+                            <div className="flex justify-between items-center mb-1">
+                              <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-400 uppercase">Client Secret</label>
+                              <button
+                                type="button"
+                                onClick={() => setShowSecretKeys(prev => ({ ...prev, paypalSecret: !prev.paypalSecret }))}
+                                className="text-[10px] text-grantify-green hover:underline flex items-center gap-1 font-bold"
+                              >
+                                {showSecretKeys.paypalSecret ? <><EyeOff size={12} /> Hide</> : <><Eye size={12} /> Show</>}
+                              </button>
+                            </div>
+                            <input
+                              type={showSecretKeys.paypalSecret ? 'text' : 'password'}
+                              placeholder="E..."
+                              value={paymentGateways.paypal?.clientSecret || ''}
+                              onChange={(e) => setPaymentGateways(prev => ({
+                                ...prev,
+                                paypal: { ...prev.paypal, clientSecret: e.target.value }
+                              }))}
+                              className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-2.5 text-xs font-mono text-gray-900 dark:text-gray-100"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 text-[10px] text-gray-400 flex items-center justify-between">
+                        <span>Webhook: <code>/api/sponsored/webhook?provider=paypal</code></span>
+                      </div>
+                    </div>
+
+                    {/* Corporate Bank Wire & Proforma Invoicing */}
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-100 dark:border-gray-800">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-grantify-green dark:text-emerald-400 flex items-center justify-center font-black">
+                              <Building2 size={20} />
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-gray-900 dark:text-gray-100 text-base">Corporate Bank Wire & Invoicing</h4>
+                              <p className="text-[11px] text-gray-400">Institutional Proforma Invoicing & Settlement</p>
+                            </div>
+                          </div>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(paymentGateways.bankwire?.enabled !== false)}
+                              onChange={(e) => setPaymentGateways(prev => ({
+                                ...prev,
+                                bankwire: { ...prev.bankwire, enabled: e.target.checked }
+                              }))}
+                              className="w-5 h-5 rounded text-grantify-green focus:ring-grantify-green"
+                            />
+                            <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                              {paymentGateways.bankwire?.enabled !== false ? 'Active' : 'Disabled'}
+                            </span>
+                          </label>
+                        </div>
+
+                        <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+                          Your official corporate bank account details entered here are securely stored in the database. When institutional sponsors select Bank Wire, proforma invoices will include these details.
+                        </p>
+
+                        {/* Fields */}
+                        <div className="space-y-3">
+                          <div className="grid sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Bank Name</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. Access Bank PLC / Zenith Bank"
+                                value={paymentGateways.bankwire?.bankName || ''}
+                                onChange={(e) => setPaymentGateways(prev => ({
+                                  ...prev,
+                                  bankwire: { ...prev.bankwire, bankName: e.target.value }
+                                }))}
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-2.5 text-xs text-gray-900 dark:text-gray-100"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Account Number</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. 0123456789"
+                                value={paymentGateways.bankwire?.accountNumber || ''}
+                                onChange={(e) => setPaymentGateways(prev => ({
+                                  ...prev,
+                                  bankwire: { ...prev.bankwire, accountNumber: e.target.value }
+                                }))}
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-2.5 text-xs font-mono text-gray-900 dark:text-gray-100"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Account Name</label>
+                              <input
+                                type="text"
+                                placeholder="Registered Business / Entity Name"
+                                value={paymentGateways.bankwire?.accountName || ''}
+                                onChange={(e) => setPaymentGateways(prev => ({
+                                  ...prev,
+                                  bankwire: { ...prev.bankwire, accountName: e.target.value }
+                                }))}
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-2.5 text-xs text-gray-900 dark:text-gray-100"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Sort Code / SWIFT (Optional)</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. 044 / ACCESSNG"
+                                value={paymentGateways.bankwire?.sortCodeSwift || ''}
+                                onChange={(e) => setPaymentGateways(prev => ({
+                                  ...prev,
+                                  bankwire: { ...prev.bankwire, sortCodeSwift: e.target.value }
+                                }))}
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-2.5 text-xs font-mono text-gray-900 dark:text-gray-100"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Instructions for Sponsors</label>
+                            <textarea
+                              rows={2}
+                              value={paymentGateways.bankwire?.instructions || ''}
+                              onChange={(e) => setPaymentGateways(prev => ({
+                                ...prev,
+                                bankwire: { ...prev.bankwire, instructions: e.target.value }
+                              }))}
+                              className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-2.5 text-xs text-gray-900 dark:text-gray-100"
+                              placeholder="Payment guidelines shown to sponsor upon invoice request"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 text-[10px] text-emerald-700 dark:text-emerald-400 font-semibold">
+                        VAT-compliant proforma invoices will dynamically inject these details when issued.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-4">
+                    <button
+                      type="button"
+                      onClick={handleSavePaymentGateways}
+                      disabled={isSavingGateways}
+                      className="inline-flex items-center gap-2 bg-grantify-green text-white font-black px-6 py-3 rounded-xl shadow-lg hover:bg-green-700 transition disabled:opacity-60 text-sm"
+                    >
+                      {isSavingGateways ? <Loader2 className="animate-spin" size={16} /> : <><Save size={16} /> Save All Gateway Configurations</>}
+                    </button>
+                  </div>
                 </div>
               )}
 

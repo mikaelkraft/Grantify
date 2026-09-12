@@ -208,6 +208,39 @@ export interface WhatsappConfig {
   preFilledText: string;
 }
 
+export interface PaymentGatewaysConfig {
+  flutterwave: {
+    enabled: boolean;
+    publicKey: string;
+    secretKey: string;
+    encryptionKey: string;
+    mode: 'test' | 'live';
+  };
+  opay: {
+    enabled: boolean;
+    merchantId: string;
+    publicKey: string;
+    secretKey: string;
+    mode: 'sandbox' | 'live';
+  };
+  paypal: {
+    enabled: boolean;
+    clientId: string;
+    clientSecret: string;
+    paypalEmail: string;
+    mode: 'sandbox' | 'live';
+  };
+  bankwire: {
+    enabled: boolean;
+    bankName: string;
+    accountName: string;
+    accountNumber: string;
+    sortCodeSwift: string;
+    instructions: string;
+    invoiceNote: string;
+  };
+}
+
 // Ad network type definitions for window object
 declare global {
   interface Window {

@@ -287,7 +287,7 @@ export const Sponsor: React.FC = () => {
         </div>
 
         {/* Use Case Selection Tabs */}
-        <div className="flex flex-wrap justify-center gap-2 mb-8">
+        <div className="grid grid-cols-2 lg:flex lg:flex-wrap justify-center gap-2 mb-8 max-w-3xl mx-auto">
           {([
             { id: 'fintech', label: 'Digital Lenders & MFBs', icon: <Smartphone size={15} /> },
             { id: 'banks', label: 'Commercial Bank SME Desks', icon: <Landmark size={15} /> },
@@ -298,14 +298,14 @@ export const Sponsor: React.FC = () => {
               key={tab.id}
               type="button"
               onClick={() => setSelectedUseCase(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all border ${
+              className={`flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all border text-center ${
                 selectedUseCase === tab.id
                   ? 'bg-grantify-green text-white border-grantify-green shadow-md ring-2 ring-grantify-green/30'
                   : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-800 hover:border-grantify-green/50'
               }`}
             >
               {tab.icon}
-              <span>{tab.label}</span>
+              <span className="line-clamp-1">{tab.label}</span>
             </button>
           ))}
         </div>
@@ -527,7 +527,7 @@ export const Sponsor: React.FC = () => {
               <div key={z.zone} className="p-3 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800">
                 <div className="text-lg font-black text-gray-900 dark:text-gray-100">{z.pct}</div>
                 <div className="text-[11px] font-bold text-gray-700 dark:text-gray-300 mt-0.5">{z.zone}</div>
-                <div className="text-[9px] text-gray-400 truncate mt-1">{z.states}</div>
+                <div className="text-[9px] text-gray-500 dark:text-gray-400 line-clamp-2 mt-1 leading-snug">{z.states}</div>
               </div>
             ))}
           </div>
@@ -567,13 +567,13 @@ export const Sponsor: React.FC = () => {
                 )}
 
                 <div>
-                  <div className="flex justify-between items-start gap-4 mb-4">
+                  <div className="flex justify-between items-start gap-3 mb-4 flex-wrap">
                     <div>
                       <h3 className="text-lg font-black uppercase tracking-wider text-gray-900 dark:text-gray-100">{tier.tierName}</h3>
                       <p className="text-xs text-gray-500 mt-1">{tier.durationDays} Days Sponsorship</p>
                     </div>
                     {slotsLeft !== null && slotsLeft !== undefined && (
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-black uppercase tracking-wider ${
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] sm:text-xs font-black uppercase tracking-wider shrink-0 ${
                         slotsLeft <= 3 ? 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
                       }`}>
                         {slotsLeft <= 3 ? `Only ${slotsLeft} Left` : `${slotsLeft} Slots`}
@@ -581,11 +581,11 @@ export const Sponsor: React.FC = () => {
                     )}
                   </div>
 
-                  <div className="mb-4">
-                    <span className="text-3xl font-black text-gray-900 dark:text-gray-100">
+                  <div className="mb-4 flex items-baseline flex-wrap gap-1">
+                    <span className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-gray-100 break-words">
                       {(tier.priceCents / 100).toLocaleString(undefined, { style: 'currency', currency: 'NGN' })}
                     </span>
-                    <span className="text-gray-500 text-sm font-bold"> / tier</span>
+                    <span className="text-gray-500 text-xs sm:text-sm font-bold"> / tier</span>
                   </div>
 
                   <p className="text-sm text-gray-600 dark:text-gray-300 mb-6 min-h-[40px]">{tier.description}</p>
@@ -628,14 +628,15 @@ export const Sponsor: React.FC = () => {
           </p>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
+        <div className="text-[10px] text-gray-400 md:hidden mb-2 text-right">← Swipe horizontally to compare →</div>
+        <div className="overflow-x-auto scrollbar-thin">
+          <table className="w-full text-left text-xs border-collapse min-w-[560px]">
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-800">
-                <th className="py-3 px-4 font-black uppercase tracking-wider text-gray-500">Deliverable / Capability</th>
-                <th className="py-3 px-4 font-black uppercase tracking-wider text-gray-900 dark:text-gray-100">Standard Tier</th>
-                <th className="py-3 px-4 font-black uppercase tracking-wider text-grantify-gold">Featured Tier</th>
-                <th className="py-3 px-4 font-black uppercase tracking-wider text-grantify-green">Enterprise Partner</th>
+                <th className="py-3 px-4 font-black uppercase tracking-wider text-gray-500 min-w-[180px]">Deliverable / Capability</th>
+                <th className="py-3 px-4 font-black uppercase tracking-wider text-gray-900 dark:text-gray-100 min-w-[120px]">Standard Tier</th>
+                <th className="py-3 px-4 font-black uppercase tracking-wider text-grantify-gold min-w-[120px]">Featured Tier</th>
+                <th className="py-3 px-4 font-black uppercase tracking-wider text-grantify-green min-w-[140px]">Enterprise Partner</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800/60 text-gray-700 dark:text-gray-300">
@@ -1052,7 +1053,7 @@ export const Sponsor: React.FC = () => {
             </div>
 
             {/* Modal Body */}
-            <div className="p-6 md:p-8 overflow-y-auto space-y-6 text-xs text-gray-700 dark:text-gray-300">
+            <div className="p-4 sm:p-6 md:p-8 overflow-y-auto space-y-6 text-xs text-gray-700 dark:text-gray-300">
               {/* Executive Summary */}
               <div>
                 <h4 className="text-sm font-black uppercase tracking-wider text-grantify-green mb-2">1. Executive Overview</h4>
@@ -1064,7 +1065,7 @@ export const Sponsor: React.FC = () => {
               {/* Verified Audience Stats */}
               <div>
                 <h4 className="text-sm font-black uppercase tracking-wider text-grantify-gold mb-3">2. Audience Reach & Demographics</h4>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 text-center">
                   <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800">
                     <span className="text-lg font-black text-gray-900 dark:text-gray-100 block">45,000+</span>
                     <span className="text-[10px] text-gray-400 uppercase">Monthly Active Visits</span>
@@ -1087,7 +1088,7 @@ export const Sponsor: React.FC = () => {
               {/* Geographic Distribution */}
               <div>
                 <h4 className="text-sm font-black uppercase tracking-wider text-gray-900 dark:text-gray-100 mb-2">3. Geographic Breakdown</h4>
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center text-[11px]">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 text-center text-[10px] sm:text-[11px]">
                   <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"><span className="font-black block">38%</span> South-West</div>
                   <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"><span className="font-black block">20%</span> North-Central / FCT</div>
                   <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"><span className="font-black block">16%</span> South-East</div>

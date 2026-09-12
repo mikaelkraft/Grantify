@@ -15,7 +15,8 @@ import {
   ReactionType,
   ContentFlag,
   ContactMessage,
-  WhatsappConfig
+  WhatsappConfig,
+  PaymentGatewaysConfig
 } from '../types';
 
 
@@ -616,6 +617,44 @@ export const ApiService = {
       body: JSON.stringify(data)
     });
     if (!res.ok) throw new Error('Failed to save repayment content via API');
+  },
+
+  // -- Payment Gateways --
+  getPaymentGatewaysConfig: async (): Promise<{ gateways: PaymentGatewaysConfig; updatedAt?: string }> => {
+    try {
+      const res = await fetch(`${API_URL}/api/config?type=payment_gateways`);
+      if (!res.ok) throw new Error('Failed to fetch payment gateways config');
+      return await res.json();
+    } catch {
+      return {
+        gateways: {
+          flutterwave: { enabled: false, publicKey: '', secretKey: '', encryptionKey: '', mode: 'test' },
+          opay: { enabled: false, merchantId: '', publicKey: '', secretKey: '', mode: 'sandbox' },
+          paypal: { enabled: false, clientId: '', clientSecret: '', paypalEmail: '', mode: 'sandbox' },
+          bankwire: {
+            enabled: true,
+            bankName: '',
+            accountName: '',
+            accountNumber: '',
+            sortCodeSwift: '',
+            instructions: 'Official VAT-compliant proforma invoice with bank settlement instructions will be dispatched to your billing email upon request.',
+            invoiceNote: 'Payment is required within 7 business days to secure slot reservation.'
+          }
+        }
+      };
+    }
+  },
+
+  savePaymentGatewaysConfig: async (data: PaymentGatewaysConfig): Promise<void> => {
+    const adminHeader = getAdminSessionHeader();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (adminHeader) headers['X-Admin-Session'] = adminHeader;
+    const res = await fetch(`${API_URL}/api/config?type=payment_gateways`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ gateways: data })
+    });
+    if (!res.ok) throw new Error('Failed to save payment gateways config via API');
   },
 
   // -- Auth --

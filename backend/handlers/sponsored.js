@@ -74,7 +74,21 @@ export default async function handler(req, res) {
           const tot = await client.query("SELECT COUNT(*) FROM sponsored_listings WHERE payment_status = 'paid'");
           const totalPaid = Number(tot.rows[0]?.count || 0);
 
-          return res.status(200).json({ tiers, testimonials, metrics: { totalPaid } });
+          let paymentGateways = null;
+          try {
+            const gwRes = await client.query('SELECT config_json FROM payment_gateways_config WHERE id=1');
+            if (gwRes.rows?.[0]?.config_json) {
+              const cfg = gwRes.rows[0].config_json;
+              paymentGateways = {
+                flutterwave: { enabled: Boolean(cfg.flutterwave?.enabled), mode: cfg.flutterwave?.mode || 'test' },
+                opay: { enabled: Boolean(cfg.opay?.enabled), mode: cfg.opay?.mode || 'sandbox' },
+                paypal: { enabled: Boolean(cfg.paypal?.enabled), mode: cfg.paypal?.mode || 'sandbox' },
+                bankwire: { enabled: Boolean(cfg.bankwire?.enabled !== false) }
+              };
+            }
+          } catch {}
+
+          return res.status(200).json({ tiers, testimonials, metrics: { totalPaid }, paymentGateways });
         } catch (err) {
           console.error('Failed to build sponsor meta', err);
           return res.status(500).json({ error: 'Failed to fetch sponsor meta' });
@@ -194,19 +208,37 @@ export default async function handler(req, res) {
         );
         const id = insert.rows[0].id;
 
-        // Build payment URLs for PayPal or OPay
+        // Build payment URLs dynamically from gateway configs or env fallback
         let paymentUrl = null;
         try {
-          const provider = String(payerInfo?.paymentProvider || 'paypal').toLowerCase();
+          const provider = String(payerInfo?.paymentProvider || 'bankwire').toLowerCase();
           const amountUSD = (amount / 100 / 800).toFixed(2); // Rough NGN to USD conversion
           const baseUrl = String(process.env.VERCEL_PROJECT_PRODUCTION_URL || 'http://localhost:3001');
           const returnUrl = `${baseUrl}/api/sponsored/webhook?provider=${provider}&listingId=${id}`;
 
-          if (provider === 'opay') {
-            // OPay checkout: redirect to OPay sandbox or live
-            const oPayEnv = process.env.OPAY_MODE === 'live' ? 'api.opaycheckout.com' : 'sandbox.opaycheckout.com';
+          let gwConfig = null;
+          try {
+            const gwRes = await client.query('SELECT config_json FROM payment_gateways_config WHERE id=1');
+            if (gwRes.rows?.[0]?.config_json) gwConfig = gwRes.rows[0].config_json;
+          } catch {}
+
+          if (provider === 'flutterwave') {
+            const fwKey = gwConfig?.flutterwave?.publicKey || process.env.FLW_PUBLIC_KEY || '';
+            const fwUrl = new URL('https://checkout.flutterwave.com/v3/hosted/pay');
+            fwUrl.searchParams.set('public_key', String(fwKey));
+            fwUrl.searchParams.set('tx_ref', `SPO-${id}`);
+            fwUrl.searchParams.set('amount', String(amount / 100));
+            fwUrl.searchParams.set('currency', 'NGN');
+            fwUrl.searchParams.set('customer[email]', payerInfo?.email || '');
+            fwUrl.searchParams.set('customer[name]', payerInfo?.name || 'Customer');
+            fwUrl.searchParams.set('redirect_url', returnUrl);
+            paymentUrl = fwUrl.toString();
+          } else if (provider === 'opay') {
+            const oPayMode = gwConfig?.opay?.mode || process.env.OPAY_MODE || 'sandbox';
+            const oPayMerchantId = gwConfig?.opay?.merchantId || process.env.OPAY_MERCHANT_ID || '';
+            const oPayEnv = oPayMode === 'live' ? 'api.opaycheckout.com' : 'sandbox.opaycheckout.com';
             const oPayUrl = new URL(`https://${oPayEnv}/checkout`);
-            oPayUrl.searchParams.set('merchantId', String(process.env.OPAY_MERCHANT_ID || ''));
+            oPayUrl.searchParams.set('merchantId', String(oPayMerchantId));
             oPayUrl.searchParams.set('amount', String(amount));
             oPayUrl.searchParams.set('currency', 'NGN');
             oPayUrl.searchParams.set('reference', `SPO-${id}`);
@@ -214,12 +246,13 @@ export default async function handler(req, res) {
             oPayUrl.searchParams.set('customerName', payerInfo?.name || 'Customer');
             oPayUrl.searchParams.set('customerEmail', payerInfo?.email || '');
             paymentUrl = oPayUrl.toString();
-          } else {
-            // PayPal checkout (default)
-            const ppEnv = process.env.PAYPAL_MODE === 'live' ? 'checkout.paypal.com' : 'sandbox.paypal.com';
+          } else if (provider === 'paypal') {
+            const ppMode = gwConfig?.paypal?.mode || process.env.PAYPAL_MODE || 'sandbox';
+            const ppBusiness = gwConfig?.paypal?.paypalEmail || gwConfig?.paypal?.clientId || process.env.PAYPAL_EMAIL || process.env.PAYPAL_MERCHANT_ID || '';
+            const ppEnv = ppMode === 'live' ? 'checkout.paypal.com' : 'sandbox.paypal.com';
             const ppUrl = new URL(`https://${ppEnv}/cgi-bin/webscr`);
             ppUrl.searchParams.set('cmd', '_xclick');
-            ppUrl.searchParams.set('business', String(process.env.PAYPAL_EMAIL || process.env.PAYPAL_MERCHANT_ID || ''));
+            ppUrl.searchParams.set('business', String(ppBusiness));
             ppUrl.searchParams.set('item_name', `Grantify Sponsor: Listing #${id}`);
             ppUrl.searchParams.set('item_number', `SPO-${id}`);
             ppUrl.searchParams.set('amount', amountUSD);

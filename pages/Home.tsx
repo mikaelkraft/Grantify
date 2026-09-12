@@ -334,27 +334,27 @@ export const Home: React.FC = () => {
         
         <div className="relative z-10 text-center px-6 max-w-5xl">
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full text-xs font-black text-grantify-gold uppercase tracking-[0.2em] mb-8 border border-white/5">
-            <Award size={14} /> Grants and Loans Intel
+            <Award size={14} /> Nigeria's Verified MSME Capital & Grant Engine
           </div>
-          <h1 className="text-4xl md:text-7xl font-black font-heading text-white mb-8 leading-[1.1]">
+          <h1 className="text-3xl sm:text-5xl md:text-7xl font-black font-heading text-white mb-6 leading-[1.1]">
             Bridge the Gap Between <br/>
-            <span className="text-grantify-gold">Your Vision</span> & Funding.
+            <span className="text-grantify-gold">Your Vision</span> & Legit Capital.
           </h1>
-          <p className="text-xl md:text-2xl text-green-100/80 max-w-3xl mx-auto mb-12 leading-relaxed">
-            Stop searching for 'fake' loans. Use our match-making engine to find verified grants and low-interest capital from BOI, TEF, and private foundations.
+          <p className="text-base sm:text-xl md:text-2xl text-green-100/90 max-w-3xl mx-auto mb-10 leading-relaxed font-medium">
+            Escape predatory loan app traps and fake intermediaries. Discover verified non-dilutive grants, CBN/BOI intervention funds, and licensed SME credit facilities across Nigeria.
           </p>
-          <div className="flex flex-col sm:flex-row gap-6 justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-md sm:max-w-none mx-auto">
             <button 
               onClick={() => document.getElementById('matcher')?.scrollIntoView({ behavior: 'smooth' })}
-              className="bg-white text-grantify-green font-bold py-3 px-8 rounded-xl shadow-xl hover:scale-105 transition-all text-sm md:text-base flex items-center justify-center gap-2"
+              className="bg-white text-grantify-green font-black py-3.5 px-8 rounded-xl shadow-xl hover:scale-105 transition-all text-sm md:text-base flex items-center justify-center gap-2"
             >
               Find My Grant Match <Search size={18} />
             </button>
             <Link 
               to="/loan-providers"
-              className="bg-grantify-gold text-grantify-green font-bold py-3 px-8 rounded-xl shadow-xl hover:scale-105 transition-all text-sm md:text-base flex items-center justify-center gap-2"
+              className="bg-grantify-gold text-grantify-green font-black py-3.5 px-8 rounded-xl shadow-xl hover:scale-105 transition-all text-sm md:text-base flex items-center justify-center gap-2"
             >
-              <Zap size={18} /> Instant Loan Apps
+              <ShieldCheck size={18} /> Compare Licensed Lenders
             </Link>
           </div>
         </div>
@@ -483,14 +483,14 @@ export const Home: React.FC = () => {
                     </div>
                   ) : null}
                 </div>
-                <div className="flex gap-3 w-full lg:w-auto">
-                  <Link to="/sponsor" className="inline-flex items-center justify-center gap-2 bg-grantify-gold text-grantify-green font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all w-full lg:w-auto">
+                <div className="flex flex-col sm:flex-row flex-wrap gap-3 w-full lg:w-auto">
+                  <Link to="/sponsor" className="inline-flex items-center justify-center gap-2 bg-grantify-gold text-grantify-green font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all w-full sm:w-auto text-center text-sm">
                     Sponsor Content <ExternalLink size={16} />
                   </Link>
-                  <Link to="/admin?tab=sponsored" className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all w-full lg:w-auto">
+                  <Link to="/admin?tab=sponsored" className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all w-full sm:w-auto text-center text-sm">
                     Manage Sponsored Listings <ExternalLink size={16} />
                   </Link>
-                  <Link to="/contact" className="inline-flex items-center justify-center gap-2 border border-white/10 text-white font-black px-4 py-3 rounded-xl hover:bg-white/5 transition-all">
+                  <Link to="/contact" className="inline-flex items-center justify-center gap-2 border border-white/15 text-white font-black px-4 py-3 rounded-xl hover:bg-white/5 transition-all w-full sm:w-auto text-center text-sm">
                     Request a Media Kit
                   </Link>
                 </div>
@@ -504,11 +504,11 @@ export const Home: React.FC = () => {
                     Advertise your brand, loan app, or financial service to thousands of visitors seeking capital.
                   </p>
                 </div>
-                <div className="flex gap-3 w-full lg:w-auto">
-                  <Link to="/sponsor" className="inline-flex items-center justify-center gap-2 bg-grantify-gold text-grantify-green font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all w-full lg:w-auto">
+                <div className="flex flex-col sm:flex-row flex-wrap gap-3 w-full lg:w-auto">
+                  <Link to="/sponsor" className="inline-flex items-center justify-center gap-2 bg-grantify-gold text-grantify-green font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all w-full sm:w-auto text-center text-sm">
                     Become a Sponsor <ArrowRight size={16} />
                   </Link>
-                  <Link to="/contact" className="inline-flex items-center justify-center gap-2 border border-white/10 text-white font-black px-4 py-3 rounded-xl hover:bg-white/5 transition-all w-full lg:w-auto">
+                  <Link to="/contact" className="inline-flex items-center justify-center gap-2 border border-white/15 text-white font-black px-4 py-3 rounded-xl hover:bg-white/5 transition-all w-full sm:w-auto text-center text-sm">
                     Contact Us
                   </Link>
                 </div>
