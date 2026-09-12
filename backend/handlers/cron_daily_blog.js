@@ -1082,10 +1082,10 @@ export default async function handler(req, res) {
         tags,
         AUTOBLOG_SOURCE_NAME,
         AUTODRAFT_MARKER,
-        Math.floor(12 + Math.random() * 64),
-        Math.floor(6 + Math.random() * 28),
-        Math.floor(3 + Math.random() * 18),
-        Math.floor(120 + Math.random() * 900)
+        Math.floor(Math.random() * 4), // Low initial likes (0-3) for authentic organic growth
+        Math.floor(Math.random() * 2), // Low initial loves (0-1)
+        Math.floor(Math.random() * 2), // Low initial claps (0-1)
+        Math.floor(5 + Math.random() * 15) // Initial organic views (5-19)
       ]
     );
 

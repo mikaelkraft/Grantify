@@ -696,7 +696,7 @@ export const LoanProviders: React.FC = () => {
           <div className="absolute -bottom-16 -left-16 w-40 h-40 bg-white/5 rounded-full blur-3xl"></div>
           <div className="relative z-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
             <div className="max-w-2xl">
-              <p className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-gold mb-3">Partner With Grantify</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.35em] text-emerald-400 mb-3">Partner With Grantify</p>
               <h2 className="text-2xl md:text-3xl font-black leading-tight mb-3">Monetize your audience with featured placement, leads, and sponsored editorial.</h2>
               <p className="text-sm md:text-base text-white/80 leading-relaxed max-w-xl">
                 Lenders and fintech brands can buy visibility where users are already comparing options. We offer featured listings, lead packages, and sponsored content placements that stay clearly labeled.
@@ -717,7 +717,7 @@ export const LoanProviders: React.FC = () => {
               { title: 'Sponsored Content', copy: 'Run labeled editorial placements in the blog and home page to build trust before the click.' },
             ].map((item) => (
               <div key={item.title} className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-                <div className="text-sm font-black uppercase tracking-widest text-grantify-gold mb-2">{item.title}</div>
+                <div className="text-sm font-black uppercase tracking-widest text-emerald-400 mb-2">{item.title}</div>
                 <p className="text-sm text-white/75 leading-relaxed">{item.copy}</p>
               </div>
             ))}
@@ -729,7 +729,7 @@ export const LoanProviders: React.FC = () => {
           <div className="p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <h2 className="text-lg font-black text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                <Zap size={18} className="text-grantify-gold" /> Suggest a Loan App
+                <Zap size={18} className="text-grantify-green" /> Suggest a Loan App
               </h2>
               <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                 Know a legit instant-loan app we should list? Submit the details for review.
@@ -1312,7 +1312,7 @@ export const LoanProviders: React.FC = () => {
         <div className="mt-12 rounded-[2rem] border border-gray-100 dark:border-gray-800 bg-gray-900 text-white p-6 md:p-8 shadow-2xl">
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
             <div className="max-w-2xl">
-              <p className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-gold mb-3">Monetize This Directory</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.35em] text-emerald-400 mb-3">Monetize This Directory</p>
               <h2 className="text-2xl md:text-3xl font-black leading-tight mb-3">Buy placement where users are actively choosing a lender.</h2>
               <p className="text-sm md:text-base text-white/80 leading-relaxed">
                 Upgrade to a featured slot, run a sponsored listing, or capture lead-intent traffic from people comparing offers in real time.

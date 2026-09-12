@@ -199,27 +199,30 @@ export const Sponsor: React.FC = () => {
     const name = tierName.toLowerCase();
     if (name.includes('premium') || name.includes('gold') || name.includes('enterprise')) {
       return [
-        'Max-exposure top listing placements',
-        'Direct newsletter editorial slot',
-        'Priority invoice & wire transfer support',
-        'Real-time conversion & lead analytics',
-        'Dedicated account manager assistance'
+        '#1 Top sticky placement in loan category',
+        'Featured homepage partner spotlight card',
+        'Dedicated editorial review article on Grantify Blog',
+        'Top banner slot across State Grant discovery pages',
+        'Real-time click attribution & referral traffic analytics',
+        'Official VAT invoice & priority settlement support'
       ];
     }
-    if (name.includes('standard') || name.includes('silver') || name.includes('popular')) {
+    if (name.includes('standard') || name.includes('silver') || name.includes('popular') || name.includes('featured')) {
       return [
-        'Featured homepage sponsor placement',
-        'Premium highlighted listing styling',
-        'Priority provider directory indexing',
-        'Weekly traffic & referral performance metrics',
-        'Standard email & dashboard support'
+        'Priority directory ranking (#2–3 placement)',
+        'Homepage sponsor section card inclusion',
+        'Verified Partner trust badge on directory listing',
+        'Inclusion in Weekly Community funding digest',
+        'Bi-weekly click-through & traffic referral summary',
+        'Direct application URL linking with UTM attribution'
       ];
     }
     return [
-      'Standard directory listing placement',
-      'Basic styling and metadata display',
-      'Direct reference ID lookup support',
-      'Monthly referral click summary report'
+      'Verified directory listing with institution profile',
+      'Direct referral link to your website/portal',
+      'Inclusion in state & category filter searches',
+      'Monthly click-through traffic summary report',
+      'Standard email onboarding & support'
     ];
   };
 
@@ -486,7 +489,7 @@ export const Sponsor: React.FC = () => {
       <section className="mt-12 rounded-[2rem] border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-gold mb-1">Audience Demographics</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-emerald-800 dark:text-emerald-400 mb-1">Audience Demographics</p>
             <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-gray-100">Verified Platform Reach in Nigeria</h2>
           </div>
           <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
@@ -506,8 +509,8 @@ export const Sponsor: React.FC = () => {
             <p className="text-xs text-gray-500 mt-2">Women-led enterprises seeking working capital, equipment, and expansion grants.</p>
           </div>
           <div className="p-5 rounded-2xl bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800">
-            <span className="text-xs font-black uppercase tracking-wider text-grantify-gold block mb-1">Target Capital Size</span>
-            <span className="text-3xl font-black text-grantify-gold">₦500k – ₦10M</span>
+            <span className="text-xs font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400 block mb-1">Target Capital Size</span>
+            <span className="text-3xl font-black text-gray-900 dark:text-gray-100">₦500k – ₦10M</span>
             <p className="text-xs text-gray-500 mt-2">Prime working capital bracket with verified commercial repayment intent.</p>
           </div>
         </div>
@@ -621,7 +624,7 @@ export const Sponsor: React.FC = () => {
       {/* Deliverables Comparison Matrix */}
       <section className="mt-12 rounded-[2rem] border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 shadow-sm">
         <div className="text-center mb-8">
-          <p className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-gold mb-2">Detailed Specifications</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.35em] text-emerald-800 dark:text-emerald-400 mb-2">Detailed Specifications</p>
           <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-gray-100">Sponsorship Deliverables Matrix</h2>
           <p className="text-gray-600 dark:text-gray-400 mt-2 max-w-2xl mx-auto text-xs md:text-sm">
             Compare visibility features, editorial integration, community outreach, and attribution capabilities across packages.
@@ -635,7 +638,7 @@ export const Sponsor: React.FC = () => {
               <tr className="border-b border-gray-200 dark:border-gray-800">
                 <th className="py-3 px-4 font-black uppercase tracking-wider text-gray-500 min-w-[180px]">Deliverable / Capability</th>
                 <th className="py-3 px-4 font-black uppercase tracking-wider text-gray-900 dark:text-gray-100 min-w-[120px]">Standard Tier</th>
-                <th className="py-3 px-4 font-black uppercase tracking-wider text-grantify-gold min-w-[120px]">Featured Tier</th>
+                <th className="py-3 px-4 font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400 min-w-[120px]">Featured Tier</th>
                 <th className="py-3 px-4 font-black uppercase tracking-wider text-grantify-green min-w-[140px]">Enterprise Partner</th>
               </tr>
             </thead>
@@ -644,8 +647,8 @@ export const Sponsor: React.FC = () => {
                 { feature: 'Directory Listing with Verified Partner Badge', std: true, feat: true, ent: true },
                 { feature: 'Top-of-Funnel Placement on Loan Directory', std: 'Standard Rank', feat: 'Priority #2-3', ent: 'Guaranteed #1 Sticky' },
                 { feature: 'Homepage Top Sponsor Banner Spotlight', std: false, feat: true, ent: true },
-                { feature: 'WhatsApp Funding Alert Co-Sponsorship (20,000+ founders)', std: false, feat: '1 Broadcast', ent: '3 Dedicated Blasts' },
-                { feature: 'Sponsored Editorial Case Study & Google News Indexing', std: false, feat: 'Co-Branded', ent: 'Dedicated Deep-Dive' },
+                { feature: 'Grantify Weekly Community Digest Feature', std: false, feat: 'Digest Inclusion', ent: 'Header Spotlight' },
+                { feature: 'Sponsored Editorial Review Article on Grantify Blog', std: false, feat: 'Category Review', ent: 'Dedicated Article' },
                 { feature: 'State Grant Page Banner Sponsorship (/grants/:state)', std: false, feat: false, ent: true },
                 { feature: 'Real-Time Click Attribution & Referral Analytics', std: true, feat: true, ent: true },
                 { feature: 'Official VAT-Compliant Corporate Invoice & Receipt', std: true, feat: true, ent: true },
@@ -662,9 +665,9 @@ export const Sponsor: React.FC = () => {
                   </td>
                   <td className="py-3.5 px-4">
                     {typeof row.feat === 'boolean' ? (
-                      row.feat ? <CheckCircle size={15} className="text-grantify-gold" /> : <span className="text-gray-400">—</span>
+                      row.feat ? <CheckCircle size={15} className="text-emerald-600 dark:text-emerald-400" /> : <span className="text-gray-400">—</span>
                     ) : (
-                      <span className="font-bold text-grantify-gold">{row.feat}</span>
+                      <span className="font-bold text-gray-900 dark:text-gray-100">{row.feat}</span>
                     )}
                   </td>
                   <td className="py-3.5 px-4">
@@ -1024,17 +1027,20 @@ export const Sponsor: React.FC = () => {
       {/* Executive Media Kit Modal */}
       {showExecutiveKitModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/70 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+          <div
+            id="executive-media-kit-printable"
+            className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden print:max-h-none print:overflow-visible print:border-none print:shadow-none"
+          >
             {/* Modal Header */}
             <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-950/50">
               <div className="flex items-center gap-2.5">
-                <FileText className="text-grantify-gold" size={20} />
+                <FileText className="text-grantify-green" size={20} />
                 <div>
                   <h3 className="text-lg font-black text-gray-900 dark:text-gray-100">Grantify Media Kit & Partnering Rate Card</h3>
                   <p className="text-xs text-gray-500">Official commercial documentation for institutional advertisers and partners</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 no-print">
                 <button
                   type="button"
                   onClick={() => window.print()}
@@ -1046,6 +1052,7 @@ export const Sponsor: React.FC = () => {
                   type="button"
                   onClick={() => setShowExecutiveKitModal(false)}
                   className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  aria-label="Close Media Kit"
                 >
                   <X size={18} />
                 </button>
@@ -1053,9 +1060,9 @@ export const Sponsor: React.FC = () => {
             </div>
 
             {/* Modal Body */}
-            <div className="p-4 sm:p-6 md:p-8 overflow-y-auto space-y-6 text-xs text-gray-700 dark:text-gray-300">
+            <div className="p-4 sm:p-6 md:p-8 overflow-y-auto print:overflow-visible space-y-6 print:space-y-4 text-xs text-gray-700 dark:text-gray-300">
               {/* Executive Summary */}
-              <div>
+              <div className="print-avoid-break">
                 <h4 className="text-sm font-black uppercase tracking-wider text-grantify-green mb-2">1. Executive Overview</h4>
                 <p className="leading-relaxed text-sm">
                   Grantify (<code>grantify.help</code>) is Nigeria's leading non-lending grant and loan discovery engine. We connect over <strong>45,000 monthly high-intent business owners and entrepreneurs</strong> across all 36 states and the FCT with licensed credit providers, government intervention programs, and non-dilutive development grants.
@@ -1063,8 +1070,8 @@ export const Sponsor: React.FC = () => {
               </div>
 
               {/* Verified Audience Stats */}
-              <div>
-                <h4 className="text-sm font-black uppercase tracking-wider text-grantify-gold mb-3">2. Audience Reach & Demographics</h4>
+              <div className="print-avoid-break">
+                <h4 className="text-sm font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400 mb-3">2. Audience Reach & Demographics</h4>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 text-center">
                   <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800">
                     <span className="text-lg font-black text-gray-900 dark:text-gray-100 block">45,000+</span>
@@ -1075,7 +1082,7 @@ export const Sponsor: React.FC = () => {
                     <span className="text-[10px] text-gray-400 uppercase">Women-Led Enterprises</span>
                   </div>
                   <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800">
-                    <span className="text-lg font-black text-grantify-gold block">68%</span>
+                    <span className="text-lg font-black text-gray-900 dark:text-gray-100 block">68%</span>
                     <span className="text-[10px] text-gray-400 uppercase">Micro & Small Business</span>
                   </div>
                   <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800">
@@ -1086,7 +1093,7 @@ export const Sponsor: React.FC = () => {
               </div>
 
               {/* Geographic Distribution */}
-              <div>
+              <div className="print-avoid-break">
                 <h4 className="text-sm font-black uppercase tracking-wider text-gray-900 dark:text-gray-100 mb-2">3. Geographic Breakdown</h4>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 text-center text-[10px] sm:text-[11px]">
                   <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"><span className="font-black block">38%</span> South-West</div>
@@ -1099,29 +1106,29 @@ export const Sponsor: React.FC = () => {
               </div>
 
               {/* Packages Summary */}
-              <div>
+              <div className="print-avoid-break">
                 <h4 className="text-sm font-black uppercase tracking-wider text-grantify-green mb-2">4. Sponsorship Packages & Rate Card</h4>
                 <div className="grid sm:grid-cols-3 gap-3">
-                  <div className="p-4 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800">
+                  <div className="p-4 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 print-avoid-break">
                     <div className="font-black text-sm text-gray-900 dark:text-gray-100">Standard Tier</div>
                     <div className="text-base font-black text-grantify-green my-1">₦25,000</div>
-                    <p className="text-[10px] text-gray-500">14-Day Directory Listing with Verified Partner Badge, Click Attribution tracking.</p>
+                    <p className="text-[10px] text-gray-500">14-Day Directory Listing with Verified Partner Badge & Monthly Referral Summary.</p>
                   </div>
-                  <div className="p-4 bg-gray-50 dark:bg-gray-950 rounded-xl border-2 border-grantify-gold">
+                  <div className="p-4 bg-gray-50 dark:bg-gray-950 rounded-xl border-2 border-emerald-600 dark:border-emerald-500 print-avoid-break">
                     <div className="font-black text-sm text-gray-900 dark:text-gray-100">Featured Tier (Popular)</div>
-                    <div className="text-base font-black text-grantify-gold my-1">₦60,000</div>
-                    <p className="text-[10px] text-gray-500">30-Day Homepage Spotlight, Priority Directory Rank, 1x WhatsApp broadcast co-sponsorship.</p>
+                    <div className="text-base font-black text-emerald-700 dark:text-emerald-400 my-1">₦60,000</div>
+                    <p className="text-[10px] text-gray-500">30-Day Homepage Spotlight, Priority Directory Rank, and Inclusion in Weekly Community Digest.</p>
                   </div>
-                  <div className="p-4 bg-gray-50 dark:bg-gray-950 rounded-xl border border-grantify-green">
+                  <div className="p-4 bg-gray-50 dark:bg-gray-950 rounded-xl border border-grantify-green print-avoid-break">
                     <div className="font-black text-sm text-gray-900 dark:text-gray-100">Enterprise Partner</div>
                     <div className="text-base font-black text-grantify-green my-1">₦150,000</div>
-                    <p className="text-[10px] text-gray-500">60-Day Guaranteed #1 Sticky Rank, 3x WhatsApp blasts, Sponsored Case Study, State Guide Header.</p>
+                    <p className="text-[10px] text-gray-500">60-Day Top Sticky Placement, Sponsored Blog Review, State Guide Banners, & Full Referral Tracking.</p>
                   </div>
                 </div>
               </div>
 
               {/* Settlement & Invoicing */}
-              <div className="p-4 bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 rounded-2xl">
+              <div className="p-4 bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 rounded-2xl print-avoid-break">
                 <h4 className="text-xs font-black uppercase tracking-wider text-gray-800 dark:text-gray-200 mb-1">5. Institutional Invoicing & Settlement</h4>
                 <p className="text-[11px] text-gray-600 dark:text-gray-300 leading-relaxed mb-2">
                   Official VAT-compliant corporate invoices are generated upon booking. Institutional bank wire transfers, electronic deposits, and card settlements are processed with same-day confirmation.
@@ -1132,7 +1139,7 @@ export const Sponsor: React.FC = () => {
               </div>
 
               {/* Contacts */}
-              <div className="pt-2 flex flex-col sm:flex-row justify-between items-center gap-3 border-t border-gray-100 dark:border-gray-800 text-[11px] text-gray-500">
+              <div className="pt-2 flex flex-col sm:flex-row justify-between items-center gap-3 border-t border-gray-100 dark:border-gray-800 text-[11px] text-gray-500 print-avoid-break">
                 <div>Partnerships Desk: <strong>partners@grantify.help</strong></div>
                 <div>Grantify • Lagos, Nigeria</div>
               </div>

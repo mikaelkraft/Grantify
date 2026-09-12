@@ -599,10 +599,10 @@ export default async function handler(req, res) {
       }
 
       const id = Date.now().toString();
-      const seededLikes = typeof likes === 'number' ? likes : Math.floor(12 + Math.random() * 64);
-      const seededLoves = typeof loves === 'number' ? loves : Math.floor(6 + Math.random() * 28);
-      const seededClaps = typeof claps === 'number' ? claps : Math.floor(3 + Math.random() * 18);
-      const seededViews = typeof views === 'number' ? views : Math.floor(120 + Math.random() * 900);
+      const seededLikes = typeof likes === 'number' ? likes : Math.floor(Math.random() * 4);
+      const seededLoves = typeof loves === 'number' ? loves : Math.floor(Math.random() * 2);
+      const seededClaps = typeof claps === 'number' ? claps : Math.floor(Math.random() * 2);
+      const seededViews = typeof views === 'number' ? views : Math.floor(5 + Math.random() * 15);
 
       const cleanedContent = stripDataImagesFromHtml(content);
       const featuredImage = deriveFeaturedImage(image, cleanedContent);

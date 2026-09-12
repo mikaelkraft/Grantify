@@ -465,7 +465,7 @@ export const Home: React.FC = () => {
             {showPartnerRevenue ? (
               <>
                 <div className="max-w-2xl">
-                  <p className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-gold mb-3">Partner Revenue</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.35em] text-emerald-300 mb-3">Partner Revenue</p>
                   <h2 className="text-2xl md:text-3xl font-black leading-tight mb-3">Turn the audience into sponsor revenue.</h2>
                   <p className="text-sm md:text-base text-white/80 leading-relaxed">
                     Offer lenders, fintechs, and service brands a clear path to featured placement, lead generation, and branded visibility across the home page, blog, and provider directory.
@@ -498,7 +498,7 @@ export const Home: React.FC = () => {
             ) : (
               <>
                 <div className="max-w-2xl">
-                  <p className="text-[10px] font-black uppercase tracking-[0.35em] text-grantify-gold mb-3">Sponsored</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.35em] text-emerald-300 mb-3">Sponsored</p>
                   <h2 className="text-2xl md:text-3xl font-black leading-tight mb-3">Partner Opportunities</h2>
                   <p className="text-sm md:text-base text-white/80 leading-relaxed">
                     Advertise your brand, loan app, or financial service to thousands of visitors seeking capital.
@@ -525,7 +525,7 @@ export const Home: React.FC = () => {
                   rel={s.provider_website ? "noopener noreferrer" : undefined}
                   className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm block transition-all hover:bg-white/10 hover:border-white/20 hover:-translate-y-0.5"
                 >
-                  <div className="text-sm font-black uppercase tracking-widest text-grantify-gold mb-2">{String(s.tier_name || 'Sponsored')}</div>
+                  <div className="text-sm font-black uppercase tracking-widest text-emerald-300 mb-2">{String(s.tier_name || 'Sponsored')}</div>
                   <div className="text-lg font-bold text-white mb-2 hover:underline flex items-center gap-1.5">
                     {String(s.provider_name || s.provider_id || 'Provider')}
                     {s.provider_website && <ExternalLink size={14} className="opacity-60" />}
@@ -544,7 +544,7 @@ export const Home: React.FC = () => {
                 { title: 'Lead Packages', copy: 'Charge for qualified enquiries from visitors already comparing funding options.' },
               ].map((item) => (
                 <div key={item.title} className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-                  <div className="text-sm font-black uppercase tracking-widest text-grantify-gold mb-2">{item.title}</div>
+                  <div className="text-sm font-black uppercase tracking-widest text-emerald-300 mb-2">{item.title}</div>
                   <p className="text-sm text-white/75 leading-relaxed">{item.copy}</p>
                 </div>
               ))
@@ -888,7 +888,7 @@ export const Home: React.FC = () => {
               <TrendingUp size={28} className="text-grantify-gold" />
             </div>
             <div className="flex-1">
-              <div className="text-[10px] font-black uppercase tracking-widest text-grantify-gold mb-2">Weekly Competition</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-emerald-400 mb-2">Weekly Competition</div>
               <h2 className="text-2xl md:text-3xl font-black leading-tight mb-2">Fund My Business Pitch</h2>
               <p className="text-white/70 text-sm leading-relaxed max-w-lg">
                 Write a 100-word pitch for your business idea. The community votes. The top idea wins

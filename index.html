@@ -44,7 +44,8 @@
             colors: {
               grantify: {
                 green: '#006400',
-                gold: '#FFD700',
+                gold: '#B45309', /* Warm accessible amber-gold in light mode, high contrast on light bg */
+                'gold-bright': '#F59E0B',
                 light: '#f3f4f6',
               }
             },
@@ -59,6 +60,63 @@
       }
     </script>
     <style>
+      /* Contrast adjustment: tone down yellow text so it is friendly and accessible in light mode */
+      .text-grantify-gold {
+        color: #B45309; /* Deep, readable amber-gold on light backgrounds */
+      }
+      .dark .text-grantify-gold {
+        color: #FBBF24; /* Crisp warm gold in dark mode */
+      }
+      .border-grantify-gold {
+        border-color: #D97706;
+      }
+      .dark .border-grantify-gold {
+        border-color: #F59E0B;
+      }
+
+      /* Print Styling: Ensure Executive Media Kit prints cleanly on 1 page without background duplication */
+      @media print {
+        body {
+          background: #ffffff !important;
+          color: #111827 !important;
+        }
+        /* Hide everything else when printing */
+        body * {
+          visibility: hidden !important;
+        }
+        /* Reveal only the executive media kit printable area */
+        #executive-media-kit-printable,
+        #executive-media-kit-printable * {
+          visibility: visible !important;
+        }
+        #executive-media-kit-printable {
+          position: absolute !important;
+          left: 0 !important;
+          top: 0 !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          margin: 0 !important;
+          padding: 16px !important;
+          background: #ffffff !important;
+          color: #111827 !important;
+          box-shadow: none !important;
+          border: none !important;
+          border-radius: 0 !important;
+          overflow: visible !important;
+          max-height: none !important;
+        }
+        .no-print {
+          display: none !important;
+        }
+        .print-avoid-break {
+          break-inside: avoid !important;
+          page-break-inside: avoid !important;
+        }
+        @page {
+          size: A4 portrait;
+          margin: 10mm 12mm;
+        }
+      }
       body {
         font-family: 'Open Sans', sans-serif;
       }
