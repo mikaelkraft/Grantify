@@ -335,23 +335,23 @@ export const Sponsor: React.FC = () => {
                 </div>
               </div>
               <div className="bg-gray-50 dark:bg-gray-950 p-6 rounded-2xl border border-gray-100 dark:border-gray-800">
-                <div className="text-xs font-black uppercase tracking-wider text-grantify-green mb-4">Verified Campaign Impact</div>
+                <div className="text-xs font-black uppercase tracking-wider text-grantify-green mb-4">Targeted Campaign Capabilities</div>
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div className="p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800">
-                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Conversion Rate</span>
-                    <span className="text-2xl font-black text-grantify-green">3.8x</span>
-                    <span className="text-[10px] text-gray-500 block mt-0.5">vs generic social ads</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Borrower Intent</span>
+                    <span className="text-xl font-black text-grantify-green">Pre-Informed</span>
+                    <span className="text-[10px] text-gray-500 block mt-0.5">comparing APRs & loan terms</span>
                   </div>
                   <div className="p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800">
-                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Cost Per Booked Loan</span>
-                    <span className="text-2xl font-black text-gray-900 dark:text-gray-100">-42%</span>
-                    <span className="text-[10px] text-gray-500 block mt-0.5">lower acquisition cost</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Traffic Attribution</span>
+                    <span className="text-xl font-black text-gray-900 dark:text-gray-100">100% Tracked</span>
+                    <span className="text-[10px] text-gray-500 block mt-0.5">verified outbound UTM clicks</span>
                   </div>
                 </div>
                 <ul className="space-y-2 text-xs text-gray-600 dark:text-gray-300">
                   <li className="flex items-center gap-2"><CheckCircle size={14} className="text-grantify-green shrink-0" /> Directory Top-Ranked Placement with Verified Badge</li>
-                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-grantify-green shrink-0" /> Real-time Click-Out Attribution tracking</li>
-                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-grantify-green shrink-0" /> Direct link into Google Play Store or web onboarding</li>
+                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-grantify-green shrink-0" /> Transparent Click-Out Attribution reporting</li>
+                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-grantify-green shrink-0" /> Direct link into your web portal or app onboarding flow</li>
                 </ul>
               </div>
             </div>
@@ -364,7 +364,7 @@ export const Sponsor: React.FC = () => {
                   <Landmark size={12} /> Commercial Banks & SME Divisions
                 </span>
                 <h3 className="text-2xl font-black text-gray-900 dark:text-gray-100 mb-3">
-                  Deploy intervention funds and scale corporate SME account openings.
+                  Attract formalizing SMEs and deploy specialized intervention credit lines.
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-4">
                   <strong>The Real Problem:</strong> Commercial banks struggle to identify bankable, formalizing businesses for CBN/BOI special credit facilities, women entrepreneur initiatives, and merchant terminal deployments.
@@ -377,23 +377,23 @@ export const Sponsor: React.FC = () => {
                 </div>
               </div>
               <div className="bg-gray-50 dark:bg-gray-950 p-6 rounded-2xl border border-gray-100 dark:border-gray-800">
-                <div className="text-xs font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-4">Verified Campaign Impact</div>
+                <div className="text-xs font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-4">Targeted Campaign Capabilities</div>
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div className="p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800">
-                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Corporate Accounts</span>
-                    <span className="text-2xl font-black text-blue-600 dark:text-blue-400">High Volume</span>
-                    <span className="text-[10px] text-gray-500 block mt-0.5">SMEs opening business accounts</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Target Demographic</span>
+                    <span className="text-xl font-black text-blue-600 dark:text-blue-400">Formalizing SMEs</span>
+                    <span className="text-[10px] text-gray-500 block mt-0.5">structured operating enterprises</span>
                   </div>
                   <div className="p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800">
-                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Avg. Business Deposit</span>
-                    <span className="text-2xl font-black text-gray-900 dark:text-gray-100">₦2.4M+</span>
-                    <span className="text-[10px] text-gray-500 block mt-0.5">initial operating float</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Intervention Access</span>
+                    <span className="text-xl font-black text-gray-900 dark:text-gray-100">Matched Fit</span>
+                    <span className="text-[10px] text-gray-500 block mt-0.5">directed to eligible credit desks</span>
                   </div>
                 </div>
                 <ul className="space-y-2 text-xs text-gray-600 dark:text-gray-300">
-                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-blue-600 shrink-0" /> Featured Article Spotlight on Grantify Editorial</li>
-                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-blue-600 shrink-0" /> Inclusion in monthly SME Financial Guide download</li>
-                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-blue-600 shrink-0" /> Direct referral into relationship manager desk</li>
+                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-blue-600 shrink-0" /> Featured Editorial Review Spotlight on Grantify Blog</li>
+                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-blue-600 shrink-0" /> Prominent inclusion in Grantify SME Funding Resource Guides</li>
+                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-blue-600 shrink-0" /> Direct link to your corporate SME portal or dedicated application desk</li>
                 </ul>
               </div>
             </div>
@@ -419,23 +419,23 @@ export const Sponsor: React.FC = () => {
                 </div>
               </div>
               <div className="bg-gray-50 dark:bg-gray-950 p-6 rounded-2xl border border-gray-100 dark:border-gray-800">
-                <div className="text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-4">Verified Campaign Impact</div>
+                <div className="text-xs font-black uppercase tracking-wider text-amber-700 dark:text-amber-400 mb-4">Targeted Campaign Capabilities</div>
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div className="p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800">
                     <span className="text-[10px] text-gray-400 font-bold uppercase block">Female Founder Ratio</span>
-                    <span className="text-2xl font-black text-amber-600 dark:text-amber-400">54%</span>
+                    <span className="text-xl font-black text-grantify-green">54%</span>
                     <span className="text-[10px] text-gray-500 block mt-0.5">verified women-led applicants</span>
                   </div>
                   <div className="p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800">
                     <span className="text-[10px] text-gray-400 font-bold uppercase block">State Coverage</span>
-                    <span className="text-2xl font-black text-gray-900 dark:text-gray-100">36 + FCT</span>
+                    <span className="text-xl font-black text-gray-900 dark:text-gray-100">36 + FCT</span>
                     <span className="text-[10px] text-gray-500 block mt-0.5">nationwide application reach</span>
                   </div>
                 </div>
                 <ul className="space-y-2 text-xs text-gray-600 dark:text-gray-300">
-                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-amber-600 shrink-0" /> State-specific Grant Page Sponsorship banner</li>
-                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-amber-600 shrink-0" /> WhatsApp Funding Alert blast to 20,000+ founders</li>
-                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-amber-600 shrink-0" /> Eligibility checklist guidance custom tailored to your grant rules</li>
+                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-grantify-green shrink-0" /> State-specific Grant Page Sponsorship banner (/grants/:state)</li>
+                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-grantify-green shrink-0" /> Grant callout feature in Grantify Weekly Community Digest</li>
+                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-grantify-green shrink-0" /> Custom tailored eligibility checklist guidance for applicant clarity</li>
                 </ul>
               </div>
             </div>
@@ -461,23 +461,23 @@ export const Sponsor: React.FC = () => {
                 </div>
               </div>
               <div className="bg-gray-50 dark:bg-gray-950 p-6 rounded-2xl border border-gray-100 dark:border-gray-800">
-                <div className="text-xs font-black uppercase tracking-wider text-purple-600 dark:text-purple-400 mb-4">Verified Campaign Impact</div>
+                <div className="text-xs font-black uppercase tracking-wider text-purple-600 dark:text-purple-400 mb-4">Targeted Campaign Capabilities</div>
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div className="p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800">
-                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Ready-to-Buy Intent</span>
-                    <span className="text-2xl font-black text-purple-600 dark:text-purple-400">82%</span>
-                    <span className="text-[10px] text-gray-500 block mt-0.5">actively seeking compliance tools</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Audience Readiness</span>
+                    <span className="text-xl font-black text-purple-600 dark:text-purple-400">High Intent</span>
+                    <span className="text-[10px] text-gray-500 block mt-0.5">preparing corporate paperwork & tools</span>
                   </div>
                   <div className="p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800">
-                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Tool Adoption Rate</span>
-                    <span className="text-2xl font-black text-gray-900 dark:text-gray-100">4.1x</span>
-                    <span className="text-[10px] text-gray-500 block mt-0.5">higher software signup rate</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Placement Context</span>
+                    <span className="text-xl font-black text-gray-900 dark:text-gray-100">Native Guides</span>
+                    <span className="text-[10px] text-gray-500 block mt-0.5">displayed alongside grant checklists</span>
                   </div>
                 </div>
                 <ul className="space-y-2 text-xs text-gray-600 dark:text-gray-300">
-                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-purple-600 shrink-0" /> Native Resource & Toolkit sidebar slot</li>
-                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-purple-600 shrink-0" /> Recommended Partner Badge on preparation pages</li>
-                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-purple-600 shrink-0" /> Direct click to promo landing page or WhatsApp bot</li>
+                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-purple-600 shrink-0" /> Contextual Resource & Toolkit Directory placement</li>
+                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-purple-600 shrink-0" /> Recommended Partner Trust Badge on preparation pages</li>
+                  <li className="flex items-center gap-2"><CheckCircle size={14} className="text-purple-600 shrink-0" /> Direct link to your product onboarding landing page or sales channel</li>
                 </ul>
               </div>
             </div>
