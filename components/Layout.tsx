@@ -290,7 +290,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           href={ads.promo1Link}
           target="_blank"
           rel="noopener noreferrer"
-          className="fixed bottom-24 right-6 z-50 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 animate-bounce flex items-center gap-2"
+          className="fixed bottom-24 right-6 z-50 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 animate-bounce flex items-center gap-2 print:hidden"
         >
           <span>🔥</span>
           <span>{ads.promo1Text || 'Offer'}</span>
@@ -303,7 +303,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           href={ads.promo2Link}
           target="_blank"
           rel="noopener noreferrer"
-          className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 animate-pulse flex items-center gap-2"
+          className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 animate-pulse flex items-center gap-2 print:hidden"
         >
           <span>🎁</span>
           <span>{ads.promo2Text || 'Bonus'}</span>
@@ -312,7 +312,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
       {/* Compliance Warning Modal */}
       {showCompliance && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto print:hidden">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border-t-8 border-red-600 animate-in fade-in zoom-in duration-300 my-8">
             <div className="flex items-center gap-3 mb-4 text-red-600">
               <ShieldAlert size={32} />
@@ -405,7 +405,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       {/* Header Ad Slot - REMOVED for cleaner site header */}
 
       {/* Navbar */}
-      <header className="relative bg-gradient-to-r from-green-950 via-grantify-green to-green-900 text-white shadow-lg sticky top-0 z-[60] transition-all duration-300 overflow-hidden">
+      <header className="relative bg-gradient-to-r from-green-950 via-grantify-green to-green-900 text-white shadow-lg sticky top-0 z-[60] transition-all duration-300 overflow-hidden print:hidden">
         {/* Wavy Background SVG */}
         <div className="absolute inset-0 z-0 pointer-events-none select-none overflow-hidden opacity-10 dark:opacity-5">
           <svg className="w-full h-[200%] -top-1/2 left-0" viewBox="0 0 1440 240" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
@@ -650,7 +650,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       </header>
 
       {/* Main Content */}
-      <main className="flex-grow mx-auto w-full max-w-7xl px-3 sm:px-4 md:px-6 py-6 md:py-8">
+      <main className="flex-grow mx-auto w-full max-w-7xl px-3 sm:px-4 md:px-6 py-6 md:py-8 print:p-0 print:m-0 print:max-w-none">
         <div className="w-full">
             {children}
         </div>
@@ -658,17 +658,17 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
       {/* Body Ad */}
       {ads?.body && (
-        <div className="my-12 flex justify-center">
+        <div className="my-12 flex justify-center print:hidden">
           <AdSlot htmlContent={ads.body} label="Sponsor" />
         </div>
       )}
 
 
       {/* Footer Ad */}
-      {ads?.footer && <AdSlot htmlContent={ads.footer} className="bg-gray-900 py-4" label="Sponsor" />}
+      {ads?.footer && <AdSlot htmlContent={ads.footer} className="bg-gray-900 py-4 print:hidden" label="Sponsor" />}
 
       {/* Footer */}
-      <footer className="bg-gray-950 text-gray-400 py-12 border-t border-gray-900">
+      <footer className="bg-gray-950 text-gray-400 py-12 border-t border-gray-900 print:hidden">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mb-8 text-left">
             {/* Column 1: About */}
@@ -730,7 +730,9 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       </footer>
 
       {/* AI Chat Assistant */}
-      <AiChatbot />
+      <div className="print:hidden">
+        <AiChatbot />
+      </div>
 
       {/* WhatsApp Floating Button */}
       {whatsappConfig && whatsappConfig.isEnabled && (
@@ -743,7 +745,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           rel="noopener noreferrer"
           title="Chat on WhatsApp"
           aria-label="Chat on WhatsApp"
-          className="fixed bottom-24 left-4 z-50 flex items-center gap-2 bg-[#25D366] text-white font-black text-xs px-4 py-3 rounded-full shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-200 group"
+          className="fixed bottom-24 left-4 z-50 flex items-center gap-2 bg-[#25D366] text-white font-black text-xs px-4 py-3 rounded-full shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-200 group print:hidden"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-[18px] h-[18px] flex-shrink-0" aria-hidden="true">
             <path d="M12.004 2c-5.523 0-10 4.477-10 10 0 1.762.455 3.42 1.257 4.87L2 22l5.3-.98A9.972 9.972 0 0012.004 22c5.523 0 10-4.477 10-10s-4.477-10-10-10z" fill="#ffffff" />

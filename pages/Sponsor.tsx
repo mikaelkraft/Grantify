@@ -237,9 +237,10 @@ export const Sponsor: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-12">
-      {/* Hero Section */}
-      <section className="rounded-[2rem] border border-gray-100 dark:border-gray-800 bg-gradient-to-br from-gray-900 via-gray-950 to-gray-900 text-white p-6 md:p-10 shadow-2xl relative overflow-hidden">
+    <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-12 print:p-0 print:m-0 print:max-w-none">
+      <div className={showExecutiveKitModal ? 'print:hidden' : ''}>
+        {/* Hero Section */}
+        <section className="rounded-[2rem] border border-gray-100 dark:border-gray-800 bg-gradient-to-br from-gray-900 via-gray-950 to-gray-900 text-white p-6 md:p-10 shadow-2xl relative overflow-hidden">
         <div className="absolute -top-16 -right-16 w-48 h-48 bg-grantify-gold/10 rounded-full blur-3xl" />
         <div className="relative z-10 grid gap-8 lg:grid-cols-[1.2fr_0.8fr] items-start">
           <div>
@@ -1023,24 +1024,28 @@ export const Sponsor: React.FC = () => {
           ))}
         </div>
       </section>
+      </div>
 
       {/* Executive Media Kit Modal */}
       {showExecutiveKitModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/70 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
+        <div
+          id="executive-media-kit-modal-backdrop"
+          className="fixed inset-0 z-50 flex justify-center items-start overflow-y-auto p-3 sm:p-6 md:p-8 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200 print:static print:p-0 print:m-0 print:bg-white print:overflow-visible print:block"
+        >
           <div
             id="executive-media-kit-printable"
-            className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden print:max-h-none print:overflow-visible print:border-none print:shadow-none"
+            className="bg-white dark:bg-gray-900 rounded-2xl sm:rounded-3xl border border-gray-200 dark:border-gray-800 w-full max-w-4xl flex flex-col shadow-2xl overflow-hidden my-auto sm:my-6 print:my-0 print:rounded-none print:max-h-none print:overflow-visible print:border-none print:shadow-none print:w-full print:max-w-none"
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-950/50">
+            <div className="sticky top-0 z-20 shrink-0 flex items-center justify-between p-4 sm:p-5 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm print:static print:border-b-2 print:border-grantify-green print:p-2">
               <div className="flex items-center gap-2.5">
-                <FileText className="text-grantify-green" size={20} />
+                <FileText className="text-grantify-green shrink-0" size={20} />
                 <div>
-                  <h3 className="text-lg font-black text-gray-900 dark:text-gray-100">Grantify Media Kit & Partnering Rate Card</h3>
+                  <h3 className="text-base sm:text-lg font-black text-gray-900 dark:text-gray-100">Grantify Media Kit & Partnering Rate Card</h3>
                   <p className="text-xs text-gray-500">Official commercial documentation for institutional advertisers and partners</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 no-print">
+              <div className="flex items-center gap-2 no-print print:hidden">
                 <button
                   type="button"
                   onClick={() => window.print()}
@@ -1060,86 +1065,86 @@ export const Sponsor: React.FC = () => {
             </div>
 
             {/* Modal Body */}
-            <div className="p-4 sm:p-6 md:p-8 overflow-y-auto print:overflow-visible space-y-6 print:space-y-4 text-xs text-gray-700 dark:text-gray-300">
+            <div className="p-4 sm:p-6 md:p-8 overflow-y-auto print:overflow-visible space-y-6 print:space-y-3 text-xs text-gray-700 dark:text-gray-300 print:p-0 print:text-[10px]">
               {/* Executive Summary */}
               <div className="print-avoid-break">
-                <h4 className="text-sm font-black uppercase tracking-wider text-grantify-green mb-2">1. Executive Overview</h4>
-                <p className="leading-relaxed text-sm">
+                <h4 className="text-sm font-black uppercase tracking-wider text-grantify-green mb-1.5 print:text-xs">1. Executive Overview</h4>
+                <p className="leading-relaxed text-sm print:text-[10px]">
                   Grantify (<code>grantify.help</code>) is Nigeria's leading non-lending grant and loan discovery engine. We connect over <strong>45,000 monthly high-intent business owners and entrepreneurs</strong> across all 36 states and the FCT with licensed credit providers, government intervention programs, and non-dilutive development grants.
                 </p>
               </div>
 
               {/* Verified Audience Stats */}
               <div className="print-avoid-break">
-                <h4 className="text-sm font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400 mb-3">2. Audience Reach & Demographics</h4>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 text-center">
-                  <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800">
-                    <span className="text-lg font-black text-gray-900 dark:text-gray-100 block">45,000+</span>
-                    <span className="text-[10px] text-gray-400 uppercase">Monthly Active Visits</span>
+                <h4 className="text-sm font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400 mb-2 print:text-xs">2. Audience Reach & Demographics</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 print:grid-cols-4 gap-2.5 sm:gap-3 print:gap-2 text-center">
+                  <div className="p-3 print:p-1.5 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800">
+                    <span className="text-lg print:text-sm font-black text-gray-900 dark:text-gray-100 block">45,000+</span>
+                    <span className="text-[10px] print:text-[8px] text-gray-400 uppercase">Monthly Active Visits</span>
                   </div>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800">
-                    <span className="text-lg font-black text-grantify-green block">54%</span>
-                    <span className="text-[10px] text-gray-400 uppercase">Women-Led Enterprises</span>
+                  <div className="p-3 print:p-1.5 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800">
+                    <span className="text-lg print:text-sm font-black text-grantify-green block">54%</span>
+                    <span className="text-[10px] print:text-[8px] text-gray-400 uppercase">Women-Led Enterprises</span>
                   </div>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800">
-                    <span className="text-lg font-black text-gray-900 dark:text-gray-100 block">68%</span>
-                    <span className="text-[10px] text-gray-400 uppercase">Micro & Small Business</span>
+                  <div className="p-3 print:p-1.5 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800">
+                    <span className="text-lg print:text-sm font-black text-gray-900 dark:text-gray-100 block">68%</span>
+                    <span className="text-[10px] print:text-[8px] text-gray-400 uppercase">Micro & Small Business</span>
                   </div>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800">
-                    <span className="text-lg font-black text-blue-600 block">36 + FCT</span>
-                    <span className="text-[10px] text-gray-400 uppercase">Nationwide Coverage</span>
+                  <div className="p-3 print:p-1.5 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800">
+                    <span className="text-lg print:text-sm font-black text-blue-600 block">36 + FCT</span>
+                    <span className="text-[10px] print:text-[8px] text-gray-400 uppercase">Nationwide Coverage</span>
                   </div>
                 </div>
               </div>
 
               {/* Geographic Distribution */}
               <div className="print-avoid-break">
-                <h4 className="text-sm font-black uppercase tracking-wider text-gray-900 dark:text-gray-100 mb-2">3. Geographic Breakdown</h4>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 text-center text-[10px] sm:text-[11px]">
-                  <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"><span className="font-black block">38%</span> South-West</div>
-                  <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"><span className="font-black block">20%</span> North-Central / FCT</div>
-                  <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"><span className="font-black block">16%</span> South-East</div>
-                  <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"><span className="font-black block">12%</span> South-South</div>
-                  <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"><span className="font-black block">9%</span> North-West</div>
-                  <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"><span className="font-black block">5%</span> North-East</div>
+                <h4 className="text-sm font-black uppercase tracking-wider text-gray-900 dark:text-gray-100 mb-1.5 print:text-xs">3. Geographic Breakdown</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 print:grid-cols-6 gap-2 print:gap-1 text-center text-[10px] sm:text-[11px] print:text-[9px]">
+                  <div className="p-2 print:p-1 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"><span className="font-black block">38%</span> South-West</div>
+                  <div className="p-2 print:p-1 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"><span className="font-black block">20%</span> North-Central / FCT</div>
+                  <div className="p-2 print:p-1 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"><span className="font-black block">16%</span> South-East</div>
+                  <div className="p-2 print:p-1 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"><span className="font-black block">12%</span> South-South</div>
+                  <div className="p-2 print:p-1 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"><span className="font-black block">9%</span> North-West</div>
+                  <div className="p-2 print:p-1 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"><span className="font-black block">5%</span> North-East</div>
                 </div>
               </div>
 
               {/* Packages Summary */}
               <div className="print-avoid-break">
-                <h4 className="text-sm font-black uppercase tracking-wider text-grantify-green mb-2">4. Sponsorship Packages & Rate Card</h4>
-                <div className="grid sm:grid-cols-3 gap-3">
-                  <div className="p-4 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 print-avoid-break">
-                    <div className="font-black text-sm text-gray-900 dark:text-gray-100">Standard Tier</div>
-                    <div className="text-base font-black text-grantify-green my-1">₦25,000</div>
-                    <p className="text-[10px] text-gray-500">14-Day Directory Listing with Verified Partner Badge & Monthly Referral Summary.</p>
+                <h4 className="text-sm font-black uppercase tracking-wider text-grantify-green mb-1.5 print:text-xs">4. Sponsorship Packages & Rate Card</h4>
+                <div className="grid sm:grid-cols-3 print:grid-cols-3 gap-3 print:gap-2">
+                  <div className="p-4 print:p-2 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 print-avoid-break">
+                    <div className="font-black text-sm print:text-xs text-gray-900 dark:text-gray-100">Standard Tier</div>
+                    <div className="text-base print:text-sm font-black text-grantify-green my-1 print:my-0.5">₦25,000</div>
+                    <p className="text-[10px] print:text-[8px] text-gray-500 leading-snug">14-Day Directory Listing with Verified Partner Badge & Monthly Referral Summary.</p>
                   </div>
-                  <div className="p-4 bg-gray-50 dark:bg-gray-950 rounded-xl border-2 border-emerald-600 dark:border-emerald-500 print-avoid-break">
-                    <div className="font-black text-sm text-gray-900 dark:text-gray-100">Featured Tier (Popular)</div>
-                    <div className="text-base font-black text-emerald-700 dark:text-emerald-400 my-1">₦60,000</div>
-                    <p className="text-[10px] text-gray-500">30-Day Homepage Spotlight, Priority Directory Rank, and Inclusion in Weekly Community Digest.</p>
+                  <div className="p-4 print:p-2 bg-gray-50 dark:bg-gray-950 rounded-xl border-2 border-emerald-600 dark:border-emerald-500 print-avoid-break">
+                    <div className="font-black text-sm print:text-xs text-gray-900 dark:text-gray-100">Featured Tier (Popular)</div>
+                    <div className="text-base print:text-sm font-black text-emerald-700 dark:text-emerald-400 my-1 print:my-0.5">₦60,000</div>
+                    <p className="text-[10px] print:text-[8px] text-gray-500 leading-snug">30-Day Homepage Spotlight, Priority Directory Rank, & Community Digest Inclusion.</p>
                   </div>
-                  <div className="p-4 bg-gray-50 dark:bg-gray-950 rounded-xl border border-grantify-green print-avoid-break">
-                    <div className="font-black text-sm text-gray-900 dark:text-gray-100">Enterprise Partner</div>
-                    <div className="text-base font-black text-grantify-green my-1">₦150,000</div>
-                    <p className="text-[10px] text-gray-500">60-Day Top Sticky Placement, Sponsored Blog Review, State Guide Banners, & Full Referral Tracking.</p>
+                  <div className="p-4 print:p-2 bg-gray-50 dark:bg-gray-950 rounded-xl border border-grantify-green print-avoid-break">
+                    <div className="font-black text-sm print:text-xs text-gray-900 dark:text-gray-100">Enterprise Partner</div>
+                    <div className="text-base print:text-sm font-black text-grantify-green my-1 print:my-0.5">₦150,000</div>
+                    <p className="text-[10px] print:text-[8px] text-gray-500 leading-snug">60-Day Top Sticky Placement, Sponsored Blog Review, State Banners, & Full Referral Tracking.</p>
                   </div>
                 </div>
               </div>
 
               {/* Settlement & Invoicing */}
-              <div className="p-4 bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 rounded-2xl print-avoid-break">
+              <div className="p-4 print:p-2 bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 rounded-2xl print-avoid-break">
                 <h4 className="text-xs font-black uppercase tracking-wider text-gray-800 dark:text-gray-200 mb-1">5. Institutional Invoicing & Settlement</h4>
-                <p className="text-[11px] text-gray-600 dark:text-gray-300 leading-relaxed mb-2">
+                <p className="text-[11px] print:text-[9px] text-gray-600 dark:text-gray-300 leading-relaxed mb-1 print:mb-0.5">
                   Official VAT-compliant corporate invoices are generated upon booking. Institutional bank wire transfers, electronic deposits, and card settlements are processed with same-day confirmation.
                 </p>
-                <div className="text-[11px] text-gray-500 dark:text-gray-400">
+                <div className="text-[11px] print:text-[8.5px] text-gray-500 dark:text-gray-400">
                   Custom billing references and purchase orders (POs) are supported for banks, DFIs, and institutional partners.
                 </div>
               </div>
 
               {/* Contacts */}
-              <div className="pt-2 flex flex-col sm:flex-row justify-between items-center gap-3 border-t border-gray-100 dark:border-gray-800 text-[11px] text-gray-500 print-avoid-break">
+              <div className="pt-2 print:pt-1 flex flex-col sm:flex-row justify-between items-center gap-3 print:gap-1 border-t border-gray-100 dark:border-gray-800 text-[11px] print:text-[9px] text-gray-500 print-avoid-break">
                 <div>Partnerships Desk: <strong>partners@grantify.help</strong></div>
                 <div>Grantify • Lagos, Nigeria</div>
               </div>

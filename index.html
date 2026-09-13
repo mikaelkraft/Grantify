@@ -60,29 +60,48 @@
     </script>
     <style>
 
-      /* Print Styling: Ensure Executive Media Kit prints cleanly on 1 page without background duplication */
+      /* Print Styling: Ensure Executive Media Kit prints cleanly on 1 page without duplicate pages */
       @media print {
-        body {
+        @page {
+          size: A4 portrait;
+          margin: 8mm 10mm;
+        }
+        html, body {
           background: #ffffff !important;
           color: #111827 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          height: auto !important;
+          min-height: 0 !important;
+          overflow: visible !important;
         }
-        /* Hide everything else when printing */
-        body * {
-          visibility: hidden !important;
+        /* Completely collapse all headers, footers, ads, floating buttons, and non-printable DOM */
+        header, footer, nav, aside, .no-print, [class*="AdSlot"], .print\:hidden, .print-hidden, [id^="chatbot"], .fixed.bottom-24, .fixed.bottom-4 {
+          display: none !important;
         }
-        /* Reveal only the executive media kit printable area */
-        #executive-media-kit-printable,
-        #executive-media-kit-printable * {
-          visibility: visible !important;
+        main {
+          padding: 0 !important;
+          margin: 0 !important;
+          max-width: 100% !important;
+          width: 100% !important;
+        }
+        #executive-media-kit-modal-backdrop {
+          position: static !important;
+          display: block !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          background: transparent !important;
+          inset: auto !important;
+          overflow: visible !important;
+          width: 100% !important;
         }
         #executive-media-kit-printable {
-          position: absolute !important;
-          left: 0 !important;
-          top: 0 !important;
+          position: static !important;
+          display: block !important;
           width: 100% !important;
           max-width: 100% !important;
           margin: 0 !important;
-          padding: 16px !important;
+          padding: 0 !important;
           background: #ffffff !important;
           color: #111827 !important;
           box-shadow: none !important;
@@ -91,16 +110,9 @@
           overflow: visible !important;
           max-height: none !important;
         }
-        .no-print {
-          display: none !important;
-        }
         .print-avoid-break {
           break-inside: avoid !important;
           page-break-inside: avoid !important;
-        }
-        @page {
-          size: A4 portrait;
-          margin: 10mm 12mm;
         }
       }
       body {
