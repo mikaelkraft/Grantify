@@ -80,13 +80,40 @@ export default async function handler(req, res) {
             if (gwRes.rows?.[0]?.config_json) {
               const cfg = gwRes.rows[0].config_json;
               paymentGateways = {
-                flutterwave: { enabled: Boolean(cfg.flutterwave?.enabled), mode: cfg.flutterwave?.mode || 'test' },
-                opay: { enabled: Boolean(cfg.opay?.enabled), mode: cfg.opay?.mode || 'sandbox' },
-                paypal: { enabled: Boolean(cfg.paypal?.enabled), mode: cfg.paypal?.mode || 'sandbox' },
-                bankwire: { enabled: Boolean(cfg.bankwire?.enabled !== false) }
+                flutterwave: {
+                  enabled: Boolean(cfg.flutterwave?.enabled),
+                  mode: cfg.flutterwave?.mode || 'test',
+                  hasKey: Boolean(cfg.flutterwave?.publicKey || process.env.FLW_PUBLIC_KEY || process.env.FLUTTERWAVE_PUBLIC_KEY)
+                },
+                opay: {
+                  enabled: Boolean(cfg.opay?.enabled),
+                  mode: cfg.opay?.mode || 'sandbox',
+                  hasKey: Boolean(cfg.opay?.merchantId || process.env.OPAY_MERCHANT_ID)
+                },
+                paypal: {
+                  enabled: Boolean(cfg.paypal?.enabled),
+                  mode: cfg.paypal?.mode || 'sandbox',
+                  hasKey: Boolean(cfg.paypal?.clientId || cfg.paypal?.paypalEmail || process.env.PAYPAL_CLIENT_ID || process.env.PAYPAL_EMAIL)
+                },
+                bankwire: {
+                  enabled: Boolean(cfg.bankwire?.enabled !== false),
+                  bankName: cfg.bankwire?.bankName || '',
+                  accountName: cfg.bankwire?.accountName || '',
+                  accountNumber: cfg.bankwire?.accountNumber || '',
+                  instructions: cfg.bankwire?.instructions || ''
+                }
               };
             }
           } catch {}
+
+          if (!paymentGateways) {
+            paymentGateways = {
+              flutterwave: { enabled: Boolean(process.env.FLW_PUBLIC_KEY || process.env.FLUTTERWAVE_PUBLIC_KEY), mode: 'test' },
+              opay: { enabled: false, mode: 'sandbox' },
+              paypal: { enabled: false, mode: 'sandbox' },
+              bankwire: { enabled: true }
+            };
+          }
 
           return res.status(200).json({ tiers, testimonials, metrics: { totalPaid }, paymentGateways });
         } catch (err) {
@@ -223,16 +250,20 @@ export default async function handler(req, res) {
           } catch {}
 
           if (provider === 'flutterwave') {
-            const fwKey = gwConfig?.flutterwave?.publicKey || process.env.FLW_PUBLIC_KEY || '';
-            const fwUrl = new URL('https://checkout.flutterwave.com/v3/hosted/pay');
-            fwUrl.searchParams.set('public_key', String(fwKey));
-            fwUrl.searchParams.set('tx_ref', `SPO-${id}`);
-            fwUrl.searchParams.set('amount', String(amount / 100));
-            fwUrl.searchParams.set('currency', 'NGN');
-            fwUrl.searchParams.set('customer[email]', payerInfo?.email || '');
-            fwUrl.searchParams.set('customer[name]', payerInfo?.name || 'Customer');
-            fwUrl.searchParams.set('redirect_url', returnUrl);
-            paymentUrl = fwUrl.toString();
+            const fwKey = (gwConfig?.flutterwave?.publicKey || process.env.FLW_PUBLIC_KEY || process.env.FLUTTERWAVE_PUBLIC_KEY || '').trim();
+            if (fwKey) {
+              const fwUrl = new URL('https://checkout.flutterwave.com/v3/hosted/pay');
+              fwUrl.searchParams.set('public_key', String(fwKey));
+              fwUrl.searchParams.set('tx_ref', `SPO-${id}`);
+              fwUrl.searchParams.set('amount', String(amount / 100));
+              fwUrl.searchParams.set('currency', 'NGN');
+              fwUrl.searchParams.set('customer[email]', payerInfo?.email || '');
+              fwUrl.searchParams.set('customer[name]', payerInfo?.name || 'Customer');
+              fwUrl.searchParams.set('redirect_url', returnUrl);
+              paymentUrl = fwUrl.toString();
+            } else {
+              console.warn('Flutterwave public key not found in DB config or .env');
+            }
           } else if (provider === 'opay') {
             const oPayMode = gwConfig?.opay?.mode || process.env.OPAY_MODE || 'sandbox';
             const oPayMerchantId = gwConfig?.opay?.merchantId || process.env.OPAY_MERCHANT_ID || '';
@@ -504,6 +535,10 @@ export default async function handler(req, res) {
           await client.query('UPDATE loan_providers SET is_recommended = TRUE WHERE id = $1', [listing.provider_id]);
         }
         await client.query('COMMIT');
+        if (req.headers.accept?.includes('text/html')) {
+          const baseUrl = String(process.env.VERCEL_PROJECT_PRODUCTION_URL || 'http://localhost:3001');
+          return res.redirect(`${baseUrl}/sponsor?payment_success=1&id=${id}`);
+        }
         return res.status(200).json({ success: true, message: 'Listing activated' });
       } catch (err) {
         try { await client.query('ROLLBACK'); } catch {}

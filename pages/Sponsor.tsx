@@ -39,6 +39,7 @@ export const Sponsor: React.FC = () => {
   const [providers, setProviders] = useState<LoanProvider[]>([]);
   const [pricing, setPricing] = useState<PricingTier[]>([]);
   const [sponsorMeta, setSponsorMeta] = useState<any>(null);
+  const [paymentGateways, setPaymentGateways] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
@@ -53,9 +54,103 @@ export const Sponsor: React.FC = () => {
     company: '',
     website: '',
     note: '',
-    paymentProvider: 'paypal',
+    paymentProvider: 'flutterwave',
     customPartnerName: ''
   });
+
+  const availableGateways = React.useMemo(() => {
+    const gw = paymentGateways || sponsorMeta?.paymentGateways;
+    const list: Array<{ id: string; name: string; badge: string; desc: string; icon: any }> = [];
+
+    if (gw) {
+      if (gw.flutterwave?.enabled) {
+        list.push({
+          id: 'flutterwave',
+          name: 'Flutterwave',
+          badge: 'Instant / Nigeria & Cards',
+          desc: 'Cards, Bank Transfer, USSD & Mobile Money',
+          icon: Zap
+        });
+      }
+      if (gw.opay?.enabled) {
+        list.push({
+          id: 'opay',
+          name: 'OPay',
+          badge: 'Nigeria Instant',
+          desc: 'Pay with OPay wallet, direct account debit, or card',
+          icon: Smartphone
+        });
+      }
+      if (gw.paypal?.enabled) {
+        list.push({
+          id: 'paypal',
+          name: 'PayPal',
+          badge: 'International / USD',
+          desc: 'PayPal account, Visa, Mastercard, AMEX',
+          icon: Globe
+        });
+      }
+      if (gw.bankwire?.enabled !== false) {
+        list.push({
+          id: 'bankwire',
+          name: 'Bank Wire / Corporate Invoice',
+          badge: 'Institutional & PO',
+          desc: 'Official VAT proforma invoice with bank settlement instructions',
+          icon: Building2
+        });
+      }
+    }
+
+    if (list.length === 0) {
+      if (!gw) {
+        list.push({
+          id: 'flutterwave',
+          name: 'Flutterwave',
+          badge: 'Instant / Nigeria & Cards',
+          desc: 'Cards, Bank Transfer, USSD & Mobile Money',
+          icon: Zap
+        });
+        list.push({
+          id: 'bankwire',
+          name: 'Bank Wire / Corporate Invoice',
+          badge: 'Institutional & PO',
+          desc: 'Official VAT proforma invoice with bank settlement instructions',
+          icon: Building2
+        });
+      } else {
+        list.push({
+          id: 'bankwire',
+          name: 'Bank Wire / Corporate Invoice',
+          badge: 'Institutional & PO',
+          desc: 'Official VAT proforma invoice with bank settlement instructions',
+          icon: Building2
+        });
+      }
+    }
+
+    return list;
+  }, [paymentGateways, sponsorMeta]);
+
+  useEffect(() => {
+    if (availableGateways.length > 0) {
+      const isCurrentValid = availableGateways.some(g => g.id === form.paymentProvider);
+      if (!isCurrentValid) {
+        setForm(prev => ({ ...prev, paymentProvider: availableGateways[0].id }));
+      }
+    }
+  }, [availableGateways, form.paymentProvider]);
+
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(location.search);
+      if (params.get('payment_success') === '1') {
+        const id = params.get('id');
+        setMessage(`Payment successful! Your sponsored listing ${id ? `(#${id}) ` : ''}has been activated.`);
+      }
+    } catch {
+      // no-op
+    }
+  }, [location.search]);
 
   useEffect(() => {
     document.title = 'Sponsor & Advertise | Grantify Nigeria';
@@ -93,7 +188,7 @@ export const Sponsor: React.FC = () => {
     const script = document.createElement('script');
     script.id = schemaId;
     script.type = 'application/ld+json';
-    script.innerHTML = JSON.stringify(schema);
+    script.text = JSON.stringify(schema);
     document.head.appendChild(script);
     
     return () => {
@@ -106,15 +201,20 @@ export const Sponsor: React.FC = () => {
     const load = async () => {
       setLoading(true);
       try {
-        const [providerData, pricingData, meta] = await Promise.all([
+        const [providerData, pricingData, meta, gwConfig] = await Promise.all([
           ApiService.getLoanProviders(),
           ApiService.getSponsoredPricing(),
-          ApiService.getSponsorMeta().catch(() => null)
+          ApiService.getSponsorMeta().catch(() => null),
+          ApiService.getPaymentGatewaysConfig().catch(() => null)
         ]);
         setProviders(Array.isArray(providerData) ? providerData : []);
         setPricing(Array.isArray(pricingData) ? pricingData : []);
         if (meta) {
           setSponsorMeta(meta);
+        }
+        const gateways = gwConfig?.gateways || meta?.paymentGateways || null;
+        if (gateways) {
+          setPaymentGateways(gateways);
         }
         const featuredTier = Array.isArray(pricingData)
           ? pricingData.find((tier: PricingTier, index: number) => isFeaturedTier(tier, index))
@@ -768,22 +868,92 @@ export const Sponsor: React.FC = () => {
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-3">Payment method</label>
-              <div className="flex gap-3 flex-wrap">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="paymentProvider" value="paypal" checked={form.paymentProvider === 'paypal'} onChange={(e) => setForm(prev => ({ ...prev, paymentProvider: e.target.value }))} className="w-4 h-4 text-grantify-green" />
-                  <span className="text-sm font-bold text-gray-700 dark:text-gray-200">PayPal (International)</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="paymentProvider" value="opay" checked={form.paymentProvider === 'opay'} onChange={(e) => setForm(prev => ({ ...prev, paymentProvider: e.target.value }))} className="w-4 h-4 text-grantify-green" />
-                  <span className="text-sm font-bold text-gray-700 dark:text-gray-200">OPay (Nigeria)</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="paymentProvider" value="bankwire" checked={form.paymentProvider === 'bankwire'} onChange={(e) => setForm(prev => ({ ...prev, paymentProvider: e.target.value }))} className="w-4 h-4 text-grantify-green" />
-                  <span className="text-sm font-bold text-gray-700 dark:text-gray-200">Bank Wire / Corporate Invoice</span>
-                </label>
+              <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-3">
+                Payment method
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {availableGateways.map((gw) => {
+                  const isSelected = form.paymentProvider === gw.id;
+                  const Icon = gw.icon;
+                  return (
+                    <label
+                      key={gw.id}
+                      className={`relative flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ${
+                        isSelected
+                          ? 'border-grantify-green bg-green-50/70 dark:bg-green-950/40 shadow-sm ring-1 ring-grantify-green/50'
+                          : 'border-gray-200 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-950/40 hover:border-gray-300 dark:hover:border-gray-700'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="paymentProvider"
+                        value={gw.id}
+                        checked={isSelected}
+                        onChange={(e) => setForm(prev => ({ ...prev, paymentProvider: e.target.value }))}
+                        className="mt-0.5 w-4 h-4 text-grantify-green shrink-0 focus:ring-grantify-green"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-sm font-black text-gray-900 dark:text-gray-100">{gw.name}</span>
+                          {gw.badge && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-100 dark:border-gray-700">
+                              {gw.badge}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">{gw.desc}</p>
+                      </div>
+                      <Icon size={16} className={`shrink-0 mt-0.5 ${isSelected ? 'text-grantify-green' : 'text-gray-400'}`} />
+                    </label>
+                  );
+                })}
               </div>
             </div>
+
+            {/* Flutterwave Details Panel */}
+            {form.paymentProvider === 'flutterwave' && (
+              <div className="md:col-span-2">
+                <div className="rounded-2xl border border-grantify-gold/30 bg-amber-50/50 dark:bg-amber-950/20 p-5">
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <Zap className="text-grantify-gold flex-shrink-0" size={18} />
+                    <div className="text-xs font-black uppercase tracking-widest text-amber-700 dark:text-amber-400">Instant Online Checkout via Flutterwave</div>
+                  </div>
+                  <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed mb-1">
+                    Accepts Nigerian debit/credit cards (Mastercard, Visa, Verve), Bank Transfers, USSD, and Mobile Money. Your sponsorship slot is reserved and automatically activated upon payment confirmation.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* OPay Details Panel */}
+            {form.paymentProvider === 'opay' && (
+              <div className="md:col-span-2">
+                <div className="rounded-2xl border border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20 p-5">
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <Smartphone className="text-emerald-600 dark:text-emerald-400 flex-shrink-0" size={18} />
+                    <div className="text-xs font-black uppercase tracking-widest text-emerald-700 dark:text-emerald-400">OPay Direct Checkout</div>
+                  </div>
+                  <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed mb-1">
+                    Pay securely with your OPay wallet, direct account debit, or card. Instant confirmation and automated listing setup.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* PayPal Details Panel */}
+            {form.paymentProvider === 'paypal' && (
+              <div className="md:col-span-2">
+                <div className="rounded-2xl border border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20 p-5">
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <Globe className="text-blue-600 dark:text-blue-400 flex-shrink-0" size={18} />
+                    <div className="text-xs font-black uppercase tracking-widest text-blue-700 dark:text-blue-400">PayPal International</div>
+                  </div>
+                  <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed mb-1">
+                    Pay securely in USD using your PayPal balance or international credit/debit cards.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Bank Wire Details Panel */}
             {form.paymentProvider === 'bankwire' && (
@@ -794,10 +964,17 @@ export const Sponsor: React.FC = () => {
                     <div className="text-xs font-black uppercase tracking-widest text-grantify-green dark:text-emerald-400">Institutional Invoicing & Bank Wire</div>
                   </div>
                   <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed mb-2">
-                    Select your package and submit the request. We generate an official VAT-compliant corporate proforma invoice with bank settlement instructions directly for your finance or accounts team.
+                    {paymentGateways?.bankwire?.instructions || 'Select your package and submit the request. We generate an official VAT-compliant corporate proforma invoice with bank settlement instructions directly for your finance or accounts team.'}
                   </p>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                    Sponsorship slots are reserved immediately and activated within 24 hours of payment confirmation.
+                  {paymentGateways?.bankwire?.bankName && (
+                    <div className="mt-2 pt-2 border-t border-grantify-green/20 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                      <div><span className="text-gray-500">Bank:</span> <strong>{paymentGateways.bankwire.bankName}</strong></div>
+                      <div><span className="text-gray-500">Account:</span> <strong>{paymentGateways.bankwire.accountNumber}</strong></div>
+                      <div><span className="text-gray-500">Beneficiary:</span> <strong>{paymentGateways.bankwire.accountName}</strong></div>
+                    </div>
+                  )}
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-2">
+                    {paymentGateways?.bankwire?.invoiceNote || 'Sponsorship slots are reserved immediately and activated within 24 hours of payment confirmation.'}
                   </p>
                 </div>
               </div>
@@ -805,10 +982,22 @@ export const Sponsor: React.FC = () => {
 
             <div className="md:col-span-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between pt-2">
               <div className={`text-xs ${message ? (message.toLowerCase().includes('fail') || message.toLowerCase().includes('error') ? 'text-red-500' : 'text-grantify-green font-bold') : 'text-gray-500 dark:text-gray-400'}`}>
-                {message || (form.paymentProvider === 'bankwire' ? 'Submit to request a corporate invoice with bank settlement instructions.' : 'We will create the booking and either open checkout or queue an invoice for confirmation.')}
+                {message || (form.paymentProvider === 'bankwire' ? 'Submit to request a corporate invoice with bank settlement instructions.' : 'We will create the booking and redirect to secure online checkout.')}
               </div>
               <button type="submit" disabled={submitting} className="inline-flex items-center justify-center gap-2 bg-grantify-green text-white font-black px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-60">
-                {submitting ? <Loader2 className="animate-spin" size={16} /> : form.paymentProvider === 'bankwire' ? <><CreditCard size={16} /> Request Invoice</> : <><CheckCircle size={16} /> Launch Sponsorship</>}
+                {submitting ? (
+                  <Loader2 className="animate-spin" size={16} />
+                ) : form.paymentProvider === 'bankwire' ? (
+                  <><CreditCard size={16} /> Request Invoice</>
+                ) : form.paymentProvider === 'flutterwave' ? (
+                  <><Zap size={16} /> Pay with Flutterwave</>
+                ) : form.paymentProvider === 'opay' ? (
+                  <><Smartphone size={16} /> Pay with OPay</>
+                ) : form.paymentProvider === 'paypal' ? (
+                  <><Globe size={16} /> Pay with PayPal</>
+                ) : (
+                  <><CheckCircle size={16} /> Launch Sponsorship</>
+                )}
               </button>
             </div>
           </form>

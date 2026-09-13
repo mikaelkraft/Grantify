@@ -227,32 +227,32 @@ export default async function handler(req, res) {
 
       const defaultGatewayConfig = {
         flutterwave: {
-          enabled: false,
-          publicKey: '',
-          secretKey: '',
-          encryptionKey: '',
-          mode: 'test'
+          enabled: process.env.FLW_ENABLED === 'true' || process.env.FLUTTERWAVE_ENABLED === 'true' || false,
+          publicKey: (process.env.FLW_PUBLIC_KEY || process.env.FLUTTERWAVE_PUBLIC_KEY || '').trim(),
+          secretKey: (process.env.FLW_SECRET_KEY || process.env.FLUTTERWAVE_SECRET_KEY || '').trim(),
+          encryptionKey: (process.env.FLW_ENCRYPTION_KEY || process.env.FLUTTERWAVE_ENCRYPTION_KEY || '').trim(),
+          mode: process.env.FLW_MODE === 'live' || process.env.FLUTTERWAVE_MODE === 'live' ? 'live' : 'test'
         },
         opay: {
-          enabled: false,
-          merchantId: '',
-          publicKey: '',
-          secretKey: '',
-          mode: 'sandbox'
+          enabled: process.env.OPAY_ENABLED === 'true' || false,
+          merchantId: (process.env.OPAY_MERCHANT_ID || '').trim(),
+          publicKey: (process.env.OPAY_PUBLIC_KEY || '').trim(),
+          secretKey: (process.env.OPAY_SECRET_KEY || '').trim(),
+          mode: process.env.OPAY_MODE === 'live' ? 'live' : 'sandbox'
         },
         paypal: {
-          enabled: false,
-          clientId: '',
-          clientSecret: '',
-          paypalEmail: '',
-          mode: 'sandbox'
+          enabled: process.env.PAYPAL_ENABLED === 'true' || false,
+          clientId: (process.env.PAYPAL_CLIENT_ID || '').trim(),
+          clientSecret: (process.env.PAYPAL_CLIENT_SECRET || '').trim(),
+          paypalEmail: (process.env.PAYPAL_EMAIL || '').trim(),
+          mode: process.env.PAYPAL_MODE === 'live' ? 'live' : 'sandbox'
         },
         bankwire: {
           enabled: true,
-          bankName: '',
-          accountName: '',
-          accountNumber: '',
-          sortCodeSwift: '',
+          bankName: (process.env.BANK_NAME || '').trim(),
+          accountName: (process.env.BANK_ACCOUNT_NAME || '').trim(),
+          accountNumber: (process.env.BANK_ACCOUNT_NUMBER || '').trim(),
+          sortCodeSwift: (process.env.BANK_SWIFT_CODE || '').trim(),
           instructions: 'Official VAT-compliant proforma invoice with bank settlement instructions will be dispatched to your billing email upon request.',
           invoiceNote: 'Payment is required within 7 business days to secure slot reservation.'
         }
@@ -268,12 +268,36 @@ export default async function handler(req, res) {
         const result = await pool.query('SELECT config_json, updated_at FROM payment_gateways_config WHERE id=1');
         const row = result.rows[0];
         const savedConfig = (row && row.config_json) ? row.config_json : {};
-        // Merge with defaults to ensure all keys exist
+        // Merge with defaults to ensure all keys and environment fallback keys exist
         const merged = {
-          flutterwave: { ...defaultGatewayConfig.flutterwave, ...(savedConfig.flutterwave || {}) },
-          opay: { ...defaultGatewayConfig.opay, ...(savedConfig.opay || {}) },
-          paypal: { ...defaultGatewayConfig.paypal, ...(savedConfig.paypal || {}) },
-          bankwire: { ...defaultGatewayConfig.bankwire, ...(savedConfig.bankwire || {}) },
+          flutterwave: {
+            ...defaultGatewayConfig.flutterwave,
+            ...(savedConfig.flutterwave || {}),
+            publicKey: (savedConfig.flutterwave?.publicKey || defaultGatewayConfig.flutterwave.publicKey || '').trim(),
+            secretKey: (savedConfig.flutterwave?.secretKey || defaultGatewayConfig.flutterwave.secretKey || '').trim(),
+            encryptionKey: (savedConfig.flutterwave?.encryptionKey || defaultGatewayConfig.flutterwave.encryptionKey || '').trim(),
+            mode: savedConfig.flutterwave?.mode || defaultGatewayConfig.flutterwave.mode || 'test'
+          },
+          opay: {
+            ...defaultGatewayConfig.opay,
+            ...(savedConfig.opay || {}),
+            merchantId: (savedConfig.opay?.merchantId || defaultGatewayConfig.opay.merchantId || '').trim(),
+            publicKey: (savedConfig.opay?.publicKey || defaultGatewayConfig.opay.publicKey || '').trim(),
+            secretKey: (savedConfig.opay?.secretKey || defaultGatewayConfig.opay.secretKey || '').trim(),
+            mode: savedConfig.opay?.mode || defaultGatewayConfig.opay.mode || 'sandbox'
+          },
+          paypal: {
+            ...defaultGatewayConfig.paypal,
+            ...(savedConfig.paypal || {}),
+            clientId: (savedConfig.paypal?.clientId || defaultGatewayConfig.paypal.clientId || '').trim(),
+            clientSecret: (savedConfig.paypal?.clientSecret || defaultGatewayConfig.paypal.clientSecret || '').trim(),
+            paypalEmail: (savedConfig.paypal?.paypalEmail || defaultGatewayConfig.paypal.paypalEmail || '').trim(),
+            mode: savedConfig.paypal?.mode || defaultGatewayConfig.paypal.mode || 'sandbox'
+          },
+          bankwire: {
+            ...defaultGatewayConfig.bankwire,
+            ...(savedConfig.bankwire || {})
+          },
         };
         return res.status(200).json({
           gateways: merged,
