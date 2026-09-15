@@ -1280,6 +1280,8 @@ export const Admin: React.FC = () => {
       date: new Date().toISOString().split('T')[0],
       // Use initials-based avatar with brand green background
       image: 'https://ui-avatars.com/api/?name=New+Testimonial&background=006400&color=ffffff&size=150&bold=true',
+      fundingType: 'grant',
+      provider: '',
       ...reactions
     };
     const newData = [newT, ...testimonials];
@@ -1297,6 +1299,8 @@ export const Admin: React.FC = () => {
       date: new Date().toISOString().split('T')[0],
       // Use initials-based avatar with brand green background
       image: 'https://ui-avatars.com/api/?name=New+Testimonial&background=006400&color=ffffff&size=150&bold=true',
+      fundingType: 'grant',
+      provider: '',
       ...reactions
     };
     const newData = [newT, ...testimonials];
@@ -2453,20 +2457,30 @@ export const Admin: React.FC = () => {
                         {testimonials.filter(t => t.status === 'pending').map(t => (
                           <div key={t.id} className="bg-white p-3 rounded border border-yellow-300 flex flex-col md:flex-row md:items-center gap-3">
                             <div className="flex-grow">
-                              <div className="font-bold text-sm">{t.name}</div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-bold text-sm">{t.name}</span>
+                                {t.fundingType === 'loan' ? (
+                                  <span className="bg-amber-100 text-amber-800 text-[10px] font-black uppercase px-2 py-0.5 rounded">LOAN</span>
+                                ) : (
+                                  <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase px-2 py-0.5 rounded">GRANT</span>
+                                )}
+                                {t.provider && (
+                                  <span className="bg-gray-100 text-gray-700 text-[10px] font-semibold px-2 py-0.5 rounded">{t.provider}</span>
+                                )}
+                              </div>
                               <div className="text-xs text-gray-500">{formatNaira(t.amount)} • {t.date}</div>
-                              <p className="text-sm text-gray-700 mt-1 line-clamp-2">{t.content}</p>
+                              <p className="text-sm text-gray-700 mt-1 line-clamp-2">"{t.content}"</p>
                             </div>
                             <div className="flex gap-2 flex-shrink-0">
                               <button 
                                 onClick={() => handleApproveTestimonialLocal(t.id)}
-                                className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700"
+                                className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700 font-bold"
                               >
                                 Approve
                               </button>
                               <button 
                                 onClick={() => handleDeleteTestimonialLocal(t.id)}
-                                className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700"
+                                className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 font-bold"
                               >
                                 Reject
                               </button>
@@ -2480,7 +2494,7 @@ export const Admin: React.FC = () => {
                   <div className="grid gap-6">
                     {testimonials.filter(t => !t.status || t.status === 'approved').map(t => (
                       <div key={t.id} className="border border-gray-300 p-4 rounded bg-gray-50 flex flex-col gap-3">
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <div className="flex-1">
                             <label className="text-xs text-gray-500 block mb-1">Name</label>
                             <input 
@@ -2491,13 +2505,36 @@ export const Admin: React.FC = () => {
                               aria-label="Guest Name"
                             />
                           </div>
+                          <div className="w-full sm:w-48">
+                            <label className="text-xs text-gray-500 block mb-1">Funding Type</label>
+                            <select
+                              className={inputClassSmall + " w-full font-medium"}
+                              value={t.fundingType || 'grant'}
+                              onChange={(e) => handleUpdateTestimonialLocal(t.id, 'fundingType', e.target.value)}
+                            >
+                              <option value="grant">Grant Match</option>
+                              <option value="loan">Approved Loan</option>
+                            </select>
+                          </div>
+                          <div className="flex-1">
+                            <label className="text-xs text-gray-500 block mb-1">Provider / Program</label>
+                            <input 
+                              className={inputClassSmall + " w-full"}
+                              value={t.provider || ''}
+                              onChange={(e) => handleUpdateTestimonialLocal(t.id, 'provider', e.target.value)}
+                              placeholder="e.g. SMEDAN, BOI, Carbon, FairMoney"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2">
                           <div className="flex-1">
                             <label className="text-xs text-gray-500 block mb-1">Amount Received</label>
                             <input 
                               type="number"
                               className={inputClassSmall + " w-full"}
                               value={t.amount}
-                              onChange={(e) => handleUpdateTestimonialLocal(t.id, 'amount', parseInt(e.target.value))}
+                              onChange={(e) => handleUpdateTestimonialLocal(t.id, 'amount', parseInt(e.target.value) || 0)}
                               placeholder="Amount Received"
                               aria-label="Amount Received"
                             />
@@ -2552,7 +2589,7 @@ export const Admin: React.FC = () => {
                         </div>
 
                         <div className="flex justify-between items-center border-t border-gray-200 pt-2">
-                          <span className="text-xs text-gray-400">ID: {t.id} • Stats: {t.likes} likes, {t.loves} loves</span>
+                          <span className="text-xs text-gray-400">ID: {t.id} • Stats: {t.likes} likes, {t.loves} loves • Type: {t.fundingType || 'grant'}</span>
                           <button onClick={() => handleDeleteTestimonialLocal(t.id)} className="text-red-500 hover:bg-red-100 p-2 rounded flex items-center gap-1 text-sm">
                               <Trash2 size={16} /> Delete
                           </button>

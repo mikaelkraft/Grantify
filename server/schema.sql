@@ -43,6 +43,8 @@ CREATE TABLE IF NOT EXISTS testimonials (
     claps INTEGER DEFAULT 0,
     date TEXT NOT NULL,
     status TEXT DEFAULT NULL CHECK (status IS NULL OR status IN ('approved', 'pending')),
+    funding_type TEXT DEFAULT 'grant',
+    provider TEXT DEFAULT '',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

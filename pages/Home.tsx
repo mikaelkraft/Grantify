@@ -47,6 +47,7 @@ export const Home: React.FC = () => {
   const [ads, setAds] = useState<AdConfig | null>(null);
   const [allTestimonials, setAllTestimonials] = useState<Testimonial[]>([]);
   const [visibleTestimonialsCount, setVisibleTestimonialsCount] = useState(3);
+  const [testimonialFilter, setTestimonialFilter] = useState<'all' | 'grant' | 'loan'>('all');
   const [recentApplicants, setRecentApplicants] = useState<Array<{ id: string; fullName: string }>>([]);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [applicationStats, setApplicationStats] = useState<{ applicationsCount: number; totalRequestedAmount: number } | null>(null);
@@ -876,28 +877,97 @@ export const Home: React.FC = () => {
       </section>
 
       {/* Testimonials */}
-      <section className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-12">
-        <h2 className="text-3xl font-black font-heading text-center text-gray-900 dark:text-gray-100 mb-12">Successful Grant Matches</h2>
-        <div className="grid md:grid-cols-3 gap-8">
-          {allTestimonials
-            .filter(t => !t.status || t.status === 'approved')
-            .slice(0, visibleTestimonialsCount)
-            .map(t => (
-            <TestimonialCard key={t.id} data={t} />
-          ))}
-        </div>
+      <section className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-16">
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center gap-2 bg-grantify-green/10 border border-grantify-green/20 text-grantify-green rounded-full px-4 py-1.5 text-xs font-black uppercase tracking-widest mb-4">
+            <Award size={13} /> Verified Community Proof
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-black font-heading text-center text-gray-900 dark:text-gray-100 mb-3">
+            Real Success Stories: Grants & Loans
+          </h2>
+          <p className="text-gray-500 dark:text-gray-400 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
+            Real outcomes from Nigerian entrepreneurs, farmers, and traders matched with non-dilutive government grants and licensed credit facilities.
+          </p>
 
-        {allTestimonials.filter(t => !t.status || t.status === 'approved').length > visibleTestimonialsCount && (
-          <div className="text-center mt-10">
+          {/* Category Filter Tabs */}
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-6">
             <button
               type="button"
-              onClick={() => setVisibleTestimonialsCount(c => c + 3)}
-              className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-grantify-green text-white font-black uppercase text-xs tracking-widest hover:bg-green-800 transition shadow-lg"
+              onClick={() => { setTestimonialFilter('all'); setVisibleTestimonialsCount(3); }}
+              className={`px-5 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all shadow-xs ${
+                testimonialFilter === 'all'
+                  ? 'bg-grantify-green text-white shadow-md'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+              }`}
             >
-              Load More
+              All Stories ({allTestimonials.filter(t => !t.status || t.status === 'approved').length})
+            </button>
+            <button
+              type="button"
+              onClick={() => { setTestimonialFilter('grant'); setVisibleTestimonialsCount(3); }}
+              className={`inline-flex items-center gap-1.5 px-5 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all shadow-xs ${
+                testimonialFilter === 'grant'
+                  ? 'bg-emerald-600 text-white shadow-md'
+                  : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 hover:bg-emerald-100'
+              }`}
+            >
+              <CheckCircle size={13} /> Grant Matches
+            </button>
+            <button
+              type="button"
+              onClick={() => { setTestimonialFilter('loan'); setVisibleTestimonialsCount(3); }}
+              className={`inline-flex items-center gap-1.5 px-5 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all shadow-xs ${
+                testimonialFilter === 'loan'
+                  ? 'bg-amber-600 text-white shadow-md'
+                  : 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 hover:bg-amber-100'
+              }`}
+            >
+              <ShieldCheck size={13} /> Approved Loans
             </button>
           </div>
-        )}
+        </div>
+
+        {(() => {
+          const approved = allTestimonials.filter(t => !t.status || t.status === 'approved');
+          const filtered = approved.filter(t => {
+            if (testimonialFilter === 'all') return true;
+            const isLoan = t.fundingType === 'loan' || 
+              (!t.fundingType && /(loan|lender|credit score|interest rate|repayment|credited on wednesday|fast-track loan)/i.test(t.content));
+            if (testimonialFilter === 'loan') return isLoan;
+            if (testimonialFilter === 'grant') return !isLoan;
+            return true;
+          });
+
+          if (filtered.length === 0) {
+            return (
+              <div className="text-center py-12 text-gray-500 italic bg-gray-50 dark:bg-gray-900 rounded-3xl p-8 border border-dashed border-gray-200 dark:border-gray-800">
+                No stories in this category yet. Be the first to share yours below!
+              </div>
+            );
+          }
+
+          return (
+            <>
+              <div className="grid md:grid-cols-3 gap-8">
+                {filtered.slice(0, visibleTestimonialsCount).map(t => (
+                  <TestimonialCard key={t.id} data={t} />
+                ))}
+              </div>
+
+              {filtered.length > visibleTestimonialsCount && (
+                <div className="text-center mt-10">
+                  <button
+                    type="button"
+                    onClick={() => setVisibleTestimonialsCount(c => c + 3)}
+                    className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-grantify-green text-white font-black uppercase text-xs tracking-widest hover:bg-green-800 transition shadow-lg"
+                  >
+                    Load More
+                  </button>
+                </div>
+              )}
+            </>
+          );
+        })()}
 
         <div className="text-center mt-10">
           <p className="text-gray-400 dark:text-gray-500 text-sm italic">Join thousands of business owners exploring funding opportunities with Grantify.</p>
@@ -935,7 +1005,9 @@ export const Home: React.FC = () => {
                   loves: 0,
                   claps: 0,
                   date: new Date().toISOString().split('T')[0],
-                  status: 'pending'
+                  status: 'pending',
+                  fundingType: data.fundingType,
+                  provider: data.provider
                 });
               }} />
             </div>
@@ -1001,11 +1073,22 @@ export const Home: React.FC = () => {
 };
 
 // Sub-component for the form for cleaner code
-const TestimonialForm: React.FC<{ onSubmit: (data: { name: string; amount: number; content: string; photoUrl?: string }) => Promise<void> }> = ({ onSubmit }) => {
+const TestimonialForm: React.FC<{ 
+  onSubmit: (data: { 
+    name: string; 
+    amount: number; 
+    content: string; 
+    photoUrl?: string; 
+    fundingType: 'grant' | 'loan'; 
+    provider?: string; 
+  }) => Promise<void> 
+}> = ({ onSubmit }) => {
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [content, setContent] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
+  const [fundingType, setFundingType] = useState<'grant' | 'loan'>('grant');
+  const [provider, setProvider] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -1013,12 +1096,21 @@ const TestimonialForm: React.FC<{ onSubmit: (data: { name: string; amount: numbe
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await onSubmit({ name, amount: parseInt(amount) || 0, content, photoUrl });
+      await onSubmit({ 
+        name, 
+        amount: parseInt(amount) || 0, 
+        content, 
+        photoUrl, 
+        fundingType, 
+        provider: provider.trim() 
+      });
       setIsSuccess(true);
       setName('');
       setAmount('');
       setContent('');
       setPhotoUrl('');
+      setProvider('');
+      setFundingType('grant');
     } catch (e) {
       alert('Failed to submit. Please try again.');
     } finally {
@@ -1045,7 +1137,38 @@ const TestimonialForm: React.FC<{ onSubmit: (data: { name: string; amount: numbe
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Funding Type Selection */}
+      <div className="space-y-1.5">
+        <label className="text-[10px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest ml-1">
+          What Type of Funding Did You Secure?
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setFundingType('grant')}
+            className={`p-3.5 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 border transition-all ${
+              fundingType === 'grant'
+                ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-400/30'
+                : 'bg-gray-50 dark:bg-gray-950 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800'
+            }`}
+          >
+            <CheckCircle size={15} /> Grant Match
+          </button>
+          <button
+            type="button"
+            onClick={() => setFundingType('loan')}
+            className={`p-3.5 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 border transition-all ${
+              fundingType === 'loan'
+                ? 'bg-amber-600 text-white border-amber-600 shadow-md ring-2 ring-amber-400/30'
+                : 'bg-gray-50 dark:bg-gray-950 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800'
+            }`}
+          >
+            <ShieldCheck size={15} /> Approved Loan
+          </button>
+        </div>
+      </div>
+
       <div className="space-y-2">
         <label className="text-[10px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest ml-1">Your Full Name</label>
         <input 
@@ -1055,6 +1178,34 @@ const TestimonialForm: React.FC<{ onSubmit: (data: { name: string; amount: numbe
           value={name}
           onChange={e => setName(e.target.value)}
         />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest ml-1">
+            {fundingType === 'grant' ? 'Grant Secured (₦)' : 'Loan Approved (₦)'}
+          </label>
+          <input 
+            required
+            type="number"
+            className="w-full p-4 bg-gray-50 dark:bg-gray-950 rounded-2xl border-none ring-1 ring-gray-100 dark:ring-gray-700 focus:ring-2 focus:ring-grantify-green outline-none transition-all shadow-inner text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+            placeholder="e.g. 500000"
+            value={amount}
+            onChange={e => setAmount(e.target.value)}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest ml-1">
+            Program / Lender (optional)
+          </label>
+          <input 
+            className="w-full p-4 bg-gray-50 dark:bg-gray-950 rounded-2xl border-none ring-1 ring-gray-100 dark:ring-gray-700 focus:ring-2 focus:ring-grantify-green outline-none transition-all shadow-inner text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+            placeholder={fundingType === 'grant' ? 'e.g. SMEDAN, BOI, LSETF, TEF' : 'e.g. FairMoney, Carbon, Renmoney, BOI'}
+            value={provider}
+            onChange={e => setProvider(e.target.value)}
+          />
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -1069,24 +1220,12 @@ const TestimonialForm: React.FC<{ onSubmit: (data: { name: string; amount: numbe
       </div>
       
       <div className="space-y-2">
-        <label className="text-[10px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest ml-1">Funding Secured (₦)</label>
-        <input 
-          required
-          type="number"
-          className="w-full p-4 bg-gray-50 dark:bg-gray-950 rounded-2xl border-none ring-1 ring-gray-100 dark:ring-gray-700 focus:ring-2 focus:ring-grantify-green outline-none transition-all shadow-inner text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
-          placeholder="e.g. 500000"
-          value={amount}
-          onChange={e => setAmount(e.target.value)}
-        />
-      </div>
-      
-      <div className="space-y-2">
         <label className="text-[10px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest ml-1">Your Story</label>
         <textarea 
           required
           rows={4}
           className="w-full p-4 bg-gray-50 dark:bg-gray-950 rounded-2xl border-none ring-1 ring-gray-100 dark:ring-gray-700 focus:ring-2 focus:ring-grantify-green outline-none transition-all shadow-inner resize-none text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
-          placeholder="How did Grantify help your business?"
+          placeholder={fundingType === 'grant' ? "How did Grantify help you secure this grant?" : "How was the loan approval and disbursement experience?"}
           value={content}
           onChange={e => setContent(e.target.value)}
         />

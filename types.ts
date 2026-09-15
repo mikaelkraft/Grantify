@@ -41,6 +41,8 @@ export interface Testimonial {
   claps: number;
   date: string;
   status?: 'approved' | 'pending'; // For user-submitted testimonials
+  fundingType?: 'grant' | 'loan';
+  provider?: string;
 }
 
 export interface QualifiedPerson {

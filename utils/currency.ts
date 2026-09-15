@@ -24,10 +24,10 @@ export const formatNairaCompact = (num: number): string => {
   if (num >= MILLION) {
     const value = num / MILLION;
     const hasRemainder = num % MILLION !== 0;
-    return `NGN ${value.toFixed(hasRemainder ? 1 : 0)}M`;
+    return `₦${value.toFixed(hasRemainder ? 1 : 0)}M`;
   }
   if (num >= THOUSAND) {
-    return `NGN ${(num / THOUSAND).toFixed(0)}k`;
+    return `₦${(num / THOUSAND).toFixed(0)}k`;
   }
   return formatNaira(num);
 };

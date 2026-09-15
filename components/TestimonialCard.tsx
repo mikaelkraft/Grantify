@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Testimonial } from '../types';
 import { ApiService } from '../services/storage';
-import { ThumbsUp, Heart, Hand } from 'lucide-react';
+import { ThumbsUp, Heart, Hand, ShieldCheck, CheckCircle } from 'lucide-react';
 
 interface Props {
   data: Testimonial;
@@ -22,8 +22,9 @@ export const TestimonialCard: React.FC<Props> = ({ data }) => {
   const [currentVote, setCurrentVote] = useState<ReactionType | null>(null);
   const [imageError, setImageError] = useState(false);
 
-  // No localStorage for vote tracking - votes are stored in database only
-  // Each user can vote once per page load; data syncs from database
+  // Determine if testimonial is loan or grant
+  const isLoan = data.fundingType === 'loan' || 
+    (!data.fundingType && /(loan|lender|credit score|interest rate|repayment|credited on wednesday|fast-track loan)/i.test(data.content));
 
   const handleVote = async (type: ReactionType) => {
     const newCounts = { ...counts };
@@ -34,13 +35,9 @@ export const TestimonialCard: React.FC<Props> = ({ data }) => {
       setCurrentVote(null);
     } else {
       // User is switching reaction or adding new one
-      
-      // 1. Remove old vote if it exists
       if (currentVote) {
         newCounts[currentVote] = Math.max(0, newCounts[currentVote] - 1);
       }
-      
-      // 2. Add new vote
       newCounts[type] = newCounts[type] + 1;
       setCurrentVote(type);
     }
@@ -54,7 +51,7 @@ export const TestimonialCard: React.FC<Props> = ({ data }) => {
   };
 
   const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(val);
+    return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(val);
   };
 
   const handleImageError = () => {
@@ -62,22 +59,41 @@ export const TestimonialCard: React.FC<Props> = ({ data }) => {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm p-4 mb-4 flex flex-col h-full">
-      <div className="flex items-start gap-3 mb-3">
-        <img 
-          src={imageError ? DEFAULT_AVATAR : data.image} 
-          alt={data.name} 
-          className="w-10 h-10 rounded-full object-cover border border-gray-100 dark:border-gray-800"
-          onError={handleImageError}
-        />
-        <div>
-          <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm">{data.name}</h4>
-          <p className="text-xs text-gray-500 dark:text-gray-400">{data.date} • <span className="text-green-700 dark:text-green-300 font-medium">Received {formatCurrency(data.amount)}</span></p>
+    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm hover:shadow-md transition-all p-5 mb-4 flex flex-col h-full relative group">
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="flex items-start gap-3 min-w-0">
+          <img 
+            src={imageError ? DEFAULT_AVATAR : data.image} 
+            alt={data.name} 
+            className="w-10 h-10 rounded-full object-cover border border-gray-100 dark:border-gray-800 shrink-0"
+            onError={handleImageError}
+          />
+          <div className="min-w-0">
+            <h4 className="font-black text-gray-900 dark:text-gray-100 text-sm truncate">{data.name}</h4>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {data.date} • <span className={isLoan ? "text-amber-700 dark:text-amber-400 font-semibold" : "text-emerald-700 dark:text-emerald-400 font-semibold"}>
+                {isLoan ? 'Approved' : 'Received'} {formatCurrency(data.amount)}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        {/* Funding Type Badge */}
+        <div className="shrink-0">
+          {isLoan ? (
+            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shadow-xs">
+              <ShieldCheck size={11} /> {data.provider ? `${data.provider} Loan` : 'Loan Approved'}
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 shadow-xs">
+              <CheckCircle size={11} /> {data.provider ? `${data.provider} Grant` : 'Grant Match'}
+            </span>
+          )}
         </div>
       </div>
       
-      <p className="text-gray-700 dark:text-gray-200 text-sm mb-4 leading-relaxed flex-grow">
-        {data.content}
+      <p className="text-gray-600 dark:text-gray-300 text-sm mb-4 leading-relaxed flex-grow">
+        "{data.content}"
       </p>
 
       <div className="flex gap-4 border-t border-gray-100 dark:border-gray-800 pt-2 mt-auto">
