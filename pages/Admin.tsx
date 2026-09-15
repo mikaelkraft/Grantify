@@ -2915,8 +2915,8 @@ export const Admin: React.FC = () => {
                   </div>
 
                   <div className="mt-10 pt-6 border-t border-gray-200 dark:border-gray-800">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
                         <h4 className="text-lg font-black">Autoblog</h4>
                         <p className="text-xs text-gray-500 dark:text-gray-300 mt-1">
                           This toggle controls whether the daily cron is allowed to publish.
@@ -2949,12 +2949,12 @@ export const Admin: React.FC = () => {
                         )}
                       </div>
 
-                      <div className="flex flex-col items-end gap-2">
+                      <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 w-full sm:w-auto shrink-0 pt-2 sm:pt-0">
                         <button
                           type="button"
                           onClick={handleToggleAutoblog}
                           disabled={isSavingAutoblog}
-                          className={`flex items-center gap-2 px-3 py-2 rounded text-xs font-black uppercase border transition ${autoblogEnabled
+                          className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3 py-2 rounded text-xs font-black uppercase border transition ${autoblogEnabled
                             ? 'bg-grantify-green text-white border-green-700 hover:bg-green-800'
                             : 'bg-gray-100 dark:bg-gray-950 text-gray-800 dark:text-gray-100 border-gray-300 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-900'
                           } ${isSavingAutoblog ? 'opacity-60 cursor-not-allowed' : ''}`}
@@ -2969,7 +2969,7 @@ export const Admin: React.FC = () => {
                           type="button"
                           onClick={() => handleRunDailyCron(true)}
                           disabled={isRunningDailyCron}
-                          className={`flex items-center gap-2 px-3 py-2 rounded text-xs font-black uppercase border transition ${isRunningDailyCron
+                          className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3 py-2 rounded text-xs font-black uppercase border transition whitespace-nowrap ${isRunningDailyCron
                             ? 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-950 text-gray-800 dark:text-gray-100 border-gray-300 dark:border-gray-700'
                             : 'bg-gray-900 dark:bg-gray-950 text-white border-gray-900 dark:border-gray-700 hover:bg-gray-800'}
                           `}

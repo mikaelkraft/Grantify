@@ -465,22 +465,55 @@ export default async function handler(req, res) {
           { role: 'user', content: userPrompt }
         ];
 
-    const response = await fetch(groqUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${groqKey}`
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages,
-        temperature: 0.8
-      })
-    });
+    const groqUrl = 'https://api.groq.com/openai/v1/chat/completions';
+    const modelsToTry = Array.from(new Set([
+      process.env.GROQ_MODEL,
+      'qwen/qwen3.8-27b',
+      'groq/compound-mini',
+      'llama-3.1-8b-instant',
+      'openai/gpt-oss-120b'
+    ].filter(Boolean)));
 
-    if (!response.ok) throw new Error('Groq API Error');
+    let response = null;
+    let lastError = null;
+    for (const candidateModel of modelsToTry) {
+      try {
+        const res = await fetch(groqUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${groqKey}`
+          },
+          body: JSON.stringify({
+            model: candidateModel,
+            messages,
+            temperature: 0.8
+          })
+        });
+
+        if (res.ok) {
+          response = res;
+          break;
+        }
+
+        const errText = await res.text().catch(() => '');
+        console.warn(`[AI Handler] Groq model '${candidateModel}' failed (${res.status}):`, errText);
+        lastError = new Error(`Groq API Error (${res.status}): ${errText}`);
+      } catch (e) {
+        console.warn(`[AI Handler] Groq request exception for '${candidateModel}':`, e?.message);
+        lastError = e;
+      }
+    }
+
+    if (!response) {
+      throw lastError || new Error('Groq API Error: all model candidates failed');
+    }
+
     const data = await response.json();
-    let aiText = postProcessAnchors(data.choices?.[0]?.message?.content || 'No response generated.');
+    let rawContent = data.choices?.[0]?.message?.content || 'No response generated.';
+    // Strip reasoning / chain-of-thought blocks if emitted by reasoning or compound models
+    rawContent = rawContent.replace(/<thought>[\s\S]*?<\/thought>/gi, '').trim();
+    let aiText = postProcessAnchors(rawContent);
 
     // Post-process blog outputs to remove first-person travel/anecdote sentences
     const sanitizeBlogText = (text) => {

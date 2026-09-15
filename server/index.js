@@ -372,7 +372,7 @@ app.post('/api/ai', async (req, res) => {
         'Authorization': `Bearer ${groqKey}`
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: process.env.GROQ_MODEL || 'qwen/qwen3.8-27b',
         messages,
         temperature: 0.8
       })

@@ -530,10 +530,10 @@ export const Home: React.FC = () => {
             {showPartnerRevenue ? (
               <>
                 <div className="max-w-2xl">
-                  <p className="text-[10px] font-black uppercase tracking-[0.35em] text-emerald-300 mb-3">Partner Revenue</p>
-                  <h2 className="text-2xl md:text-3xl font-black leading-tight mb-3">Turn the audience into sponsor revenue.</h2>
+                  <p className="text-[10px] font-black uppercase tracking-[0.35em] text-emerald-300 mb-3">Partner & Sponsor Program</p>
+                  <h2 className="text-2xl md:text-3xl font-black leading-tight mb-3">Put Your Brand in Front of Nigeria's Active Capital Seekers.</h2>
                   <p className="text-sm md:text-base text-white/80 leading-relaxed">
-                    Offer lenders, fintechs, and service brands a clear path to featured placement, lead generation, and branded visibility across the home page, blog, and provider directory.
+                    Connect with high-intent entrepreneurs, small business owners, and families searching for financing solutions. Secure premium directory spots, sponsored editorial coverage, and targeted reach across Grantify.
                   </p>
                   {typeof sponsoredTiersCount === 'number' || typeof activeSponsoredCount === 'number' ? (
                     <div className="mt-4 text-sm text-white/70">
@@ -563,10 +563,10 @@ export const Home: React.FC = () => {
             ) : (
               <>
                 <div className="max-w-2xl">
-                  <p className="text-[10px] font-black uppercase tracking-[0.35em] text-emerald-300 mb-3">Sponsored</p>
-                  <h2 className="text-2xl md:text-3xl font-black leading-tight mb-3">Partner Opportunities</h2>
+                  <p className="text-[10px] font-black uppercase tracking-[0.35em] text-emerald-300 mb-3">Partnership & Advertising</p>
+                  <h2 className="text-2xl md:text-3xl font-black leading-tight mb-3">Put Your Brand in Front of Nigeria's Active Capital Seekers.</h2>
                   <p className="text-sm md:text-base text-white/80 leading-relaxed">
-                    Advertise your brand, loan app, or financial service to thousands of visitors seeking capital.
+                    Advertise your brand, loan app, or financial service to ambitious entrepreneurs, SMEs, and families actively comparing capital options.
                   </p>
                 </div>
                 <div className="flex flex-col sm:flex-row flex-wrap gap-3 w-full lg:w-auto">
@@ -574,7 +574,7 @@ export const Home: React.FC = () => {
                     Become a Sponsor <ArrowRight size={16} />
                   </Link>
                   <Link to="/contact" className="inline-flex items-center justify-center gap-2 border border-white/15 text-white font-black px-4 py-3 rounded-xl hover:bg-white/5 transition-all w-full sm:w-auto text-center text-sm">
-                    Contact Us
+                    Request a Media Kit
                   </Link>
                 </div>
               </>
@@ -604,9 +604,9 @@ export const Home: React.FC = () => {
               ))
             ) : (
               [
-                { title: 'Featured Provider Slots', copy: 'Sell premium placement in the loan provider grid and above-the-fold discovery blocks.' },
-                { title: 'Sponsored Articles', copy: 'Publish clearly labeled editorial sponsorships that educate while converting qualified traffic.' },
-                { title: 'Lead Packages', copy: 'Charge for qualified enquiries from visitors already comparing funding options.' },
+                { title: 'Featured Directory Placement', copy: 'Secure prominent top placement across our verified instant loan grid and discovery directory.' },
+                { title: 'Sponsored Editorial Spotlight', copy: 'Publish dedicated educational articles and native features that build trust with high-intent applicants.' },
+                { title: 'High-Intent Engagement', copy: 'Directly reach qualified Nigerian entrepreneurs and founders actively comparing capital options.' },
               ].map((item) => (
                 <div key={item.title} className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
                   <div className="text-sm font-black uppercase tracking-widest text-emerald-300 mb-2">{item.title}</div>

@@ -1335,24 +1335,28 @@ export const LoanProviders: React.FC = () => {
       </div>
 
       {/* Review Sidebar / Tray */}
-      <div className={`fixed inset-0 z-50 overflow-hidden transition-visibility duration-300 ${selectedProvider ? 'visible' : 'invisible'}`}>
+      <div className={`fixed inset-0 z-[100] overflow-hidden transition-visibility duration-300 ${selectedProvider ? 'visible' : 'invisible'}`}>
         <div 
-          className={`absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${selectedProvider ? 'opacity-100' : 'opacity-0'}`} 
+          className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${selectedProvider ? 'opacity-100' : 'opacity-0'}`} 
           onClick={() => setSelectedProvider(null)}
         />
-        <div className={`absolute top-0 right-0 h-full w-full max-w-full sm:max-w-lg bg-white dark:bg-gray-900 shadow-2xl transition-transform duration-300 transform flex flex-col border-l border-gray-100 dark:border-gray-800 ${selectedProvider ? 'translate-x-0' : 'translate-x-full'}`}>
-          <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-gray-950 shrink-0">
-            <div className="min-w-0 flex-1 pr-2">
-              <h2 className="text-base sm:text-lg font-black text-gray-800 dark:text-gray-100 uppercase tracking-tighter truncate">User Reviews</h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase truncate">{selectedProvider?.name}</p>
+        <div className={`absolute top-0 right-0 h-full w-full max-w-full sm:max-w-lg bg-white dark:bg-gray-900 shadow-2xl transition-transform duration-300 transform flex flex-col border-l border-gray-100 dark:border-gray-800 z-10 ${selectedProvider ? 'translate-x-0' : 'translate-x-full'}`}>
+          <div className="p-4 sm:p-5 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-gray-950 shrink-0 sticky top-0 z-20 shadow-xs">
+            <div className="min-w-0 flex-1 pr-3">
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-lg font-black text-gray-900 dark:text-gray-100 uppercase tracking-tighter truncate">User Reviews</h2>
+                <span className="bg-grantify-green/10 text-grantify-green text-[10px] font-black uppercase px-2 py-0.5 rounded-full shrink-0">Verified</span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase truncate mt-0.5">{selectedProvider?.name}</p>
             </div>
             <button 
               onClick={() => setSelectedProvider(null)}
-              className="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full transition-colors shrink-0"
+              className="inline-flex items-center gap-1.5 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-100 px-3 py-1.5 rounded-xl transition-all shrink-0 font-bold text-xs shadow-xs"
               aria-label="Close"
               title="Close"
             >
-              <X size={22} />
+              <X size={18} />
+              <span>Close</span>
             </button>
           </div>
 

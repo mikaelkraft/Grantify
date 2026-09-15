@@ -981,26 +981,52 @@ export default async function handler(req, res) {
     });
 
     const groqUrl = 'https://api.groq.com/openai/v1/chat/completions';
-    const aiRes = await fetch(groqUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${groqKey}`
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages,
-        temperature: 0.75
-      })
-    });
+    const modelsToTry = Array.from(new Set([
+      process.env.GROQ_MODEL,
+      'qwen/qwen3.8-27b',
+      'groq/compound-mini',
+      'llama-3.1-8b-instant',
+      'openai/gpt-oss-120b'
+    ].filter(Boolean)));
 
-    if (!aiRes.ok) {
-      const msg = await aiRes.text().catch(() => '');
-      throw new Error(`Groq API error: ${aiRes.status} ${msg}`);
+    let aiRes = null;
+    let lastError = null;
+    for (const candidateModel of modelsToTry) {
+      try {
+        const r = await fetch(groqUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${groqKey}`
+          },
+          body: JSON.stringify({
+            model: candidateModel,
+            messages,
+            temperature: 0.75
+          })
+        });
+
+        if (r.ok) {
+          aiRes = r;
+          break;
+        }
+
+        const msg = await r.text().catch(() => '');
+        console.warn(`[Cron Daily Blog] Groq model '${candidateModel}' failed (${r.status}):`, msg);
+        lastError = new Error(`Groq API error: ${r.status} ${msg}`);
+      } catch (e) {
+        console.warn(`[Cron Daily Blog] Groq exception for '${candidateModel}':`, e?.message);
+        lastError = e;
+      }
+    }
+
+    if (!aiRes) {
+      throw lastError || new Error('Groq API error: all model candidates failed');
     }
 
     const data = await aiRes.json();
-    const html = data.choices?.[0]?.message?.content || '';
+    let html = data.choices?.[0]?.message?.content || '';
+    html = html.replace(/<thought>[\s\S]*?<\/thought>/gi, '').trim();
     const extractedTitle = extractTitleFromHtml(html) || '';
     const title = normalizeGeneratedTitle(stripDatesFromTitle(extractedTitle)) || 'Funding & Growth Briefing';
 
@@ -1237,26 +1263,52 @@ const runDryRun = async ({ force, outFile, json }) => {
     });
 
     const groqUrl = 'https://api.groq.com/openai/v1/chat/completions';
-    const aiRes = await fetch(groqUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${groqKey}`
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages,
-        temperature: 0.75
-      })
-    });
+    const modelsToTry = Array.from(new Set([
+      process.env.GROQ_MODEL,
+      'qwen/qwen3.8-27b',
+      'groq/compound-mini',
+      'llama-3.1-8b-instant',
+      'openai/gpt-oss-120b'
+    ].filter(Boolean)));
 
-    if (!aiRes.ok) {
-      const msg = await aiRes.text().catch(() => '');
-      throw new Error(`Groq API error: ${aiRes.status} ${msg}`);
+    let aiRes = null;
+    let lastError = null;
+    for (const candidateModel of modelsToTry) {
+      try {
+        const r = await fetch(groqUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${groqKey}`
+          },
+          body: JSON.stringify({
+            model: candidateModel,
+            messages,
+            temperature: 0.75
+          })
+        });
+
+        if (r.ok) {
+          aiRes = r;
+          break;
+        }
+
+        const msg = await r.text().catch(() => '');
+        console.warn(`[Cron Daily Blog] Groq model '${candidateModel}' failed (${r.status}):`, msg);
+        lastError = new Error(`Groq API error: ${r.status} ${msg}`);
+      } catch (e) {
+        console.warn(`[Cron Daily Blog] Groq exception for '${candidateModel}':`, e?.message);
+        lastError = e;
+      }
+    }
+
+    if (!aiRes) {
+      throw lastError || new Error('Groq API error: all model candidates failed');
     }
 
     const data = await aiRes.json();
-    const html = data.choices?.[0]?.message?.content || '';
+    let html = data.choices?.[0]?.message?.content || '';
+    html = html.replace(/<thought>[\s\S]*?<\/thought>/gi, '').trim();
     const extractedTitle = extractTitleFromHtml(html) || '';
     const title = normalizeGeneratedTitle(stripDatesFromTitle(extractedTitle)) || 'Funding & Growth Briefing';
     const id = Date.now().toString();

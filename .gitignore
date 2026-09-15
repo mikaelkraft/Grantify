@@ -11,7 +11,9 @@ node_modules
 dist
 dist-ssr
 # Migration backup files
-.tmp-blog-posts-backup-*.json
+.tmp_backups/
+.tmp*
+*.tmp
 *.local
 .env
 .env-*.example
