@@ -16,6 +16,7 @@ import {
   ContentFlag,
   ContactMessage,
   WhatsappConfig,
+  SocialLinksConfig,
   PaymentGatewaysConfig
 } from '../types';
 
@@ -332,6 +333,30 @@ export const ApiService = {
       body: JSON.stringify(data)
     });
     if (!res.ok) throw new Error('Failed to save WhatsApp config');
+  },
+
+  // -- Social Media Links Config --
+  getSocialLinks: async (): Promise<SocialLinksConfig> => {
+    try {
+      const res = await fetch(`${API_URL}/api/config?type=social_links`);
+      if (!res.ok) return {};
+      return await res.json();
+    } catch {
+      return {};
+    }
+  },
+
+  saveSocialLinks: async (data: SocialLinksConfig): Promise<void> => {
+    const adminHeader = getAdminSessionHeader();
+    const res = await fetch(`${API_URL}/api/config?type=social_links`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        ...(adminHeader ? { 'X-Admin-Session': adminHeader } : {})
+      },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to save social media links');
   },
 
   // -- Offsite Uploads (S3/R2 via presigned PUT) --

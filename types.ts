@@ -208,13 +208,27 @@ export interface WhatsappConfig {
   preFilledText: string;
 }
 
+export interface SocialLinksConfig {
+  facebook?: string;
+  twitter?: string;
+  instagram?: string;
+  linkedin?: string;
+  youtube?: string;
+  tiktok?: string;
+  telegram?: string;
+  whatsapp?: string;
+}
+
 export interface PaymentGatewaysConfig {
   flutterwave: {
     enabled: boolean;
-    publicKey: string;
-    secretKey: string;
-    encryptionKey: string;
     mode: 'test' | 'live';
+    clientId: string;
+    clientSecret: string;
+    encryptionKey: string;
+    secretHash?: string;
+    publicKey?: string;
+    secretKey?: string;
   };
   opay: {
     enabled: boolean;

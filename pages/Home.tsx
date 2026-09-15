@@ -74,6 +74,19 @@ export const Home: React.FC = () => {
     };
     loadAds();
 
+    const loadSponsored = async () => {
+      try {
+        const listings = await ApiService.getActiveSponsoredListings();
+        if (!cancelled && Array.isArray(listings)) {
+          setSponsoredListings(listings);
+          setActiveSponsoredCount(listings.length);
+        }
+      } catch (e) {
+        console.warn("Failed to load sponsored listings", e);
+      }
+    };
+    loadSponsored();
+
     // 2. Load blog posts independently (so the main page renders immediately)
     const BLOG_CACHE_KEY = 'grantify_home_blog_posts_v1';
     try {
@@ -323,6 +336,57 @@ export const Home: React.FC = () => {
         <RecentApplicantsTicker applicants={recentApplicants} />
         <BlogTicker posts={blogPosts.slice(0, 3)} />
       </div>
+
+      {/* Homepage Top Sponsor Banner Spotlight */}
+      {(() => {
+        const topSponsor = sponsoredListings && sponsoredListings.length > 0 ? sponsoredListings[0] : null;
+        if (!topSponsor && !ads?.header) return null;
+
+        if (topSponsor) {
+          return (
+            <div className="mt-3 mx-auto w-full max-w-7xl px-3 sm:px-4 md:px-6">
+              <div className="bg-gradient-to-r from-green-950 via-emerald-950 to-green-950 border border-grantify-gold/30 rounded-2xl p-3 sm:p-4 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-grantify-gold/20 border border-grantify-gold/40 flex items-center justify-center shrink-0 text-grantify-gold font-black text-sm">
+                    {topSponsor.provider_name ? topSponsor.provider_name.slice(0, 2).toUpperCase() : '★'}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] font-black uppercase tracking-wider bg-grantify-gold text-gray-950 px-2 py-0.5 rounded-full">
+                        Official Partner Spotlight
+                      </span>
+                      <span className="text-xs font-black text-white">{topSponsor.provider_name}</span>
+                    </div>
+                    <p className="text-xs text-gray-200 mt-0.5 font-medium line-clamp-1">
+                      {topSponsor.campaign_note || `Verified credit lines & capital solutions backed by ${topSponsor.provider_name}.`}
+                    </p>
+                  </div>
+                </div>
+
+                <a
+                  href={topSponsor.provider_website || '#'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => topSponsor.id && ApiService.trackSponsorClick(topSponsor.id)}
+                  className="shrink-0 bg-grantify-gold hover:bg-yellow-400 text-gray-950 font-black text-xs px-4 py-2 rounded-xl transition-all shadow-md hover:scale-105"
+                >
+                  Explore Offer &rarr;
+                </a>
+              </div>
+            </div>
+          );
+        }
+
+        if (ads?.header) {
+          return (
+            <div className="mt-3 mx-auto w-full max-w-7xl px-3 sm:px-4 md:px-6">
+              <AdSlot htmlContent={ads.header} label="Sponsor" />
+            </div>
+          );
+        }
+
+        return null;
+      })()}
 
       {/* Hero Section */}
       <section className="relative mt-4 min-h-[60vh] flex items-center justify-center overflow-hidden rounded-[2.5rem]">

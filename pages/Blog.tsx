@@ -18,6 +18,7 @@ export const Blog: React.FC = () => {
   const [error, setError] = useState('');
   const [myReactions, setMyReactions] = useState<Record<string, 'likes' | 'loves' | 'claps' | null>>({});
   const [pricing, setPricing] = useState<Array<{ id: number; tierName: string; priceCents: number; durationDays: number; description: string }>>([]);
+  const [activeSponsors, setActiveSponsors] = useState<any[]>([]);
   const [activePreviewTab, setActivePreviewTab] = useState<'banner' | 'in-article' | 'directory'>('banner');
   const [estimatorTierId, setEstimatorTierId] = useState<number | null>(null);
 
@@ -52,9 +53,13 @@ export const Blog: React.FC = () => {
   useEffect(() => {
     const loadMediaKit = async () => {
       try {
-        const pricingData = await ApiService.getSponsoredPricing();
+        const [pricingData, sponsorsData] = await Promise.all([
+          ApiService.getSponsoredPricing().catch(() => []),
+          ApiService.getActiveSponsoredListings().catch(() => [])
+        ]);
         const pricingArray = Array.isArray(pricingData) ? pricingData : [];
         setPricing(pricingArray);
+        setActiveSponsors(Array.isArray(sponsorsData) ? sponsorsData : []);
         if (pricingArray.length > 0) {
           const std = pricingArray.find((t) => String(t.tierName).toLowerCase().includes('standard')) || pricingArray[0];
           setEstimatorTierId(std.id);
@@ -268,55 +273,138 @@ export const Blog: React.FC = () => {
               </div>
 
               {/* Dynamic Interactive Preview Mockup Box */}
-              {activePreviewTab === 'banner' && (
-                <div className="bg-gray-950 p-4 rounded-2xl border border-white/5 relative overflow-hidden transition-all duration-300">
-                  <div className="flex items-center justify-between text-[9px] text-white/40 mb-3 border-b border-white/5 pb-2">
-                    <span>Homepage Top Banner Mockup</span>
-                    <span className="bg-grantify-gold/20 text-grantify-gold px-2 py-0.5 rounded text-[8px] font-black uppercase">Banner Slot</span>
-                  </div>
-                  <div className="bg-gradient-to-r from-grantify-green/20 via-grantify-gold/15 to-grantify-green/20 rounded-xl p-4 border border-grantify-gold/20 text-center relative shadow-inner">
-                    <div className="absolute top-2 right-2 text-[7px] font-black uppercase bg-white/10 px-1.5 py-0.5 rounded text-white/80 tracking-wider">Sponsored</div>
-                    <div className="text-xs text-grantify-gold font-black uppercase tracking-wider mb-1">Boost Your Business Capital</div>
-                    <div className="text-[9px] text-white/80 mb-2 leading-relaxed">Match with instant credit lines from top Nigerian providers.</div>
-                    <span className="inline-block bg-white text-gray-900 font-black text-[8px] px-3 py-1 rounded shadow-md hover:scale-105 transition-transform">Apply Now</span>
-                  </div>
-                </div>
-              )}
+              {(() => {
+                const activeSponsor = activeSponsors && activeSponsors.length > 0 ? activeSponsors[0] : null;
 
-              {activePreviewTab === 'in-article' && (
-                <div className="bg-gray-950 p-4 rounded-2xl border border-white/5 relative overflow-hidden transition-all duration-300">
-                  <div className="flex items-center justify-between text-[9px] text-white/40 mb-3 border-b border-white/5 pb-2">
-                    <span>In-Article Inline Mockup</span>
-                    <span className="bg-grantify-gold/20 text-grantify-gold px-2 py-0.5 rounded text-[8px] font-black uppercase">Editorial Slot</span>
-                  </div>
-                  <div className="border border-white/10 bg-white/5 rounded-xl p-3 text-left">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-[7px] font-bold text-grantify-gold tracking-widest uppercase">SPONSORED SPOTLIGHT</span>
-                      <span className="text-[7px] bg-white/10 text-white/70 px-1 rounded">2 min read</span>
-                    </div>
-                    <div className="text-xs font-bold text-white">Grow your retail outlet with the Retail Credit Scheme</div>
-                    <p className="text-[9px] text-white/60 mt-1 leading-relaxed">Featured partner is offering micro-loans with low interest matching for eligible female merchants.</p>
-                  </div>
-                </div>
-              )}
+                return (
+                  <>
+                    {activePreviewTab === 'banner' && (
+                      <div className="bg-gray-950 p-4 rounded-2xl border border-white/5 relative overflow-hidden transition-all duration-300">
+                        <div className="flex items-center justify-between text-[9px] text-white/40 mb-3 border-b border-white/5 pb-2">
+                          <span>Homepage Top Banner {activeSponsor ? '(Active Partner Live)' : 'Mockup'}</span>
+                          <span className={activeSponsor ? "bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider" : "bg-grantify-gold/20 text-grantify-gold px-2 py-0.5 rounded text-[8px] font-black uppercase"}>
+                            {activeSponsor ? 'Live Slot' : 'Banner Slot'}
+                          </span>
+                        </div>
+                        {activeSponsor ? (
+                          <div className="bg-gradient-to-r from-emerald-950/70 via-grantify-green/25 to-emerald-950/70 rounded-xl p-4 border border-emerald-500/30 text-center relative shadow-inner">
+                            <div className="absolute top-2 right-2 text-[7px] font-black uppercase bg-emerald-500/20 border border-emerald-500/30 px-1.5 py-0.5 rounded text-emerald-300 tracking-wider">
+                              Verified Partner
+                            </div>
+                            <div className="text-xs text-grantify-gold font-black uppercase tracking-wider mb-1">
+                              {activeSponsor.campaign_note || `Exclusive Capital Partner: ${activeSponsor.provider_name}`}
+                            </div>
+                            <div className="text-[9px] text-white/90 mb-2 leading-relaxed">
+                              Pre-qualified credit &amp; funding solutions provided by {activeSponsor.provider_name}.
+                            </div>
+                            <a
+                              href={activeSponsor.provider_website || '#'}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={() => activeSponsor.id && ApiService.trackSponsorClick(activeSponsor.id)}
+                              className="inline-block bg-white hover:bg-gray-100 text-gray-900 font-black text-[8px] px-3 py-1 rounded shadow-md hover:scale-105 transition-transform"
+                            >
+                              Explore Deal with {activeSponsor.provider_name} →
+                            </a>
+                          </div>
+                        ) : (
+                          <div className="bg-gradient-to-r from-grantify-green/20 via-grantify-gold/15 to-grantify-green/20 rounded-xl p-4 border border-grantify-gold/20 text-center relative shadow-inner">
+                            <div className="absolute top-2 right-2 text-[7px] font-black uppercase bg-white/10 px-1.5 py-0.5 rounded text-white/80 tracking-wider">Sponsored</div>
+                            <div className="text-xs text-grantify-gold font-black uppercase tracking-wider mb-1">Boost Your Business Capital</div>
+                            <div className="text-[9px] text-white/80 mb-2 leading-relaxed">Match with instant credit lines from top Nigerian providers.</div>
+                            <Link to="/sponsor" className="inline-block bg-white text-gray-900 font-black text-[8px] px-3 py-1 rounded shadow-md hover:scale-105 transition-transform">Book This Slot</Link>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
-              {activePreviewTab === 'directory' && (
-                <div className="bg-gray-950 p-4 rounded-2xl border border-white/5 relative overflow-hidden transition-all duration-300">
-                  <div className="flex items-center justify-between text-[9px] text-white/40 mb-3 border-b border-white/5 pb-2">
-                    <span>Provider Directory Listing Mockup</span>
-                    <span className="bg-grantify-gold/20 text-grantify-gold px-2 py-0.5 rounded text-[8px] font-black uppercase">Highlight Slot</span>
-                  </div>
-                  <div className="border border-grantify-green bg-grantify-green/5 rounded-xl p-3 flex justify-between items-center relative shadow-inner">
-                    <div className="absolute top-1 right-2 text-[7px] font-bold text-grantify-green">PROMOTED</div>
-                    <div>
-                      <span className="text-[7px] font-black uppercase bg-grantify-green text-white px-2 py-0.5 rounded-full">Recommended</span>
-                      <div className="text-xs font-black text-white mt-1">Renmoney Microfinance</div>
-                      <div className="text-[8px] text-white/60">Interest rate: 4.5% | Max duration: 24m</div>
-                    </div>
-                    <span className="bg-white text-gray-900 font-bold text-[8px] px-3 py-1 rounded shadow-md">View Deal</span>
-                  </div>
-                </div>
-              )}
+                    {activePreviewTab === 'in-article' && (
+                      <div className="bg-gray-950 p-4 rounded-2xl border border-white/5 relative overflow-hidden transition-all duration-300">
+                        <div className="flex items-center justify-between text-[9px] text-white/40 mb-3 border-b border-white/5 pb-2">
+                          <span>In-Article Inline {activeSponsor ? '(Active Partner Live)' : 'Mockup'}</span>
+                          <span className={activeSponsor ? "bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider" : "bg-grantify-gold/20 text-grantify-gold px-2 py-0.5 rounded text-[8px] font-black uppercase"}>
+                            {activeSponsor ? 'Editorial Slot' : 'Editorial Slot'}
+                          </span>
+                        </div>
+                        {activeSponsor ? (
+                          <div className="border border-emerald-500/30 bg-emerald-950/30 rounded-xl p-3 text-left">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-[7px] font-bold text-emerald-400 tracking-widest uppercase">SPONSORED SPOTLIGHT • LIVE</span>
+                              <span className="text-[7px] bg-white/10 text-white/70 px-1 rounded">Verified</span>
+                            </div>
+                            <div className="text-xs font-bold text-white">
+                              {activeSponsor.campaign_note || `Scale your venture with ${activeSponsor.provider_name}`}
+                            </div>
+                            <p className="text-[9px] text-white/75 mt-1 leading-relaxed">
+                              Verified partner is offering dedicated financing with streamlined approval for Nigerian entrepreneurs.
+                            </p>
+                            {activeSponsor.provider_website && (
+                              <a
+                                href={activeSponsor.provider_website}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={() => activeSponsor.id && ApiService.trackSponsorClick(activeSponsor.id)}
+                                className="inline-block text-[8px] font-bold text-grantify-gold hover:underline mt-2"
+                              >
+                                View Partner Details &rarr;
+                              </a>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="border border-white/10 bg-white/5 rounded-xl p-3 text-left">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-[7px] font-bold text-grantify-gold tracking-widest uppercase">SPONSORED SPOTLIGHT</span>
+                              <span className="text-[7px] bg-white/10 text-white/70 px-1 rounded">2 min read</span>
+                            </div>
+                            <div className="text-xs font-bold text-white">Grow your retail outlet with the Retail Credit Scheme</div>
+                            <p className="text-[9px] text-white/60 mt-1 leading-relaxed">Featured partner is offering micro-loans with low interest matching for eligible female merchants.</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {activePreviewTab === 'directory' && (
+                      <div className="bg-gray-950 p-4 rounded-2xl border border-white/5 relative overflow-hidden transition-all duration-300">
+                        <div className="flex items-center justify-between text-[9px] text-white/40 mb-3 border-b border-white/5 pb-2">
+                          <span>Provider Directory Listing {activeSponsor ? '(Active Partner Live)' : 'Mockup'}</span>
+                          <span className={activeSponsor ? "bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider" : "bg-grantify-gold/20 text-grantify-gold px-2 py-0.5 rounded text-[8px] font-black uppercase"}>
+                            {activeSponsor ? 'Top Sticky' : 'Highlight Slot'}
+                          </span>
+                        </div>
+                        {activeSponsor ? (
+                          <div className="border border-grantify-green bg-grantify-green/10 rounded-xl p-3 flex justify-between items-center relative shadow-inner">
+                            <div className="absolute top-1 right-2 text-[7px] font-bold text-grantify-green">ACTIVE #1 STICKY</div>
+                            <div>
+                              <span className="text-[7px] font-black uppercase bg-grantify-green text-white px-2 py-0.5 rounded-full">Promoted Partner</span>
+                              <div className="text-xs font-black text-white mt-1">{activeSponsor.provider_name}</div>
+                              <div className="text-[8px] text-white/70">{activeSponsor.campaign_note || 'Verified Direct Funding Provider'}</div>
+                            </div>
+                            <a
+                              href={activeSponsor.provider_website || '#'}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={() => activeSponsor.id && ApiService.trackSponsorClick(activeSponsor.id)}
+                              className="bg-white hover:bg-gray-100 text-gray-900 font-bold text-[8px] px-3 py-1 rounded shadow-md transition-colors"
+                            >
+                              View Deal
+                            </a>
+                          </div>
+                        ) : (
+                          <div className="border border-grantify-green bg-grantify-green/5 rounded-xl p-3 flex justify-between items-center relative shadow-inner">
+                            <div className="absolute top-1 right-2 text-[7px] font-bold text-grantify-green">PROMOTED</div>
+                            <div>
+                              <span className="text-[7px] font-black uppercase bg-grantify-green text-white px-2 py-0.5 rounded-full">Recommended</span>
+                              <div className="text-xs font-black text-white mt-1">Renmoney Microfinance</div>
+                              <div className="text-[8px] text-white/60">Interest rate: 4.5% | Max duration: 24m</div>
+                            </div>
+                            <Link to="/sponsor" className="bg-white text-gray-900 font-bold text-[8px] px-3 py-1 rounded shadow-md">Book Slot</Link>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </div>
           
@@ -326,7 +414,7 @@ export const Blog: React.FC = () => {
       {/* Daily Funding Alert Card Widget */}
       <div className="grid lg:grid-cols-[1fr_400px] gap-8 mb-12 items-start">
         <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2.5rem] p-8 md:p-10 shadow-sm h-full flex flex-col justify-center text-left">
-          <div className="inline-flex items-center gap-2 bg-grantify-gold/10 border border-grantify-gold/20 text-grantify-gold rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest mb-4 w-fit">
+          <div className="inline-flex items-center gap-2 bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest mb-4 w-fit">
             <Sparkles size={10} /> Viral Status Tool
           </div>
           <h2 className="text-3xl font-black text-gray-900 dark:text-gray-100 uppercase tracking-tighter leading-tight mb-4">

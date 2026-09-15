@@ -49,6 +49,7 @@ const ensureJsonBody = async (req) => {
       req.on('error', reject);
     });
     const raw = Buffer.concat(chunks).toString('utf8');
+    req.rawBody = raw;
     if (!raw.trim()) {
       req.body = {};
       return;

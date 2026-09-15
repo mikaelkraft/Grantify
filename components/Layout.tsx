@@ -2,10 +2,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AdSlot } from './AdSlot';
 import { ApiService } from '../services/storage';
-import { AdConfig, BlogPost, LoanProvider, WhatsappConfig } from '../types';
+import { AdConfig, BlogPost, LoanProvider, WhatsappConfig, SocialLinksConfig } from '../types';
 import { makeBlogPath } from '../utils/blogRouting';
 import { Menu, X, AlertTriangle, ShieldAlert, RefreshCw, HelpCircle, Moon, Sun, Search, MessageCircle, Trophy } from 'lucide-react';
 import { AiChatbot } from './AiChatbot';
+import { SocialAppLogo } from './SocialAppLogo';
 
 type HeaderSearchResult =
   | { type: 'blog'; key: string; title: string; subtitle?: string; to: string }
@@ -15,6 +16,7 @@ type HeaderSearchResult =
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [ads, setAds] = useState<AdConfig | null>(null);
   const [whatsappConfig, setWhatsappConfig] = useState<WhatsappConfig | null>(null);
+  const [socialLinks, setSocialLinks] = useState<SocialLinksConfig | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showCompliance, setShowCompliance] = useState(false);
   const [blockerDetected, setBlockerDetected] = useState(false);
@@ -63,6 +65,17 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     };
     
     loadWhatsappConfig();
+
+    const loadSocialLinks = async () => {
+      try {
+        const links = await ApiService.getSocialLinks();
+        setSocialLinks(links);
+      } catch (error) {
+        console.error('Error loading social links:', error);
+      }
+    };
+
+    loadSocialLinks();
     
     // Modal only shows if adblocker/VPN detected (not on every page load)
     // Adblock Detection - run after a delay to ensure page is loaded
@@ -423,12 +436,6 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             </defs>
           </svg>
         </div>
-        {/* Additional wavy design path at the bottom of the header */}
-        <div className="absolute bottom-0 left-0 right-0 h-1.5 pointer-events-none z-10 overflow-hidden">
-          <svg className="absolute bottom-0 w-full h-[15px]" viewBox="0 0 1440 15" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M0,7 C360,15 720,0 1080,7 L1440,0 L1440,15 L0,15 Z" fill="currentColor" className="text-gray-50 dark:text-gray-950 transition-colors duration-300" />
-          </svg>
-        </div>
 
         <div className="relative z-10 mx-auto w-full max-w-7xl px-3 sm:px-4 md:px-6 py-4 flex justify-between items-center">
           <Link to="/" className="flex items-center gap-1.5 text-lg lg:text-xl xl:text-2xl font-black font-heading text-grantify-gold shrink-0">
@@ -512,12 +519,12 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               )}
             </div>
 
-            <nav className="flex gap-1.5 lg:gap-3 xl:gap-4 items-center text-xs lg:text-sm font-outfit uppercase tracking-wider">
+            <nav className="flex gap-1.5 lg:gap-2.5 xl:gap-3.5 items-center text-[11px] xl:text-xs font-outfit uppercase tracking-wider">
             {navLinks.map(link => (
               <Link 
                 key={link.to} 
                 to={link.to} 
-                className={`hover:text-grantify-gold transition-colors font-bold px-1.5 py-1 rounded-sm ${location.pathname === link.to ? 'text-grantify-gold border-b-2 border-grantify-gold' : ''}`}
+                className={`hover:text-grantify-gold transition-colors font-semibold px-1.5 py-1 rounded-sm ${location.pathname === link.to ? 'text-grantify-gold border-b-2 border-grantify-gold' : ''}`}
               >
                 <span className="lg:hidden">{link.shortLabel}</span>
                 <span className="hidden lg:inline">{link.label}</span>
@@ -684,6 +691,43 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
                 <span>For best results, disable Adblockers and avoid VPNs when applying.</span>
               </div>
+
+              {/* Social Media Follow Section */}
+              {(() => {
+                const activeSocials = [
+                  { key: 'facebook', label: 'Facebook', url: socialLinks?.facebook },
+                  { key: 'twitter', label: 'X (Twitter)', url: socialLinks?.twitter },
+                  { key: 'instagram', label: 'Instagram', url: socialLinks?.instagram },
+                  { key: 'linkedin', label: 'LinkedIn', url: socialLinks?.linkedin },
+                  { key: 'youtube', label: 'YouTube', url: socialLinks?.youtube },
+                  { key: 'tiktok', label: 'TikTok', url: socialLinks?.tiktok },
+                  { key: 'telegram', label: 'Telegram', url: socialLinks?.telegram },
+                  { key: 'whatsapp', label: 'WhatsApp', url: socialLinks?.whatsapp },
+                ].filter(item => Boolean(item.url && item.url.trim()));
+
+                if (activeSocials.length === 0) return null;
+
+                return (
+                  <div className="pt-2">
+                    <span className="text-[10px] uppercase tracking-widest font-black text-gray-400 block mb-2.5 font-outfit">Follow & Join Us</span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {activeSocials.map(s => (
+                        <a
+                          key={s.key}
+                          href={s.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={s.label}
+                          aria-label={s.label}
+                          className="w-8 h-8 rounded-xl bg-gray-900/90 hover:bg-gray-800 flex items-center justify-center transition-all duration-200 border border-gray-800 hover:border-gray-600 shadow-sm hover:scale-110 p-1"
+                        >
+                          <SocialAppLogo platform={s.key} size={20} />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Column 2: Platform */}

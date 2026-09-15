@@ -215,6 +215,59 @@ export default async function handler(req, res) {
       }
     }
 
+    if (type === 'social_links') {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS social_links_config (
+          id INTEGER PRIMARY KEY DEFAULT 1,
+          config_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT single_row_social_links CHECK (id = 1)
+        )
+      `);
+
+      const defaultSocialLinks = {
+        facebook: '',
+        twitter: '',
+        instagram: '',
+        linkedin: '',
+        youtube: '',
+        tiktok: '',
+        telegram: '',
+        whatsapp: ''
+      };
+
+      if (req.method === 'GET') {
+        const result = await pool.query('SELECT config_json FROM social_links_config WHERE id = 1');
+        const saved = result.rows?.[0]?.config_json || {};
+        return res.status(200).json({ ...defaultSocialLinks, ...saved });
+      }
+
+      if (req.method === 'POST') {
+        const incoming = req.body || {};
+        const sanitized = {
+          facebook: String(incoming.facebook || '').trim(),
+          twitter: String(incoming.twitter || incoming.x || '').trim(),
+          instagram: String(incoming.instagram || '').trim(),
+          linkedin: String(incoming.linkedin || '').trim(),
+          youtube: String(incoming.youtube || '').trim(),
+          tiktok: String(incoming.tiktok || '').trim(),
+          telegram: String(incoming.telegram || '').trim(),
+          whatsapp: String(incoming.whatsapp || '').trim()
+        };
+
+        await pool.query(
+          `INSERT INTO social_links_config (id, config_json, updated_at)
+           VALUES (1, $1::jsonb, CURRENT_TIMESTAMP)
+           ON CONFLICT (id) DO UPDATE SET
+           config_json = EXCLUDED.config_json,
+           updated_at = CURRENT_TIMESTAMP`,
+          [JSON.stringify(sanitized)]
+        );
+
+        return res.status(200).json({ success: true, socialLinks: sanitized });
+      }
+    }
+
     if (type === 'payment_gateways') {
       await pool.query(`
         CREATE TABLE IF NOT EXISTS payment_gateways_config (
@@ -231,6 +284,9 @@ export default async function handler(req, res) {
           publicKey: (process.env.FLW_PUBLIC_KEY || process.env.FLUTTERWAVE_PUBLIC_KEY || '').trim(),
           secretKey: (process.env.FLW_SECRET_KEY || process.env.FLUTTERWAVE_SECRET_KEY || '').trim(),
           encryptionKey: (process.env.FLW_ENCRYPTION_KEY || process.env.FLUTTERWAVE_ENCRYPTION_KEY || '').trim(),
+          secretHash: (process.env.FLW_SECRET_HASH || process.env.FLUTTERWAVE_SECRET_HASH || '').trim(),
+          clientId: (process.env.FLW_CLIENT_ID || process.env.FLUTTERWAVE_CLIENT_ID || '').trim(),
+          clientSecret: (process.env.FLW_CLIENT_SECRET || process.env.FLUTTERWAVE_CLIENT_SECRET || '').trim(),
           mode: process.env.FLW_MODE === 'live' || process.env.FLUTTERWAVE_MODE === 'live' ? 'live' : 'test'
         },
         opay: {
@@ -273,10 +329,13 @@ export default async function handler(req, res) {
           flutterwave: {
             ...defaultGatewayConfig.flutterwave,
             ...(savedConfig.flutterwave || {}),
+            clientId: (savedConfig.flutterwave?.clientId || defaultGatewayConfig.flutterwave.clientId || '').trim(),
+            clientSecret: (savedConfig.flutterwave?.clientSecret || defaultGatewayConfig.flutterwave.clientSecret || '').trim(),
+            encryptionKey: (savedConfig.flutterwave?.encryptionKey || defaultGatewayConfig.flutterwave.encryptionKey || '').trim(),
+            secretHash: (savedConfig.flutterwave?.secretHash || defaultGatewayConfig.flutterwave.secretHash || '').trim(),
             publicKey: (savedConfig.flutterwave?.publicKey || defaultGatewayConfig.flutterwave.publicKey || '').trim(),
             secretKey: (savedConfig.flutterwave?.secretKey || defaultGatewayConfig.flutterwave.secretKey || '').trim(),
-            encryptionKey: (savedConfig.flutterwave?.encryptionKey || defaultGatewayConfig.flutterwave.encryptionKey || '').trim(),
-            mode: savedConfig.flutterwave?.mode || defaultGatewayConfig.flutterwave.mode || 'test'
+            mode: savedConfig.flutterwave?.mode || defaultGatewayConfig.flutterwave.mode || 'live'
           },
           opay: {
             ...defaultGatewayConfig.opay,

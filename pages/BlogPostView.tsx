@@ -561,11 +561,12 @@ export const BlogPostView: React.FC = () => {
     ApiService.getActiveSponsoredListings()
       .then((listings) => {
         if (canceled) return;
-        const premium = (listings || []).filter((s: any) => {
+        const activeList = Array.isArray(listings) ? listings : [];
+        const premium = activeList.filter((s: any) => {
           const name = String(s.tier_name || '').toLowerCase();
-          return name.includes('premium') || name.includes('gold') || name.includes('enterprise');
+          return name.includes('premium') || name.includes('gold') || name.includes('enterprise') || name.includes('featured');
         });
-        setPremiumSponsors(premium);
+        setPremiumSponsors(premium.length > 0 ? premium : activeList.slice(0, 1));
       })
       .catch(() => {});
 

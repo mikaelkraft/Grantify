@@ -750,9 +750,9 @@ export const Sponsor: React.FC = () => {
                 { feature: 'Homepage Top Sponsor Banner Spotlight', std: false, feat: true, ent: true },
                 { feature: 'Grantify Weekly Community Digest Feature', std: false, feat: 'Digest Inclusion', ent: 'Header Spotlight' },
                 { feature: 'Sponsored Editorial Review Article on Grantify Blog', std: false, feat: 'Category Review', ent: 'Dedicated Article' },
-                { feature: 'State Grant Page Banner Sponsorship (/grants/:state)', std: false, feat: false, ent: true },
+                { feature: 'Targeted Category & Top-Funnel Sector Spotlight', std: false, feat: false, ent: true },
                 { feature: 'Real-Time Click Attribution & Referral Analytics', std: true, feat: true, ent: true },
-                { feature: 'Official VAT-Compliant Corporate Invoice & Receipt', std: true, feat: true, ent: true },
+                { feature: 'Standard Commercial Invoice & Electronic Payment Receipt', std: true, feat: true, ent: true },
                 { feature: 'Dedicated Campaign Support & Creative Revisions', std: 'Email Support', feat: 'Priority SLA (24h)', ent: 'Dedicated Account Lead' },
               ].map((row, idx) => (
                 <tr key={idx} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
@@ -1203,7 +1203,7 @@ export const Sponsor: React.FC = () => {
           {[
             { q: 'How does the onboarding process work?', a: 'Once you select your package and submit details, you can complete payment immediately via our checkout portal. Your sponsored features will go live within 24 hours after editorial verification.' },
             { q: 'Can we promote a new financial product or custom brand?', a: 'Absolutely. Choose "Other / Custom Partner" in the provider dropdown to enter your details, and our design team will construct a bespoke listing card for your product.' },
-            { q: 'Are official corporate invoices provided?', a: 'Yes. We issue VAT-compliant corporate invoices and receipts for all transactions. Wire transfers and direct bank deposits are fully supported.' },
+            { q: 'Are official corporate invoices provided?', a: 'Yes. We issue commercial invoices and electronic payment receipts for all sponsorship bookings. Electronic bank transfers, international card payments, and US/foreign account settlements are fully supported.' },
             { q: 'Can we adjust our creative assets or redirection links later?', a: 'Yes. Your campaign dashboard and our dedicated support team allow you to update redirect links, promotional copy, and graphics at any time during your active slot.' },
           ].map((item) => (
             <div key={item.q} className="rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
@@ -1316,16 +1316,16 @@ export const Sponsor: React.FC = () => {
                   <div className="p-4 print:p-2 bg-gray-50 dark:bg-gray-950 rounded-xl border border-grantify-green print-avoid-break">
                     <div className="font-black text-sm print:text-xs text-gray-900 dark:text-gray-100">Enterprise Partner</div>
                     <div className="text-base print:text-sm font-black text-grantify-green my-1 print:my-0.5">₦150,000</div>
-                    <p className="text-[10px] print:text-[8px] text-gray-500 leading-snug">60-Day Top Sticky Placement, Sponsored Blog Review, State Banners, & Full Referral Tracking.</p>
+                    <p className="text-[10px] print:text-[8px] text-gray-500 leading-snug">60-Day Top Sticky Placement, Sponsored Blog Review, Targeted Category Banners, & Full Referral Tracking.</p>
                   </div>
                 </div>
               </div>
 
               {/* Settlement & Invoicing */}
               <div className="p-4 print:p-2 bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 rounded-2xl print-avoid-break">
-                <h4 className="text-xs font-black uppercase tracking-wider text-gray-800 dark:text-gray-200 mb-1">5. Institutional Invoicing & Settlement</h4>
+                <h4 className="text-xs font-black uppercase tracking-wider text-gray-800 dark:text-gray-200 mb-1">5. Commercial Invoicing & Settlement</h4>
                 <p className="text-[11px] print:text-[9px] text-gray-600 dark:text-gray-300 leading-relaxed mb-1 print:mb-0.5">
-                  Official VAT-compliant corporate invoices are generated upon booking. Institutional bank wire transfers, electronic deposits, and card settlements are processed with same-day confirmation.
+                  Standard commercial invoices and electronic payment receipts are issued upon booking. Institutional bank wire transfers, international card payments, and US/foreign account settlements are processed with prompt confirmation.
                 </p>
                 <div className="text-[11px] print:text-[8.5px] text-gray-500 dark:text-gray-400">
                   Custom billing references and purchase orders (POs) are supported for banks, DFIs, and institutional partners.
@@ -1334,8 +1334,8 @@ export const Sponsor: React.FC = () => {
 
               {/* Contacts */}
               <div className="pt-2 print:pt-1 flex flex-col sm:flex-row justify-between items-center gap-3 print:gap-1 border-t border-gray-100 dark:border-gray-800 text-[11px] print:text-[9px] text-gray-500 print-avoid-break">
-                <div>Partnerships Desk: <strong>partners@grantify.help</strong></div>
-                <div>Grantify • Lagos, Nigeria</div>
+                <div>Partnerships Desk: <strong>[EMAIL_ADDRESS]</strong></div>
+                <div>Grantify Online</div>
               </div>
             </div>
           </div>

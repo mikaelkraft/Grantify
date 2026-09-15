@@ -1,4 +1,5 @@
 import pool from '../db.js';
+import crypto from 'crypto';
 import PDFDocument from 'pdfkit';
 import nodemailer from 'nodemailer';
 
@@ -82,8 +83,14 @@ export default async function handler(req, res) {
               paymentGateways = {
                 flutterwave: {
                   enabled: Boolean(cfg.flutterwave?.enabled),
-                  mode: cfg.flutterwave?.mode || 'test',
-                  hasKey: Boolean(cfg.flutterwave?.publicKey || process.env.FLW_PUBLIC_KEY || process.env.FLUTTERWAVE_PUBLIC_KEY)
+                  mode: cfg.flutterwave?.mode || 'live',
+                  hasKey: Boolean(
+                    (cfg.flutterwave?.clientId && cfg.flutterwave?.clientSecret) ||
+                    (process.env.FLW_CLIENT_ID && process.env.FLW_CLIENT_SECRET) ||
+                    cfg.flutterwave?.publicKey ||
+                    process.env.FLW_PUBLIC_KEY ||
+                    process.env.FLUTTERWAVE_PUBLIC_KEY
+                  )
                 },
                 opay: {
                   enabled: Boolean(cfg.opay?.enabled),
@@ -108,7 +115,14 @@ export default async function handler(req, res) {
 
           if (!paymentGateways) {
             paymentGateways = {
-              flutterwave: { enabled: Boolean(process.env.FLW_PUBLIC_KEY || process.env.FLUTTERWAVE_PUBLIC_KEY), mode: 'test' },
+              flutterwave: {
+                enabled: Boolean(
+                  (process.env.FLW_CLIENT_ID && process.env.FLW_CLIENT_SECRET) ||
+                  process.env.FLW_PUBLIC_KEY ||
+                  process.env.FLUTTERWAVE_PUBLIC_KEY
+                ),
+                mode: process.env.FLW_MODE || 'live'
+              },
               opay: { enabled: false, mode: 'sandbox' },
               paypal: { enabled: false, mode: 'sandbox' },
               bankwire: { enabled: true }
@@ -250,19 +264,93 @@ export default async function handler(req, res) {
           } catch {}
 
           if (provider === 'flutterwave') {
+            const flwClientId = (gwConfig?.flutterwave?.clientId || process.env.FLW_CLIENT_ID || process.env.FLUTTERWAVE_CLIENT_ID || '').trim();
+            const flwClientSecret = (gwConfig?.flutterwave?.clientSecret || process.env.FLW_CLIENT_SECRET || process.env.FLUTTERWAVE_CLIENT_SECRET || '').trim();
             const fwKey = (gwConfig?.flutterwave?.publicKey || process.env.FLW_PUBLIC_KEY || process.env.FLUTTERWAVE_PUBLIC_KEY || '').trim();
-            if (fwKey) {
+            const fwSecret = (gwConfig?.flutterwave?.secretKey || process.env.FLW_SECRET_KEY || process.env.FLUTTERWAVE_SECRET_KEY || '').trim();
+            const flwMode = (gwConfig?.flutterwave?.mode || process.env.FLW_MODE || 'live').toLowerCase();
+            const isLive = flwMode === 'live' || flwMode === 'production';
+            const txRef = `SPO-${id}-${Date.now()}`;
+
+            // 1. If v4 Client ID & Client Secret are configured, authenticate via official v4 OAuth2
+            let bearerToken = fwSecret || null;
+            if (flwClientId && flwClientSecret) {
+              try {
+                const oauthBase = isLive
+                  ? 'https://f4bexperience.flutterwave.com'
+                  : 'https://developersandbox-api.flutterwave.com';
+                const tokenResp = await fetch(`${oauthBase}/realms/flutterwave/protocol/openid-connect/token`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                  body: new URLSearchParams({
+                    grant_type: 'client_credentials',
+                    client_id: flwClientId,
+                    client_secret: flwClientSecret
+                  }).toString()
+                });
+                const tokenData = await tokenResp.json();
+                if (tokenData?.access_token) {
+                  bearerToken = tokenData.access_token;
+                }
+              } catch (tErr) {
+                console.warn('Flutterwave v4 token exchange:', tErr?.message || tErr);
+              }
+            }
+
+            // 2. Initiate session with Bearer token (v4 access token or secret key)
+            if (bearerToken) {
+              try {
+                const flwResp = await fetch('https://api.flutterwave.com/v3/payments', {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${bearerToken}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({
+                    tx_ref: txRef,
+                    amount: amount / 100,
+                    currency: 'NGN',
+                    redirect_url: returnUrl,
+                    customer: {
+                      email: payerInfo?.email || 'sponsor@grantify.help',
+                      name: payerInfo?.name || 'Grantify Sponsor'
+                    },
+                    customizations: {
+                      title: 'Grantify Nigeria',
+                      description: `Sponsored Listing #${id}`,
+                      logo: 'https://grantify.help/logo.png'
+                    },
+                    meta: {
+                      listing_id: id,
+                      tier_id: tierId
+                    }
+                  })
+                });
+                const flwData = await flwResp.json();
+                if (flwData?.status === 'success' && flwData?.data?.link) {
+                  paymentUrl = flwData.data.link;
+                } else {
+                  console.warn('Flutterwave payments API response:', flwData?.message || flwData);
+                }
+              } catch (flwApiErr) {
+                console.warn('Flutterwave API network error, falling back:', flwApiErr?.message || flwApiErr);
+              }
+            }
+
+            // 3. Fallback to hosted checkout pay link if API link was not generated but client ID / public key exists
+            const hostedKey = fwKey || flwClientId;
+            if (!paymentUrl && hostedKey) {
               const fwUrl = new URL('https://checkout.flutterwave.com/v3/hosted/pay');
-              fwUrl.searchParams.set('public_key', String(fwKey));
-              fwUrl.searchParams.set('tx_ref', `SPO-${id}`);
+              fwUrl.searchParams.set('public_key', String(hostedKey));
+              fwUrl.searchParams.set('tx_ref', txRef);
               fwUrl.searchParams.set('amount', String(amount / 100));
               fwUrl.searchParams.set('currency', 'NGN');
               fwUrl.searchParams.set('customer[email]', payerInfo?.email || '');
               fwUrl.searchParams.set('customer[name]', payerInfo?.name || 'Customer');
               fwUrl.searchParams.set('redirect_url', returnUrl);
               paymentUrl = fwUrl.toString();
-            } else {
-              console.warn('Flutterwave public key not found in DB config or .env');
+            } else if (!paymentUrl && !bearerToken) {
+              console.warn('Flutterwave v4 credentials not found in DB config or .env');
             }
           } else if (provider === 'opay') {
             const oPayMode = gwConfig?.opay?.mode || process.env.OPAY_MODE || 'sandbox';
@@ -515,35 +603,159 @@ export default async function handler(req, res) {
       }
     }
 
-    // Webhook handlers for payment confirmations
-    if (req.method === 'GET' && req.path?.includes('/webhook')) {
-      const { provider, listingId } = req.query || {};
-      const id = Number(listingId);
-      if (!id) return res.status(400).json({ error: 'listingId required' });
-
+    // Webhook and redirect return handlers for payment confirmations
+    const isWebhookPath = Boolean(req.path?.includes('/webhook') || req.url?.includes('/webhook'));
+    if (isWebhookPath) {
+      let gwConfig = null;
       try {
-        // Mark the listing as paid
-        const r = await client.query('SELECT sl.*, sp.duration_days FROM sponsored_listings sl LEFT JOIN sponsored_pricing sp ON sp.id = sl.tier_id WHERE sl.id = $1', [id]);
-        if (r.rows.length === 0) return res.status(404).json({ error: 'Listing not found' });
+        const gwRes = await client.query('SELECT config_json FROM payment_gateways_config WHERE id=1');
+        if (gwRes.rows?.[0]?.config_json) gwConfig = gwRes.rows[0].config_json;
+      } catch {}
+
+      const baseUrl = String(process.env.VERCEL_PROJECT_PRODUCTION_URL || 'http://localhost:3001');
+
+      // Helper to activate a listing
+      const activateListing = async (listingId) => {
+        const r = await client.query(
+          'SELECT sl.*, sp.duration_days FROM sponsored_listings sl LEFT JOIN sponsored_pricing sp ON sp.id = sl.tier_id WHERE sl.id = $1',
+          [listingId]
+        );
+        if (r.rows.length === 0) return null;
         const listing = r.rows[0];
         const duration = listing.duration_days || 30;
 
         await client.query('BEGIN');
-        const invoiceNumber = `INV-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${id}`;
-        await client.query(`UPDATE sponsored_listings SET payment_status = 'paid', start_at = NOW(), end_at = NOW() + ($1 || '1 day')::interval, invoice_number = COALESCE(invoice_number, $3), invoice_issued_at = COALESCE(invoice_issued_at, NOW()), invoice_due_date = COALESCE(invoice_due_date, NOW() + INTERVAL '14 days'), updated_at = CURRENT_TIMESTAMP WHERE id = $2`, [`${duration} days`, id, invoiceNumber]);
+        const invoiceNumber = `INV-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${listingId}`;
+        await client.query(
+          `UPDATE sponsored_listings 
+           SET payment_status = 'paid', 
+               start_at = NOW(), 
+               end_at = NOW() + ($1 || '1 day')::interval, 
+               invoice_number = COALESCE(invoice_number, $3), 
+               invoice_issued_at = COALESCE(invoice_issued_at, NOW()), 
+               invoice_due_date = COALESCE(invoice_due_date, NOW() + INTERVAL '14 days'), 
+               updated_at = CURRENT_TIMESTAMP 
+           WHERE id = $2`,
+          [`${duration} days`, listingId, invoiceNumber]
+        );
         if (listing.provider_id) {
           await client.query('UPDATE loan_providers SET is_recommended = TRUE WHERE id = $1', [listing.provider_id]);
         }
         await client.query('COMMIT');
-        if (req.headers.accept?.includes('text/html')) {
-          const baseUrl = String(process.env.VERCEL_PROJECT_PRODUCTION_URL || 'http://localhost:3001');
-          return res.redirect(`${baseUrl}/sponsor?payment_success=1&id=${id}`);
+        return listing;
+      };
+
+      // 1. GET Request: Customer browser returning from checkout redirect
+      if (req.method === 'GET') {
+        const { provider, listingId, status, tx_ref, transaction_id } = req.query || {};
+
+        // Parse listing id from query param or from tx_ref (e.g. SPO-12-1698234)
+        let id = Number(listingId);
+        if (!id && tx_ref) {
+          const match = String(tx_ref).match(/SPO-(\d+)/);
+          if (match) id = Number(match[1]);
         }
-        return res.status(200).json({ success: true, message: 'Listing activated' });
-      } catch (err) {
-        try { await client.query('ROLLBACK'); } catch {}
-        console.error('Webhook handler error', err);
-        return res.status(500).json({ error: 'Failed to activate listing' });
+
+        if (!id) return res.status(400).json({ error: 'listingId required' });
+
+        // Handle cancellations or failures reported in query parameters
+        const statusLower = String(status || '').toLowerCase();
+        if (statusLower === 'cancelled' || statusLower === 'failed') {
+          if (req.headers.accept?.includes('text/html')) {
+            return res.redirect(`${baseUrl}/sponsor?payment_failed=1&id=${id}`);
+          }
+          return res.status(400).json({ error: 'Payment was cancelled or failed' });
+        }
+
+        // Verify Flutterwave transaction if transaction_id and secret key are available
+        if (String(provider || '').toLowerCase() === 'flutterwave' && transaction_id) {
+          const fwSecret = (gwConfig?.flutterwave?.secretKey || process.env.FLW_SECRET_KEY || process.env.FLUTTERWAVE_SECRET_KEY || '').trim();
+          if (fwSecret) {
+            try {
+              const verifyRes = await fetch(`https://api.flutterwave.com/v3/transactions/${transaction_id}/verify`, {
+                method: 'GET',
+                headers: {
+                  'Authorization': `Bearer ${fwSecret}`,
+                  'Content-Type': 'application/json'
+                }
+              });
+              const verifyData = await verifyRes.json();
+              if (verifyData?.status !== 'success' || verifyData?.data?.status !== 'successful') {
+                console.warn('Flutterwave transaction verification unsuccessful:', verifyData);
+                if (req.headers.accept?.includes('text/html')) {
+                  return res.redirect(`${baseUrl}/sponsor?payment_failed=1&id=${id}`);
+                }
+                return res.status(400).json({ error: 'Transaction verification unsuccessful' });
+              }
+            } catch (vErr) {
+              console.warn('Flutterwave verification request error (proceeding with fallback):', vErr?.message || vErr);
+            }
+          }
+        }
+
+        try {
+          await activateListing(id);
+          if (req.headers.accept?.includes('text/html')) {
+            return res.redirect(`${baseUrl}/sponsor?payment_success=1&id=${id}`);
+          }
+          return res.status(200).json({ success: true, message: 'Listing activated' });
+        } catch (err) {
+          try { await client.query('ROLLBACK'); } catch {}
+          console.error('Redirect return activation error', err);
+          return res.status(500).json({ error: 'Failed to activate listing' });
+        }
+      }
+
+      // 2. POST Request: Server-to-server asynchronous webhook notifications (Flutterwave, PayPal, OPay)
+      if (req.method === 'POST') {
+        const body = req.body || {};
+
+        // --- Flutterwave Webhook Processing ---
+        const flwSignature = req.headers['flutterwave-signature'];
+        const verifHash = req.headers['verif-hash'];
+        const secretHash = (gwConfig?.flutterwave?.secretHash || process.env.FLW_SECRET_HASH || process.env.FLUTTERWAVE_SECRET_HASH || '').trim();
+
+        if (flwSignature || verifHash || body?.event?.startsWith?.('charge.') || body?.type?.startsWith?.('charge.')) {
+          // Signature verification
+          if (secretHash) {
+            let isValidSig = false;
+            if (flwSignature) {
+              // Flutterwave v4 HMAC-SHA256 verification
+              const raw = req.rawBody || JSON.stringify(body);
+              const computed = crypto.createHmac('sha256', secretHash).update(raw).digest('base64');
+              if (computed === flwSignature) isValidSig = true;
+            } else if (verifHash && verifHash === secretHash) {
+              // Flutterwave v3 secret hash header check
+              isValidSig = true;
+            }
+
+            if (!isValidSig && (flwSignature || verifHash)) {
+              console.warn('Flutterwave webhook signature mismatch rejected');
+              return res.status(401).json({ error: 'Invalid webhook signature' });
+            }
+          }
+
+          const data = body.data || {};
+          const status = String(data.status || '').toLowerCase();
+          if (status === 'successful' || status === 'succeeded') {
+            const txRef = String(data.tx_ref || data.reference || '');
+            const match = txRef.match(/SPO-(\d+)/);
+            const id = Number(data.meta?.listing_id || (match ? match[1] : null));
+
+            if (id) {
+              try {
+                await activateListing(id);
+                return res.status(200).json({ status: 'success', message: `Listing ${id} activated via webhook` });
+              } catch (err) {
+                console.error('Failed to activate listing from Flutterwave webhook', err);
+                return res.status(500).json({ error: 'Database update failed' });
+              }
+            }
+          }
+          return res.status(200).json({ status: 'ignored', message: 'Event not applicable or listing not found' });
+        }
+
+        return res.status(200).json({ status: 'received' });
       }
     }
     return res.status(405).json({ error: 'Method not allowed' });

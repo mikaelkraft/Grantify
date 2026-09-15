@@ -31,7 +31,8 @@ import {
 } from 'lucide-react';
 import React, { useEffect, useRef, useState, useTransition } from 'react';
 import { ApiService } from '../services/storage';
-import { AdminUser, LoanApplication, Testimonial, AdConfig, UserRole, RepaymentContent, LoanProvider, LoanProviderSubmission, BlogPost, ProviderReview, ContactMessage, ContentFlag, WhatsappConfig, PaymentGatewaysConfig } from '../types';
+import { AdminUser, LoanApplication, Testimonial, AdConfig, UserRole, RepaymentContent, LoanProvider, LoanProviderSubmission, BlogPost, ProviderReview, ContactMessage, ContentFlag, WhatsappConfig, SocialLinksConfig, PaymentGatewaysConfig } from '../types';
+import { SocialAppLogo } from '../components/SocialAppLogo';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { formatNaira } from '../utils/currency';
@@ -79,7 +80,7 @@ export const Admin: React.FC = () => {
   const [isSavingAutoblog, setIsSavingAutoblog] = useState(false);
   const [isRunningDailyCron, setIsRunningDailyCron] = useState(false);
   const [paymentGateways, setPaymentGateways] = useState<PaymentGatewaysConfig>({
-    flutterwave: { enabled: false, publicKey: '', secretKey: '', encryptionKey: '', mode: 'test' },
+    flutterwave: { enabled: false, clientId: '', clientSecret: '', encryptionKey: '', secretHash: '', mode: 'live' },
     opay: { enabled: false, merchantId: '', publicKey: '', secretKey: '', mode: 'sandbox' },
     paypal: { enabled: false, clientId: '', clientSecret: '', paypalEmail: '', mode: 'sandbox' },
     bankwire: {
@@ -88,13 +89,25 @@ export const Admin: React.FC = () => {
       accountName: '',
       accountNumber: '',
       sortCodeSwift: '',
-      instructions: 'Official VAT-compliant proforma invoice with bank settlement instructions will be dispatched to your billing email upon request.',
+      instructions: 'Commercial proforma invoice and payment settlement instructions will be dispatched to your billing email upon booking.',
       invoiceNote: 'Payment is required within 7 business days to secure slot reservation.'
     }
   });
   const [isSavingGateways, setIsSavingGateways] = useState(false);
   const [showSecretKeys, setShowSecretKeys] = useState<{ [key: string]: boolean }>({});
   const [gatewayNotice, setGatewayNotice] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
+  const [socialLinks, setSocialLinks] = useState<SocialLinksConfig>({
+    facebook: '',
+    twitter: '',
+    instagram: '',
+    linkedin: '',
+    youtube: '',
+    tiktok: '',
+    telegram: '',
+    whatsapp: ''
+  });
+  const [hasUnsavedSocialLinks, setHasUnsavedSocialLinks] = useState(false);
+  const [isSavingSocialLinks, setIsSavingSocialLinks] = useState(false);
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loanProviders, setLoanProviders] = useState<LoanProvider[]>([]);
   const [loanProviderSubmissions, setLoanProviderSubmissions] = useState<LoanProviderSubmission[]>([]);
@@ -860,7 +873,7 @@ export const Admin: React.FC = () => {
   const refreshData = async () => {
     setIsLoading(true);
     try {
-      const [apps, tests, adConfig, repay, adminList, providers, submissions, reviews, posts, contact, flagsData, autoblogCfg, whatsappCfg, gwCfg] = await Promise.all([
+      const [apps, tests, adConfig, repay, adminList, providers, submissions, reviews, posts, contact, flagsData, autoblogCfg, whatsappCfg, gwCfg, socialLinksCfg] = await Promise.all([
         ApiService.getApplications(),
         ApiService.getTestimonials(),
         ApiService.getAds(),
@@ -874,7 +887,8 @@ export const Admin: React.FC = () => {
         ApiService.getFlags('open'),
         ApiService.getAutoblogConfig(),
         ApiService.getWhatsappConfig(),
-        ApiService.getPaymentGatewaysConfig().catch(() => null)
+        ApiService.getPaymentGatewaysConfig().catch(() => null),
+        ApiService.getSocialLinks().catch(() => ({}))
       ]);
       setApplications(apps);
       setTestimonials(tests);
@@ -882,6 +896,7 @@ export const Admin: React.FC = () => {
       setRepayment(repay);
       setWhatsappConfig(whatsappCfg);
       if (gwCfg && gwCfg.gateways) setPaymentGateways(gwCfg.gateways);
+      if (socialLinksCfg) setSocialLinks(prev => ({ ...prev, ...socialLinksCfg }));
       setAdmins(adminList);
       setLoanProviders(providers);
       setLoanProviderSubmissions(submissions);
@@ -1380,6 +1395,25 @@ export const Admin: React.FC = () => {
       alert('Failed to save WhatsApp config. Please check database connectivity.');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSocialLinksUpdateLocal = (newLinks: SocialLinksConfig) => {
+    setSocialLinks(newLinks);
+    setHasUnsavedSocialLinks(true);
+  };
+
+  const handleSaveSocialLinks = async () => {
+    setIsSavingSocialLinks(true);
+    try {
+      await ApiService.saveSocialLinks(socialLinks);
+      setHasUnsavedSocialLinks(false);
+      alert('Social media follow links saved successfully! Configured links are now live in the footer.');
+    } catch (e: any) {
+      console.error('Failed to save social links', e);
+      alert('Failed to save social links: ' + (e?.message || 'Unknown error'));
+    } finally {
+      setIsSavingSocialLinks(false);
     }
   };
 
@@ -2767,6 +2801,82 @@ export const Admin: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Social Media Follow Links */}
+                  <div className="mt-10 pt-6 border-t border-gray-200 dark:border-gray-800">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
+                      <div>
+                        <h4 className="text-lg font-black text-gray-900 dark:text-gray-100">Social Media Follow Links (Footer Display)</h4>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          Configure your official social media and community URLs. Configured channels automatically appear as interactive follow buttons in the site footer.
+                        </p>
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={handleSaveSocialLinks} 
+                        disabled={!hasUnsavedSocialLinks || isSavingSocialLinks}
+                        className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm ${
+                          hasUnsavedSocialLinks 
+                            ? 'bg-grantify-green text-white hover:bg-green-700' 
+                            : 'bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                        }`}
+                      >
+                        <Save size={15} /> {isSavingSocialLinks ? 'Saving...' : 'Save Social Links'}
+                      </button>
+                    </div>
+
+                    {hasUnsavedSocialLinks && (
+                      <div className="mb-4 p-2.5 bg-yellow-50 dark:bg-yellow-950/40 border border-yellow-200 dark:border-yellow-800 rounded-xl text-yellow-800 dark:text-yellow-200 text-xs font-medium">
+                        You have unsaved changes. Click "Save Social Links" to sync with the site footer.
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {[
+                        { key: 'facebook', name: 'Facebook', desc: 'Page or Group URL', placeholder: 'https://facebook.com/grantifynigeria' },
+                        { key: 'twitter', name: 'X (Twitter)', desc: 'Official Profile URL', placeholder: 'https://x.com/grantifyng' },
+                        { key: 'instagram', name: 'Instagram', desc: 'Brand Profile URL', placeholder: 'https://instagram.com/grantify.help' },
+                        { key: 'linkedin', name: 'LinkedIn', desc: 'Company or Page URL', placeholder: 'https://linkedin.com/company/grantify' },
+                        { key: 'youtube', name: 'YouTube', desc: 'Official Channel URL', placeholder: 'https://youtube.com/@grantifynigeria' },
+                        { key: 'tiktok', name: 'TikTok', desc: 'Creator or Brand Profile URL', placeholder: 'https://tiktok.com/@grantify.help' },
+                        { key: 'telegram', name: 'Telegram', desc: 'Channel or Group Invite URL', placeholder: 'https://t.me/grantifynigeria' },
+                        { key: 'whatsapp', name: 'WhatsApp', desc: 'Community or Channel URL', placeholder: 'https://whatsapp.com/channel/...' },
+                      ].map((item) => {
+                        const val = (socialLinks as any)[item.key] || '';
+                        return (
+                          <div key={item.key} className="bg-gray-50 dark:bg-gray-950 p-4 rounded-2xl border border-gray-200 dark:border-gray-800 space-y-2.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2.5">
+                                <SocialAppLogo platform={item.key} size={26} />
+                                <div>
+                                  <div className="text-xs font-bold text-gray-900 dark:text-gray-100">{item.name}</div>
+                                  <div className="text-[10px] text-gray-400">{item.desc}</div>
+                                </div>
+                              </div>
+                              {val.trim() && (
+                                <a
+                                  href={val}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[10px] text-grantify-green hover:underline flex items-center gap-0.5 font-bold shrink-0"
+                                >
+                                  Test <ExternalLink size={10} />
+                                </a>
+                              )}
+                            </div>
+                            <input 
+                              type="url"
+                              className={inputClass}
+                              value={val}
+                              onChange={(e) => handleSocialLinksUpdateLocal({ ...socialLinks, [item.key]: e.target.value })}
+                              placeholder={item.placeholder}
+                              aria-label={`${item.name} URL`}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   <div className="mt-10 pt-6 border-t border-gray-200 dark:border-gray-800">
                     <div className="flex items-start justify-between gap-4">
                       <div>
@@ -3340,7 +3450,7 @@ export const Admin: React.FC = () => {
                   )}
 
                   <div className="grid gap-6 lg:grid-cols-2">
-                    {/* Flutterwave */}
+                    {/* Flutterwave v4 Live API */}
                     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm flex flex-col justify-between">
                       <div>
                         <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-100 dark:border-gray-800">
@@ -3349,8 +3459,13 @@ export const Admin: React.FC = () => {
                               <CreditCard size={20} />
                             </div>
                             <div>
-                              <h4 className="font-bold text-gray-900 dark:text-gray-100 text-base">Flutterwave</h4>
-                              <p className="text-[11px] text-gray-400">Card, USSD & Bank Transfer Checkout</p>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-bold text-gray-900 dark:text-gray-100 text-base">Flutterwave</h4>
+                                <span className="text-[10px] font-black uppercase tracking-wider bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+                                  v4 Live API
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-gray-400 mt-0.5">Get access to live credentials for our updated APIs.</p>
                             </div>
                           </div>
                           <label className="flex items-center gap-2 cursor-pointer">
@@ -3373,7 +3488,7 @@ export const Admin: React.FC = () => {
                         <div className="mb-4 bg-gray-50 dark:bg-gray-950 p-3 rounded-xl border border-gray-100 dark:border-gray-800 flex items-center justify-between">
                           <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Environment Mode</span>
                           <div className="flex gap-2">
-                            {(['test', 'live'] as const).map(mode => (
+                            {(['live', 'test'] as const).map(mode => (
                               <button
                                 key={mode}
                                 type="button"
@@ -3389,23 +3504,25 @@ export const Admin: React.FC = () => {
                                     : 'border-gray-200 dark:border-gray-800 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-900'
                                 }`}
                               >
-                                {mode === 'live' ? 'Live / Production' : 'Test Sandbox'}
+                                {mode === 'live' ? 'Live / Production' : 'Sandbox Test'}
                               </button>
                             ))}
                           </div>
                         </div>
 
-                        {/* Keys */}
-                        <div className="space-y-3">
+                        {/* v4 Keys */}
+                        <div className="space-y-3.5">
                           <div>
-                            <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Public Key</label>
+                            <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">
+                              Client ID <span className="text-red-500">*</span>
+                            </label>
                             <input
                               type="text"
-                              placeholder="FLWPUBK_TEST-... or FLWPUBK-..."
-                              value={paymentGateways.flutterwave?.publicKey || ''}
+                              placeholder="Enter Flutterwave v4 Client ID"
+                              value={paymentGateways.flutterwave?.clientId || ''}
                               onChange={(e) => setPaymentGateways(prev => ({
                                 ...prev,
-                                flutterwave: { ...prev.flutterwave, publicKey: e.target.value }
+                                flutterwave: { ...prev.flutterwave, clientId: e.target.value }
                               }))}
                               className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-2.5 text-xs font-mono text-gray-900 dark:text-gray-100"
                             />
@@ -3413,32 +3530,45 @@ export const Admin: React.FC = () => {
 
                           <div>
                             <div className="flex justify-between items-center mb-1">
-                              <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-400 uppercase">Secret Key</label>
+                              <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase">
+                                Client Secret <span className="text-red-500">*</span>
+                              </label>
                               <button
                                 type="button"
-                                onClick={() => setShowSecretKeys(prev => ({ ...prev, flwSecret: !prev.flwSecret }))}
+                                onClick={() => setShowSecretKeys(prev => ({ ...prev, flwClientSecret: !prev.flwClientSecret }))}
                                 className="text-[10px] text-grantify-green hover:underline flex items-center gap-1 font-bold"
                               >
-                                {showSecretKeys.flwSecret ? <><EyeOff size={12} /> Hide</> : <><Eye size={12} /> Show</>}
+                                {showSecretKeys.flwClientSecret ? <><EyeOff size={12} /> Hide</> : <><Eye size={12} /> Show</>}
                               </button>
                             </div>
                             <input
-                              type={showSecretKeys.flwSecret ? 'text' : 'password'}
-                              placeholder="FLWSECK_TEST-... or FLWSECK-..."
-                              value={paymentGateways.flutterwave?.secretKey || ''}
+                              type={showSecretKeys.flwClientSecret ? 'text' : 'password'}
+                              placeholder="Enter Flutterwave v4 Client Secret"
+                              value={paymentGateways.flutterwave?.clientSecret || ''}
                               onChange={(e) => setPaymentGateways(prev => ({
                                 ...prev,
-                                flutterwave: { ...prev.flutterwave, secretKey: e.target.value }
+                                flutterwave: { ...prev.flutterwave, clientSecret: e.target.value }
                               }))}
                               className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-2.5 text-xs font-mono text-gray-900 dark:text-gray-100"
                             />
                           </div>
 
                           <div>
-                            <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Encryption Key (Optional)</label>
+                            <div className="flex justify-between items-center mb-1">
+                              <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase">
+                                Encryption Key <span className="text-red-500">*</span>
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => setShowSecretKeys(prev => ({ ...prev, flwEncryptionKey: !prev.flwEncryptionKey }))}
+                                className="text-[10px] text-grantify-green hover:underline flex items-center gap-1 font-bold"
+                              >
+                                {showSecretKeys.flwEncryptionKey ? <><EyeOff size={12} /> Hide</> : <><Eye size={12} /> Show</>}
+                              </button>
+                            </div>
                             <input
-                              type="text"
-                              placeholder="FLWSECK_..."
+                              type={showSecretKeys.flwEncryptionKey ? 'text' : 'password'}
+                              placeholder="Enter Flutterwave Encryption Key"
                               value={paymentGateways.flutterwave?.encryptionKey || ''}
                               onChange={(e) => setPaymentGateways(prev => ({
                                 ...prev,
@@ -3447,10 +3577,30 @@ export const Admin: React.FC = () => {
                               className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-2.5 text-xs font-mono text-gray-900 dark:text-gray-100"
                             />
                           </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">
+                              Webhook Secret Hash (FLW_SECRET_HASH)
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="Secret hash configured in Flutterwave Dashboard > Settings > Webhooks"
+                              value={paymentGateways.flutterwave?.secretHash || ''}
+                              onChange={(e) => setPaymentGateways(prev => ({
+                                ...prev,
+                                flutterwave: { ...prev.flutterwave, secretHash: e.target.value }
+                              }))}
+                              className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-2.5 text-xs font-mono text-gray-900 dark:text-gray-100"
+                            />
+                            <p className="text-[10px] text-gray-400 mt-1">
+                              Used to verify HMAC-SHA256 signatures (`flutterwave-signature`) on incoming event webhooks.
+                            </p>
+                          </div>
                         </div>
                       </div>
-                      <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 text-[10px] text-gray-400 flex items-center justify-between">
-                        <span>Webhook: <code>/api/sponsored/webhook?provider=flutterwave</code></span>
+                      <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 text-[10px] text-gray-400 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                        <span>Webhook: <code className="font-mono text-emerald-600 dark:text-emerald-400">/api/sponsored/webhook?provider=flutterwave</code></span>
+                        <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold">v4 HMAC-SHA256</span>
                       </div>
                     </div>
 
