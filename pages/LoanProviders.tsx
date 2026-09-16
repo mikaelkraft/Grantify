@@ -532,6 +532,13 @@ export const LoanProviders: React.FC = () => {
     });
   }, [providers, activeSponsorships]);
 
+  const directorySpotlights = React.useMemo(() => {
+    return activeSponsorships.filter(s => 
+      (s.placement_slot === 'directory_spotlight' || !s.placement_slot) && 
+      (Boolean(s.is_published) || s.payment_status === 'paid')
+    );
+  }, [activeSponsorships]);
+
   return (
     <div className="w-full max-w-full overflow-x-hidden pb-16">
       {/* Hero Section */}
@@ -982,6 +989,64 @@ export const LoanProviders: React.FC = () => {
             <div className="bg-white dark:bg-gray-900 p-2 rounded-lg shadow-sm border border-gray-100 dark:border-gray-800 max-w-full overflow-hidden">
               <AdSlot htmlContent={ads.header} label="Sponsored" />
             </div>
+          </div>
+        )}
+
+        {/* Directory Spotlight Sponsored Placement */}
+        {!isLoading && directorySpotlights.length > 0 && (
+          <div className="mb-10 sm:mb-14 space-y-4">
+            {directorySpotlights.map((spotlight) => (
+              <div
+                key={spotlight.id}
+                className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-950 via-gray-900 to-gray-950 p-6 sm:p-8 border-2 border-grantify-gold/40 shadow-2xl text-white group"
+              >
+                <div className="absolute top-0 right-0 -mt-10 -mr-10 w-48 h-48 bg-grantify-gold/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div className="flex-1 space-y-3 text-center md:text-left">
+                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
+                      <span className="inline-flex items-center gap-1.5 bg-grantify-gold/20 text-grantify-gold border border-grantify-gold/40 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full shadow-sm">
+                        <Sparkles size={12} /> Directory Spotlight Partner
+                      </span>
+                      {spotlight.provider_name && (
+                        <span className="text-xs text-gray-300 font-bold bg-white/10 px-2.5 py-0.5 rounded-full">
+                          {spotlight.provider_name}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <h3 className="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight leading-snug">
+                      {spotlight.ad_headline || `Fast & Verified Capital with ${spotlight.provider_name || 'Official Partner'}`}
+                    </h3>
+
+                    {spotlight.campaign_note && (
+                      <p className="text-sm text-white/80 max-w-2xl leading-relaxed">
+                        {spotlight.campaign_note}
+                      </p>
+                    )}
+                  </div>
+
+                  {spotlight.ad_image_url && (
+                    <div className="w-full md:w-56 h-32 shrink-0 rounded-2xl overflow-hidden border border-white/20 shadow-lg">
+                      <img src={spotlight.ad_image_url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                    </div>
+                  )}
+
+                  <div className="shrink-0 flex flex-col items-center md:items-end gap-2 w-full md:w-auto">
+                    <a
+                      href={spotlight.target_url || spotlight.provider_website || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => { if (spotlight.id) ApiService.trackSponsoredClick(spotlight.id); }}
+                      className="w-full md:w-auto inline-flex items-center justify-center gap-2 bg-grantify-gold hover:bg-yellow-400 text-gray-950 font-black text-sm px-7 py-3.5 rounded-2xl shadow-xl transition-all transform hover:-translate-y-0.5"
+                    >
+                      <span>{spotlight.cta_text || 'Visit / Apply Now'}</span>
+                      <ExternalLink size={16} />
+                    </a>
+                    <span className="text-[10px] text-gray-400 font-medium">Verified Partner • Safe Redirection</span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 

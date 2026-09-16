@@ -7,7 +7,10 @@ interface Message {
   content: string;
 }
 
-type ChatPos = { x: number; y: number };
+const IS_LOCALHOST = typeof window !== 'undefined' && /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
+const API_URL = (import.meta.env.VITE_API_URL && String(import.meta.env.VITE_API_URL).trim())
+  ? String(import.meta.env.VITE_API_URL).trim()
+  : (IS_LOCALHOST ? 'http://localhost:3001' : '');
 
 export const AiChatbot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -278,22 +281,24 @@ export const AiChatbot: React.FC = () => {
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsLoading(true);
 
+    const wantsSearch = /\b(latest|recent|news|today|this week|current opportunities|2026)\b/i.test(userMessage);
+
     try {
-      const res = await fetch('/api/ai', {
+      const res = await fetch(`${API_URL}/api/ai`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           prompt: userMessage, 
           type: 'chat',
           history: messages,
-          useSearch: true
+          useSearch: wantsSearch
         })
       });
 
       const data = await res.json();
-      setMessages(prev => [...prev, { role: 'assistant', content: data.text || "Sorry, I couldn't process that. Please try again." }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: data.text || "I am here to help you navigate Grantify's grants, loans, and resources. How can I assist you?" }]);
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'assistant', content: "I'm having trouble connecting to my brain right now. Please try again later!" }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: "I'm having a brief connection delay. Please feel free to ask again or explore our Loan Providers directory!" }]);
     } finally {
       setIsLoading(false);
     }

@@ -585,20 +585,34 @@ export const Home: React.FC = () => {
               sponsoredListings.slice(0, 3).map((s: any) => (
                 <a
                   key={s.id}
-                  href={s.provider_website || '/loan-providers'}
-                  target={s.provider_website ? "_blank" : undefined}
-                  rel={s.provider_website ? "noopener noreferrer" : undefined}
+                  href={s.target_url || s.provider_website || '/loan-providers'}
+                  target={(s.target_url || s.provider_website) ? "_blank" : undefined}
+                  rel={(s.target_url || s.provider_website) ? "noopener noreferrer" : undefined}
+                  onClick={() => { if (s.id) ApiService.trackSponsorClick(s.id); }}
                   className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm block transition-all hover:bg-white/10 hover:border-white/20 hover:-translate-y-0.5"
                 >
-                  <div className="text-sm font-black uppercase tracking-widest text-emerald-300 mb-2">{String(s.tier_name || 'Sponsored')}</div>
-                  <div className="text-lg font-bold text-white mb-2 hover:underline flex items-center gap-1.5">
-                    {String(s.provider_name || s.provider_id || 'Provider')}
-                    {s.provider_website && <ExternalLink size={14} className="opacity-60" />}
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <span className="text-xs font-black uppercase tracking-widest text-emerald-300">{String(s.tier_name || 'Sponsored')}</span>
+                    {s.placement_slot && (
+                      <span className="text-[10px] bg-white/10 text-white/80 px-2 py-0.5 rounded-full font-bold uppercase">{s.placement_slot.replace(/_/g, ' ')}</span>
+                    )}
                   </div>
+                  <div className="text-lg font-bold text-white mb-2 hover:underline flex items-center gap-1.5">
+                    {s.ad_headline || String(s.provider_name || s.provider_id || 'Featured Partner')}
+                    {(s.target_url || s.provider_website) && <ExternalLink size={14} className="opacity-60 shrink-0" />}
+                  </div>
+                  {s.ad_image_url && (
+                    <img src={s.ad_image_url} alt="" className="w-full h-24 object-cover rounded-lg my-2 border border-white/10" />
+                  )}
                   {s.campaign_note ? (
                     <p className="text-sm text-white/75 leading-relaxed line-clamp-2 mt-1">{s.campaign_note}</p>
                   ) : (
-                    <p className="text-sm text-white/75 leading-relaxed line-clamp-2 mt-1">Visit provider for verified funding options.</p>
+                    <p className="text-sm text-white/75 leading-relaxed line-clamp-2 mt-1">Visit partner for verified capital options.</p>
+                  )}
+                  {s.cta_text && (
+                    <div className="mt-3 text-xs font-bold text-grantify-gold flex items-center gap-1">
+                      {s.cta_text} &rarr;
+                    </div>
                   )}
                 </a>
               ))
@@ -1001,7 +1015,7 @@ export const Home: React.FC = () => {
                   image: (data.photoUrl && data.photoUrl.trim())
                     ? data.photoUrl.trim()
                     : `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name)}&background=006400&color=ffffff&size=150&bold=true`,
-                  likes: Math.floor(Math.random() * 20),
+                  likes: 0,
                   loves: 0,
                   claps: 0,
                   date: new Date().toISOString().split('T')[0],

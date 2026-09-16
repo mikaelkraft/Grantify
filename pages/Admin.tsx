@@ -203,8 +203,32 @@ export const Admin: React.FC = () => {
     invoiceIssuedAt: '',
     invoiceDueDate: '',
     adminNote: '',
-    billingInfo: ''
+    billingInfo: '',
+    adHeadline: '',
+    adImageUrl: '',
+    targetUrl: '',
+    ctaText: 'Visit / Apply Now',
+    placementSlot: 'directory_spotlight',
+    isPublished: false
   });
+
+  const [isCreatingDirectPlacement, setIsCreatingDirectPlacement] = useState(false);
+  const [directPlacementForm, setDirectPlacementForm] = useState({
+    providerName: '',
+    providerWebsite: '',
+    payerName: 'Admin Direct Sponsor',
+    payerEmail: 'sponsor@grantify.ng',
+    durationDays: 30,
+    amountCents: 5000000,
+    adHeadline: '',
+    adImageUrl: '',
+    targetUrl: '',
+    ctaText: 'Visit / Apply Now',
+    placementSlot: 'directory_spotlight',
+    isPublished: true,
+    campaignNote: 'Direct partnership placement'
+  });
+  const [testimonialCategoryFilter, setTestimonialCategoryFilter] = useState<'all' | 'grant' | 'loan'>('all');
 
   // Applications Editing State
   const [editingApplication, setEditingApplication] = useState<LoanApplication | null>(null);
@@ -422,7 +446,13 @@ export const Admin: React.FC = () => {
       invoiceIssuedAt: formatDate(listing.invoice_issued_at),
       invoiceDueDate: formatDate(listing.invoice_due_date),
       adminNote: listing.admin_note || '',
-      billingInfo: typeof listing.billing_info === 'object' ? JSON.stringify(listing.billing_info, null, 2) : (listing.billing_info || '')
+      billingInfo: typeof listing.billing_info === 'object' ? JSON.stringify(listing.billing_info, null, 2) : (listing.billing_info || ''),
+      adHeadline: listing.ad_headline || '',
+      adImageUrl: listing.ad_image_url || '',
+      targetUrl: listing.target_url || listing.provider_website || '',
+      ctaText: listing.cta_text || 'Visit / Apply Now',
+      placementSlot: listing.placement_slot || 'directory_spotlight',
+      isPublished: Boolean(listing.is_published)
     });
   };
 
@@ -440,7 +470,7 @@ export const Admin: React.FC = () => {
         }
       }
       
-      // Call both endpoints to update schedule and invoice
+      // Update schedule & invoice details
       await ApiService.adminSchedulePublish(
         editingListing.id, 
         invoiceForm.startAt || null, 
@@ -456,12 +486,68 @@ export const Admin: React.FC = () => {
         invoiceDueDate: invoiceForm.invoiceDueDate || undefined,
         adminNote: invoiceForm.adminNote
       });
+
+      // Update creative & placement slot
+      await ApiService.updatePlacementCreative(editingListing.id, {
+        adHeadline: invoiceForm.adHeadline,
+        adImageUrl: invoiceForm.adImageUrl,
+        targetUrl: invoiceForm.targetUrl,
+        ctaText: invoiceForm.ctaText,
+        placementSlot: invoiceForm.placementSlot,
+        isPublished: invoiceForm.isPublished
+      });
       
-      alert("Listing schedule and billing details updated successfully!");
+      alert("Listing schedule, billing, and ad placement creative updated successfully!");
       setEditingListing(null);
       loadSponsored();
     } catch (err: any) {
       alert(err?.message || "Failed to save listing edits");
+    } finally {
+      setIsSavingSponsored(false);
+    }
+  };
+
+  const handleTogglePlacementLive = async (id: number, currentStatus: boolean) => {
+    try {
+      setIsSavingSponsored(true);
+      await ApiService.togglePlacementLive(id, !currentStatus);
+      alert(`Ad placement ${!currentStatus ? 'is now LIVE on the site!' : 'has been unpublished/taken offline.'}`);
+      loadSponsored();
+    } catch (err: any) {
+      alert(err?.message || "Failed to toggle placement status");
+    } finally {
+      setIsSavingSponsored(false);
+    }
+  };
+
+  const handleCreateDirectPlacement = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!directPlacementForm.adHeadline.trim() || !directPlacementForm.targetUrl.trim()) {
+      alert("Please provide an Ad Headline and Destination Target URL.");
+      return;
+    }
+    try {
+      setIsSavingSponsored(true);
+      await ApiService.adminCreatePlacement({
+        providerName: directPlacementForm.providerName || 'Featured Sponsor',
+        providerWebsite: directPlacementForm.providerWebsite || directPlacementForm.targetUrl,
+        payerName: directPlacementForm.payerName,
+        payerEmail: directPlacementForm.payerEmail,
+        durationDays: Number(directPlacementForm.durationDays) || 30,
+        amountCents: Number(directPlacementForm.amountCents) || 0,
+        adHeadline: directPlacementForm.adHeadline,
+        adImageUrl: directPlacementForm.adImageUrl,
+        targetUrl: directPlacementForm.targetUrl,
+        ctaText: directPlacementForm.ctaText,
+        placementSlot: directPlacementForm.placementSlot,
+        isPublished: directPlacementForm.isPublished,
+        campaignNote: directPlacementForm.campaignNote
+      });
+      alert("Direct sponsored placement created and published successfully!");
+      setIsCreatingDirectPlacement(false);
+      loadSponsored();
+    } catch (err: any) {
+      alert(err?.message || "Failed to create direct placement");
     } finally {
       setIsSavingSponsored(false);
     }
@@ -874,35 +960,35 @@ export const Admin: React.FC = () => {
     setIsLoading(true);
     try {
       const [apps, tests, adConfig, repay, adminList, providers, submissions, reviews, posts, contact, flagsData, autoblogCfg, whatsappCfg, gwCfg, socialLinksCfg] = await Promise.all([
-        ApiService.getApplications(),
-        ApiService.getTestimonials(),
-        ApiService.getAds(),
-        ApiService.getRepaymentContent(),
-        ApiService.getAdmins(),
-        ApiService.getLoanProviders(),
-        ApiService.getLoanProviderSubmissions('pending'),
-        ApiService.getProviderReviews(undefined, { includeHidden: includeHiddenReviews }),
-        ApiService.getBlogPosts(undefined, { includeDrafts: true }),
-        ApiService.getContactMessages(120),
-        ApiService.getFlags('open'),
-        ApiService.getAutoblogConfig(),
-        ApiService.getWhatsappConfig(),
+        ApiService.getApplications().catch((e) => { console.warn('Applications load warning:', e); return []; }),
+        ApiService.getTestimonials().catch((e) => { console.warn('Testimonials load warning:', e); return []; }),
+        ApiService.getAds().catch((e) => { console.warn('Ads load warning:', e); return null; }),
+        ApiService.getRepaymentContent().catch((e) => { console.warn('Repayment load warning:', e); return null; }),
+        ApiService.getAdmins().catch((e) => { console.warn('Admins load warning:', e); return []; }),
+        ApiService.getLoanProviders().catch((e) => { console.warn('Loan providers load warning:', e); return []; }),
+        ApiService.getLoanProviderSubmissions('pending').catch((e) => { console.warn('Submissions load warning:', e); return []; }),
+        ApiService.getProviderReviews(undefined, { includeHidden: includeHiddenReviews }).catch((e) => { console.warn('Reviews load warning:', e); return []; }),
+        ApiService.getBlogPosts(undefined, { includeDrafts: true }).catch((e) => { console.warn('Blog posts load warning:', e); return []; }),
+        ApiService.getContactMessages(120).catch((e) => { console.warn('Contact messages load warning:', e); return []; }),
+        ApiService.getFlags('open').catch((e) => { console.warn('Flags load warning:', e); return { flags: [], entities: {} }; }),
+        ApiService.getAutoblogConfig().catch((e) => { console.warn('Autoblog config load warning:', e); return null; }),
+        ApiService.getWhatsappConfig().catch((e) => { console.warn('WhatsApp config load warning:', e); return null; }),
         ApiService.getPaymentGatewaysConfig().catch(() => null),
         ApiService.getSocialLinks().catch(() => ({}))
       ]);
-      setApplications(apps);
-      setTestimonials(tests);
+      setApplications(Array.isArray(apps) ? apps : []);
+      setTestimonials(Array.isArray(tests) ? tests : []);
       setAds(adConfig);
       setRepayment(repay);
       setWhatsappConfig(whatsappCfg);
       if (gwCfg && gwCfg.gateways) setPaymentGateways(gwCfg.gateways);
       if (socialLinksCfg) setSocialLinks(prev => ({ ...prev, ...socialLinksCfg }));
-      setAdmins(adminList);
-      setLoanProviders(providers);
-      setLoanProviderSubmissions(submissions);
-      setAllReviews(reviews);
-      setBlogPosts(posts);
-      setContactMessages(contact);
+      setAdmins(Array.isArray(adminList) ? adminList : []);
+      setLoanProviders(Array.isArray(providers) ? providers : []);
+      setLoanProviderSubmissions(Array.isArray(submissions) ? submissions : []);
+      setAllReviews(Array.isArray(reviews) ? reviews : []);
+      setBlogPosts(Array.isArray(posts) ? posts : []);
+      setContactMessages(Array.isArray(contact) ? contact : []);
       setFlagsInbox(flagsData?.flags || []);
       setFlagEntities(flagsData?.entities || {});
       setAutoblogEnabled(Boolean(autoblogCfg?.enabled));
@@ -911,22 +997,7 @@ export const Admin: React.FC = () => {
       setAutoblogLastSuccessRun(autoblogCfg?.lastSuccessRun ?? null);
       setAutoblogLastErrorRun(autoblogCfg?.lastErrorRun ?? null);
     } catch (e) {
-      console.error("Failed to load admin data", e);
-      const message =
-        e instanceof Error && e.message
-          ? e.message
-          : 'An unexpected error occurred while loading admin data.';
-      const retry = window.confirm(
-        `Failed to load admin data.\n\nDetails: ${message}\n\nThis may indicate a network or database connection issue.\n\nWould you like to try loading the data again?`
-      );
-      if (retry) {
-        // Reload the page to retry loading data
-        window.location.reload();
-      } else {
-        window.alert(
-          'Admin data could not be loaded. Some information may be incomplete until the connection is restored.'
-        );
-      }
+      console.warn("Non-fatal notice while refreshing admin data:", e);
     } finally {
       setIsLoading(false);
     }
@@ -1265,9 +1336,9 @@ export const Admin: React.FC = () => {
   
   // Helper to generate random reaction counts for new testimonials
   const generateRandomReactions = () => ({
-    likes: Math.floor(Math.random() * 150) + 20,
-    loves: Math.floor(Math.random() * 80) + 10,
-    claps: Math.floor(Math.random() * 40) + 5
+    likes: Math.floor(Math.random() * 4) + 1,
+    loves: Math.floor(Math.random() * 3),
+    claps: Math.floor(Math.random() * 2)
   });
   
   const handleAddTestimonialLocal = () => {
@@ -2491,8 +2562,40 @@ export const Admin: React.FC = () => {
                     </div>
                   )}
                   
+                  {/* Testimonial Category Filters */}
+                  <div className="flex flex-wrap gap-2 mb-6">
+                    <button
+                      type="button"
+                      onClick={() => setTestimonialCategoryFilter('all')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${testimonialCategoryFilter === 'all' ? 'bg-grantify-green text-white shadow-sm' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300'}`}
+                    >
+                      All Testimonials ({testimonials.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTestimonialCategoryFilter('grant')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${testimonialCategoryFilter === 'grant' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 hover:bg-emerald-100'}`}
+                    >
+                      Grants Only ({testimonials.filter(t => t.fundingType !== 'loan').length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTestimonialCategoryFilter('loan')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${testimonialCategoryFilter === 'loan' ? 'bg-amber-600 text-white shadow-sm' : 'bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 hover:bg-amber-100'}`}
+                    >
+                      Approved Loans Only ({testimonials.filter(t => t.fundingType === 'loan').length})
+                    </button>
+                  </div>
+                  
                   <div className="grid gap-6">
-                    {testimonials.filter(t => !t.status || t.status === 'approved').map(t => (
+                    {testimonials
+                      .filter(t => !t.status || t.status === 'approved')
+                      .filter(t => {
+                        if (testimonialCategoryFilter === 'all') return true;
+                        if (testimonialCategoryFilter === 'loan') return t.fundingType === 'loan';
+                        return t.fundingType !== 'loan';
+                      })
+                      .map(t => (
                       <div key={t.id} className="border border-gray-300 p-4 rounded bg-gray-50 flex flex-col gap-3">
                         <div className="flex flex-col sm:flex-row gap-2">
                           <div className="flex-1">
@@ -3043,7 +3146,14 @@ export const Admin: React.FC = () => {
                         <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Sponsored Listings Requests ({sponsoredListingsAdmin.length})</h3>
                         <p className="text-xs text-gray-500">Manage campaign schedules, invoice records, payment states, and manual approvals.</p>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setIsCreatingDirectPlacement(true)}
+                          className="flex items-center gap-1.5 bg-grantify-green hover:bg-green-700 text-white text-xs font-bold px-3 py-2 rounded-lg shadow-sm transition"
+                        >
+                          <Plus size={14} /> + Direct Ad Placement
+                        </button>
                         <button
                           type="button"
                           onClick={handleDownloadCSV}
@@ -3077,6 +3187,7 @@ export const Admin: React.FC = () => {
                               <th className="p-3 text-left font-bold text-gray-700 dark:text-gray-200">ID / Info</th>
                               <th className="p-3 text-left font-bold text-gray-700 dark:text-gray-200">Provider & Website</th>
                               <th className="p-3 text-left font-bold text-gray-700 dark:text-gray-200">Tier / Price</th>
+                              <th className="p-3 text-left font-bold text-gray-700 dark:text-gray-200">Ad Creative & Placement</th>
                               <th className="p-3 text-left font-bold text-gray-700 dark:text-gray-200">Payer Details</th>
                               <th className="p-3 text-left font-bold text-gray-700 dark:text-gray-200">Performance</th>
                               <th className="p-3 text-left font-bold text-gray-700 dark:text-gray-200">Status & Schedule</th>
@@ -3118,6 +3229,33 @@ export const Admin: React.FC = () => {
                                       {(listing.amount_cents / 100).toLocaleString(undefined, { style: 'currency', currency: 'NGN' })}
                                     </div>
                                     <div className="text-[10px] text-gray-400">{listing.duration_days} days</div>
+                                  </td>
+                                  <td className="p-3 text-xs leading-relaxed text-gray-800 dark:text-gray-200 min-w-[200px]">
+                                    <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+                                      <span className="bg-indigo-100 text-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-300 font-bold text-[10px] px-2 py-0.5 rounded uppercase tracking-wider">
+                                        {(listing.placement_slot || 'directory_spotlight').replace(/_/g, ' ')}
+                                      </span>
+                                      {listing.is_published ? (
+                                        <span className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 font-bold text-[10px] px-2 py-0.5 rounded flex items-center gap-1">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> LIVE
+                                        </span>
+                                      ) : (
+                                        <span className="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 font-bold text-[10px] px-2 py-0.5 rounded">
+                                          OFFLINE
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="font-bold text-gray-900 dark:text-gray-100 line-clamp-1">
+                                      {listing.ad_headline || 'No headline configured'}
+                                    </div>
+                                    {listing.target_url && (
+                                      <a href={listing.target_url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 mt-0.5 line-clamp-1">
+                                        {listing.target_url} <ExternalLink size={10} />
+                                      </a>
+                                    )}
+                                    {listing.cta_text && (
+                                      <div className="text-[10px] text-gray-500 mt-1">CTA: <span className="font-semibold text-gray-700 dark:text-gray-300">{listing.cta_text}</span></div>
+                                    )}
                                   </td>
                                   <td className="p-3 text-xs leading-relaxed text-gray-800 dark:text-gray-200">
                                     <div><strong>{listing.payer_name}</strong></div>
@@ -3175,6 +3313,16 @@ export const Admin: React.FC = () => {
                                   </td>
                                   <td className="p-3 text-xs space-y-1.5">
                                     <div className="flex flex-wrap gap-1">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleTogglePlacementLive(listing.id, Boolean(listing.is_published))}
+                                        className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded shadow-sm transition ${listing.is_published ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}
+                                        title={listing.is_published ? 'Take placement offline' : 'Publish placement live'}
+                                      >
+                                        {listing.is_published ? <EyeOff size={10} /> : <Eye size={10} />}
+                                        {listing.is_published ? 'Take Offline' : 'Publish Live'}
+                                      </button>
+
                                       {!isPaid && (
                                         <button
                                           type="button"
@@ -3200,7 +3348,7 @@ export const Admin: React.FC = () => {
                                         onClick={() => startEditListing(listing)}
                                         className="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-[10px] font-bold px-2 py-1 rounded border border-gray-200 dark:border-gray-700"
                                       >
-                                        <Edit size={10} /> Edit Schedule & Invoice
+                                        <Edit size={10} /> Edit Creative & Schedule
                                       </button>
 
                                       <button
@@ -3331,6 +3479,110 @@ export const Admin: React.FC = () => {
                         </div>
 
                         <form onSubmit={handleSaveListingEdits} className="p-6 space-y-6">
+                          {/* Ad Creative & Placement Section */}
+                          <div className="bg-gray-50 dark:bg-gray-950 p-5 rounded-2xl border border-gray-200 dark:border-gray-800 space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-bold text-sm text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                                <Sparkles size={16} className="text-grantify-gold" /> Ad Placement & Creative Assets
+                              </h4>
+                              <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={invoiceForm.isPublished}
+                                  onChange={(e) => setInvoiceForm(prev => ({ ...prev, isPublished: e.target.checked }))}
+                                  className="w-4 h-4 rounded text-grantify-green focus:ring-grantify-green"
+                                />
+                                <span className={`text-xs font-bold ${invoiceForm.isPublished ? 'text-grantify-green' : 'text-gray-500'}`}>
+                                  {invoiceForm.isPublished ? '● Placement is LIVE' : '○ Placement is Offline / Draft'}
+                                </span>
+                              </label>
+                            </div>
+
+                            <div className="grid md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Placement Slot / Surface</label>
+                                <select
+                                  value={invoiceForm.placementSlot}
+                                  onChange={(e) => setInvoiceForm(prev => ({ ...prev, placementSlot: e.target.value }))}
+                                  className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 text-sm text-gray-900 dark:text-gray-100"
+                                >
+                                  <option value="directory_spotlight">Directory Spotlight (Top of /loan-providers)</option>
+                                  <option value="homepage_spotlight">Homepage Spotlight (Partner Grid on /)</option>
+                                  <option value="blog_in_article">Blog In-Article (Native Editorial Slot)</option>
+                                  <option value="header_announcement">Header Announcement Bar</option>
+                                </select>
+                              </div>
+
+                              <div>
+                                <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Call-to-Action (CTA) Label</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Apply Now, Get Fast Loan, Explore Offers"
+                                  value={invoiceForm.ctaText}
+                                  onChange={(e) => setInvoiceForm(prev => ({ ...prev, ctaText: e.target.value }))}
+                                  className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 text-sm text-gray-900 dark:text-gray-100"
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Ad Headline / Promotional Pitch</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. Instant Business Loans up to ₦10,000,000 with No Collateral"
+                                value={invoiceForm.adHeadline}
+                                onChange={(e) => setInvoiceForm(prev => ({ ...prev, adHeadline: e.target.value }))}
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 text-sm text-gray-900 dark:text-gray-100"
+                              />
+                            </div>
+
+                            <div className="grid md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Target Landing Page URL</label>
+                                <input
+                                  type="url"
+                                  placeholder="https://example.com/apply"
+                                  value={invoiceForm.targetUrl}
+                                  onChange={(e) => setInvoiceForm(prev => ({ ...prev, targetUrl: e.target.value }))}
+                                  className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 text-sm text-gray-900 dark:text-gray-100"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Banner Graphic / Creative Image URL</label>
+                                <input
+                                  type="url"
+                                  placeholder="https://images.unsplash.com/... or hosted URL"
+                                  value={invoiceForm.adImageUrl}
+                                  onChange={(e) => setInvoiceForm(prev => ({ ...prev, adImageUrl: e.target.value }))}
+                                  className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 text-sm text-gray-900 dark:text-gray-100"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Live preview */}
+                            {(invoiceForm.adHeadline || invoiceForm.adImageUrl) && (
+                              <div className="mt-3 p-3 bg-white dark:bg-gray-900 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
+                                <span className="text-[10px] uppercase font-bold text-gray-400 block mb-2">Visitor Card Preview</span>
+                                <div className="bg-gradient-to-r from-emerald-950 via-gray-900 to-gray-950 p-4 rounded-xl text-white border border-emerald-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className="bg-grantify-gold/20 text-grantify-gold text-[10px] font-black uppercase px-2 py-0.5 rounded border border-grantify-gold/40">Sponsored Partner</span>
+                                      <span className="text-xs text-gray-400 font-bold">{editingListing.provider_name || 'Featured Partner'}</span>
+                                    </div>
+                                    <h5 className="font-bold text-sm text-white">{invoiceForm.adHeadline || 'Your headline here'}</h5>
+                                  </div>
+                                  {invoiceForm.adImageUrl && (
+                                    <img src={invoiceForm.adImageUrl} alt="" className="w-16 h-12 object-cover rounded-lg border border-white/10" />
+                                  )}
+                                  <button type="button" className="shrink-0 bg-grantify-gold text-gray-950 font-black text-xs px-4 py-2 rounded-lg">
+                                    {invoiceForm.ctaText || 'Apply Now'} &rarr;
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
                           {/* Dates Schedule */}
                           <div className="grid md:grid-cols-2 gap-4">
                             <div>
@@ -3444,6 +3696,195 @@ export const Admin: React.FC = () => {
                               className="px-5 py-3 rounded-xl bg-grantify-green text-white font-black hover:bg-green-700 transition flex items-center gap-2"
                             >
                               {isSavingSponsored ? <Loader2 className="animate-spin" size={16} /> : <><Save size={16} /> Save Changes</>}
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Direct Ad Placement Launch Modal */}
+                  {isCreatingDirectPlacement && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                      <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto text-gray-900 dark:text-gray-100">
+                        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800">
+                          <div>
+                            <h3 className="text-lg font-bold flex items-center gap-2">
+                              <Sparkles size={18} className="text-grantify-gold" /> Launch Direct Sponsored Ad Placement
+                            </h3>
+                            <p className="text-xs text-gray-500">Deploy a sponsored campaign directly across Grantify surfaces.</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setIsCreatingDirectPlacement(false)}
+                            className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+                            title="Close modal"
+                          >
+                            <X size={20} />
+                          </button>
+                        </div>
+
+                        <form onSubmit={handleCreateDirectPlacement} className="p-6 space-y-5">
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Sponsor / Brand Name *</label>
+                              <input
+                                type="text"
+                                required
+                                placeholder="e.g. FairMoney Microfinance Bank"
+                                value={directPlacementForm.providerName}
+                                onChange={(e) => setDirectPlacementForm(prev => ({ ...prev, providerName: e.target.value }))}
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Placement Surface Slot *</label>
+                              <select
+                                value={directPlacementForm.placementSlot}
+                                onChange={(e) => setDirectPlacementForm(prev => ({ ...prev, placementSlot: e.target.value }))}
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100 font-medium"
+                              >
+                                <option value="directory_spotlight">Directory Spotlight (Top of /loan-providers)</option>
+                                <option value="homepage_spotlight">Homepage Spotlight (Featured Partner on /)</option>
+                                <option value="blog_in_article">Blog In-Article (Native Editorial Slot)</option>
+                                <option value="header_announcement">Header Announcement Bar</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Ad Headline / Offer Pitch *</label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. Fast SME Working Capital Loans up to ₦10M in 24 Hours"
+                              value={directPlacementForm.adHeadline}
+                              onChange={(e) => setDirectPlacementForm(prev => ({ ...prev, adHeadline: e.target.value }))}
+                              className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                            />
+                          </div>
+
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Destination Target URL *</label>
+                              <input
+                                type="url"
+                                required
+                                placeholder="https://provider.ng/apply-now"
+                                value={directPlacementForm.targetUrl}
+                                onChange={(e) => setDirectPlacementForm(prev => ({ ...prev, targetUrl: e.target.value }))}
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">CTA Button Text</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. Apply Now, Get Funded"
+                                value={directPlacementForm.ctaText}
+                                onChange={(e) => setDirectPlacementForm(prev => ({ ...prev, ctaText: e.target.value }))}
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Banner Image URL (Optional)</label>
+                              <input
+                                type="url"
+                                placeholder="https://..."
+                                value={directPlacementForm.adImageUrl}
+                                onChange={(e) => setDirectPlacementForm(prev => ({ ...prev, adImageUrl: e.target.value }))}
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Campaign Duration (Days)</label>
+                              <input
+                                type="number"
+                                min="1"
+                                value={directPlacementForm.durationDays}
+                                onChange={(e) => setDirectPlacementForm(prev => ({ ...prev, durationDays: Number(e.target.value) }))}
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Contact / Payer Name</label>
+                              <input
+                                type="text"
+                                value={directPlacementForm.payerName}
+                                onChange={(e) => setDirectPlacementForm(prev => ({ ...prev, payerName: e.target.value }))}
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Contact Email</label>
+                              <input
+                                type="email"
+                                value={directPlacementForm.payerEmail}
+                                onChange={(e) => setDirectPlacementForm(prev => ({ ...prev, payerEmail: e.target.value }))}
+                                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-900 dark:text-gray-100"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between p-4 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl border border-emerald-200 dark:border-emerald-800/50">
+                            <div>
+                              <div className="font-bold text-sm text-emerald-900 dark:text-emerald-300">Set Live Immediately</div>
+                              <div className="text-xs text-emerald-700 dark:text-emerald-400">Makes the placement visible to site visitors right now.</div>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={directPlacementForm.isPublished}
+                              onChange={(e) => setDirectPlacementForm(prev => ({ ...prev, isPublished: e.target.checked }))}
+                              className="w-5 h-5 rounded text-grantify-green focus:ring-grantify-green cursor-pointer"
+                            />
+                          </div>
+
+                          {/* Live preview */}
+                          {directPlacementForm.adHeadline && (
+                            <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
+                              <span className="text-[10px] uppercase font-bold text-gray-400 block mb-2">Live Visitor Preview</span>
+                              <div className="bg-gradient-to-r from-emerald-950 via-gray-900 to-gray-950 p-4 rounded-xl text-white border border-emerald-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="bg-grantify-gold/20 text-grantify-gold text-[10px] font-black uppercase px-2 py-0.5 rounded border border-grantify-gold/40">Sponsored Partner</span>
+                                    <span className="text-xs text-gray-400 font-bold">{directPlacementForm.providerName || 'Featured Partner'}</span>
+                                  </div>
+                                  <h5 className="font-bold text-sm text-white">{directPlacementForm.adHeadline}</h5>
+                                </div>
+                                {directPlacementForm.adImageUrl && (
+                                  <img src={directPlacementForm.adImageUrl} alt="" className="w-16 h-12 object-cover rounded-lg border border-white/10" />
+                                )}
+                                <div className="shrink-0 bg-grantify-gold text-gray-950 font-black text-xs px-4 py-2 rounded-lg">
+                                  {directPlacementForm.ctaText || 'Apply Now'} &rarr;
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
+                            <button
+                              type="button"
+                              onClick={() => setIsCreatingDirectPlacement(false)}
+                              className="px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-200 font-bold hover:bg-gray-50 dark:hover:bg-gray-950 transition"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="submit"
+                              disabled={isSavingSponsored}
+                              className="px-6 py-3 rounded-xl bg-grantify-green text-white font-black hover:bg-green-700 transition flex items-center gap-2 shadow-lg"
+                            >
+                              {isSavingSponsored ? <Loader2 className="animate-spin" size={16} /> : <><Sparkles size={16} /> Launch Placement</>}
                             </button>
                           </div>
                         </form>

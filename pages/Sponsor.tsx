@@ -29,7 +29,8 @@ import {
   Briefcase,
   Smartphone,
   Landmark,
-  HeartHandshake
+  HeartHandshake,
+  LayoutTemplate
 } from 'lucide-react';
 
 type PricingTier = { id: number; tierName: string; priceCents: number; durationDays: number; description: string };
@@ -55,7 +56,12 @@ export const Sponsor: React.FC = () => {
     website: '',
     note: '',
     paymentProvider: 'flutterwave',
-    customPartnerName: ''
+    customPartnerName: '',
+    adHeadline: '',
+    adImageUrl: '',
+    targetUrl: '',
+    ctaText: 'Apply Now',
+    placementSlot: 'directory_spotlight'
   });
 
   const availableGateways = React.useMemo(() => {
@@ -273,7 +279,12 @@ export const Sponsor: React.FC = () => {
         note: form.note,
         placement: 'sponsor-page',
         paymentProvider: form.paymentProvider,
-        customPartnerName: isCustom ? form.customPartnerName.trim() : undefined
+        customPartnerName: isCustom ? form.customPartnerName.trim() : undefined,
+        adHeadline: form.adHeadline.trim() || undefined,
+        adImageUrl: form.adImageUrl.trim() || undefined,
+        targetUrl: form.targetUrl.trim() || form.website.trim() || undefined,
+        ctaText: form.ctaText.trim() || 'Apply Now',
+        placementSlot: form.placementSlot || 'directory_spotlight'
       };
 
       const result = await ApiService.createSponsoredPurchase(providerId, tierId, payerInfo);
@@ -863,8 +874,92 @@ export const Sponsor: React.FC = () => {
               <input className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-800 dark:text-gray-100" value={form.website} onChange={(e) => setForm(prev => ({ ...prev, website: e.target.value }))} placeholder="https://your-site.com" title="Website" />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">Campaign note</label>
-              <textarea className="w-full min-h-[120px] rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-800 dark:text-gray-100" value={form.note} onChange={(e) => setForm(prev => ({ ...prev, note: e.target.value }))} placeholder="What are you promoting?" />
+              <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">Campaign note / Requirements</label>
+              <textarea className="w-full min-h-[90px] rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-800 dark:text-gray-100" value={form.note} onChange={(e) => setForm(prev => ({ ...prev, note: e.target.value }))} placeholder="Special instructions, target demographics, or requirements..." />
+            </div>
+
+            {/* Ad Placement & Creative Configuration */}
+            <div className="md:col-span-2 rounded-2xl border border-grantify-green/20 bg-emerald-50/40 dark:bg-emerald-950/20 p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <LayoutTemplate size={18} className="text-grantify-green" />
+                <h4 className="text-sm font-black uppercase tracking-wider text-gray-900 dark:text-gray-100">
+                  Ad Placement Slot & Creative Setup
+                </h4>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
+                Customize where and how your ad appears across Grantify. You can provide your creative assets now or our publishing team will assist you during onboarding.
+              </p>
+
+              <div className="grid md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                    Preferred Placement Slot
+                  </label>
+                  <select
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-2.5 text-xs text-gray-800 dark:text-gray-100 font-medium"
+                    value={form.placementSlot}
+                    onChange={(e) => setForm(prev => ({ ...prev, placementSlot: e.target.value }))}
+                  >
+                    <option value="directory_spotlight">Directory Top Spotlight (Sticky #1 in Loans & Grants Grid)</option>
+                    <option value="homepage_spotlight">Homepage Featured Sponsor Card (Front Page Showcase)</option>
+                    <option value="blog_in_article">Blog In-Article & Editorial Feature (Inside Publications)</option>
+                    <option value="header_announcement">Site-Wide Header Announcement Banner (Top of Every Page)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                    Ad Headline / Catchphrase
+                  </label>
+                  <input
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-2.5 text-xs text-gray-800 dark:text-gray-100"
+                    value={form.adHeadline}
+                    onChange={(e) => setForm(prev => ({ ...prev, adHeadline: e.target.value }))}
+                    placeholder="e.g. Instant Working Capital up to ₦5M in 24 Hours"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                    Target Landing Page URL (Destination)
+                  </label>
+                  <input
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-2.5 text-xs text-gray-800 dark:text-gray-100"
+                    value={form.targetUrl}
+                    onChange={(e) => setForm(prev => ({ ...prev, targetUrl: e.target.value }))}
+                    placeholder="https://yourbrand.com/apply?ref=grantify"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                    Call to Action (CTA Button)
+                  </label>
+                  <select
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-2.5 text-xs text-gray-800 dark:text-gray-100 font-medium"
+                    value={form.ctaText}
+                    onChange={(e) => setForm(prev => ({ ...prev, ctaText: e.target.value }))}
+                  >
+                    <option value="Apply Now">Apply Now</option>
+                    <option value="Get Funded">Get Funded</option>
+                    <option value="Claim Offer">Claim Offer</option>
+                    <option value="Learn More">Learn More</option>
+                    <option value="Visit Provider">Visit Provider</option>
+                  </select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                    Banner Graphic / Logo Image URL (Optional)
+                  </label>
+                  <input
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-2.5 text-xs text-gray-800 dark:text-gray-100"
+                    value={form.adImageUrl}
+                    onChange={(e) => setForm(prev => ({ ...prev, adImageUrl: e.target.value }))}
+                    placeholder="https://... image banner or logo URL"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="md:col-span-2">

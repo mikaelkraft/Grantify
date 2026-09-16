@@ -9,8 +9,14 @@ if (process.env.VERCEL) {
   process.noDeprecation = true;
 }
 
+const getCleanConnectionString = () => {
+  const raw = process.env.DATABASE_URL || '';
+  // PgBouncer poolers do not support SCRAM channel binding; strip channel_binding if present
+  return raw.replace(/([?&])channel_binding=[^&]+(&|$)/g, '$1').replace(/\?$/, '');
+};
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: getCleanConnectionString(),
   ssl: { rejectUnauthorized: false },
   max: (() => {
     const raw = process.env.PGPOOL_MAX || process.env.DB_POOL_MAX;
@@ -22,7 +28,8 @@ const pool = new Pool({
   connectionTimeoutMillis: (() => {
     const raw = process.env.PGPOOL_CONN_TIMEOUT_MS;
     const n = Number.parseInt(String(raw || '').trim(), 10);
-    return Number.isFinite(n) && n > 0 ? n : 5000;
+    // Default to 15s to safely absorb Neon compute wake-ups and transatlantic latency
+    return Number.isFinite(n) && n > 0 ? n : 15000;
   })(),
   idleTimeoutMillis: (() => {
     const raw = process.env.PGPOOL_IDLE_TIMEOUT_MS;

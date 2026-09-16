@@ -19,6 +19,12 @@ async function ensureSponsoredMetricsSchema(client) {
   try {
     await client.query("ALTER TABLE sponsored_listings ADD COLUMN IF NOT EXISTS clicks INTEGER DEFAULT 0");
     await client.query("ALTER TABLE sponsored_listings ADD COLUMN IF NOT EXISTS conversions INTEGER DEFAULT 0");
+    await client.query("ALTER TABLE sponsored_listings ADD COLUMN IF NOT EXISTS ad_headline TEXT DEFAULT ''");
+    await client.query("ALTER TABLE sponsored_listings ADD COLUMN IF NOT EXISTS ad_image_url TEXT DEFAULT ''");
+    await client.query("ALTER TABLE sponsored_listings ADD COLUMN IF NOT EXISTS target_url TEXT DEFAULT ''");
+    await client.query("ALTER TABLE sponsored_listings ADD COLUMN IF NOT EXISTS cta_text TEXT DEFAULT 'Learn More'");
+    await client.query("ALTER TABLE sponsored_listings ADD COLUMN IF NOT EXISTS placement_slot TEXT DEFAULT 'directory_spotlight'");
+    await client.query("ALTER TABLE sponsored_listings ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT FALSE");
   } catch (e) {
     // ignore
   }
@@ -142,7 +148,11 @@ export default async function handler(req, res) {
         const params = [];
         let idx = 1;
         if (active) {
-          filters.push("sl.payment_status='paid' AND (sl.end_at IS NULL OR sl.end_at > NOW())");
+          filters.push("(sl.is_published = TRUE OR sl.payment_status='paid') AND (sl.end_at IS NULL OR sl.end_at > NOW())");
+        }
+        if (req.query.slot) {
+          filters.push(`sl.placement_slot = $${idx++}`);
+          params.push(String(req.query.slot));
         }
         if (req.query.status) {
           filters.push(`sl.payment_status = $${idx++}`);
@@ -175,6 +185,7 @@ export default async function handler(req, res) {
               payer = {};
             }
           }
+          const isPublished = Boolean(row.is_published || (row.payment_status === 'paid' && (!row.end_at || new Date(row.end_at) > new Date())));
           return {
             ...row,
             payer_name: payer.name || '',
@@ -182,7 +193,13 @@ export default async function handler(req, res) {
             payer_company: payer.company || '',
             campaign_note: payer.note || '',
             provider_name: row.provider_name || payer.customPartnerName || '',
-            provider_website: row.provider_website || payer.website || ''
+            provider_website: row.provider_website || payer.website || '',
+            ad_headline: row.ad_headline || payer.adHeadline || payer.headline || '',
+            ad_image_url: row.ad_image_url || payer.adImageUrl || payer.imageUrl || '',
+            target_url: row.target_url || payer.targetUrl || row.provider_website || payer.website || '',
+            cta_text: row.cta_text || payer.ctaText || 'Learn More',
+            placement_slot: row.placement_slot || payer.placementSlot || 'directory_spotlight',
+            is_published: isPublished
           };
         });
 
@@ -242,10 +259,16 @@ export default async function handler(req, res) {
         if (tierRes.rows.length === 0) return res.status(400).json({ error: 'Invalid tier' });
 
         const amount = tierRes.rows[0].price_cents || 0;
+        const adHeadline = String(payerInfo?.adHeadline || payerInfo?.headline || '').trim();
+        const adImageUrl = String(payerInfo?.adImageUrl || payerInfo?.imageUrl || '').trim();
+        const targetUrl = String(payerInfo?.targetUrl || payerInfo?.website || '').trim();
+        const ctaText = String(payerInfo?.ctaText || 'Learn More').trim();
+        const placementSlot = String(payerInfo?.placementSlot || 'directory_spotlight').trim();
+
         const insert = await client.query(
-          `INSERT INTO sponsored_listings (provider_id, tier_id, amount_cents, payer_info, payment_status)
-           VALUES ($1, $2, $3, $4, 'pending') RETURNING id`,
-          [providerId, tierId, amount, payerInfo ? JSON.stringify(payerInfo) : null]
+          `INSERT INTO sponsored_listings (provider_id, tier_id, amount_cents, payer_info, payment_status, ad_headline, ad_image_url, target_url, cta_text, placement_slot)
+           VALUES ($1, $2, $3, $4, 'pending', $5, $6, $7, $8, $9) RETURNING id`,
+          [providerId, tierId, amount, payerInfo ? JSON.stringify(payerInfo) : null, adHeadline, adImageUrl, targetUrl, ctaText, placementSlot]
         );
         const id = insert.rows[0].id;
 
@@ -442,6 +465,98 @@ export default async function handler(req, res) {
         const sql = `UPDATE sponsored_listings SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = $${idx}`;
         await client.query(sql, params);
         return res.status(200).json({ success: true });
+      }
+
+      if (action === 'publish_placement') {
+        const session = parseAdminSession(req);
+        if (!session?.id) return res.status(401).json({ error: 'Unauthorized' });
+        const { id, adHeadline, adImageUrl, targetUrl, ctaText, placementSlot, durationDays } = req.body || {};
+        if (!id) return res.status(400).json({ error: 'id required' });
+
+        const r = await client.query('SELECT sl.*, sp.duration_days FROM sponsored_listings sl LEFT JOIN sponsored_pricing sp ON sp.id = sl.tier_id WHERE sl.id = $1', [id]);
+        if (r.rows.length === 0) return res.status(404).json({ error: 'Listing not found' });
+        const listing = r.rows[0];
+        const days = Number(durationDays) || listing.duration_days || 30;
+
+        await client.query(`
+          UPDATE sponsored_listings 
+          SET is_published = TRUE,
+              payment_status = 'paid',
+              start_at = COALESCE(start_at, NOW()),
+              end_at = NOW() + ($1 || ' days')::interval,
+              ad_headline = COALESCE($2, ad_headline),
+              ad_image_url = COALESCE($3, ad_image_url),
+              target_url = COALESCE($4, target_url),
+              cta_text = COALESCE($5, cta_text),
+              placement_slot = COALESCE($6, placement_slot),
+              updated_at = CURRENT_TIMESTAMP
+          WHERE id = $7
+        `, [`${days}`, adHeadline || null, adImageUrl || null, targetUrl || null, ctaText || null, placementSlot || null, id]);
+
+        if (listing.provider_id) {
+          await client.query('UPDATE loan_providers SET is_recommended = TRUE WHERE id = $1', [listing.provider_id]);
+        }
+
+        return res.status(200).json({ success: true, message: 'Placement published successfully' });
+      }
+
+      if (action === 'toggle_placement_live') {
+        const session = parseAdminSession(req);
+        if (!session?.id) return res.status(401).json({ error: 'Unauthorized' });
+        const { id, isPublished } = req.body || {};
+        if (!id) return res.status(400).json({ error: 'id required' });
+
+        await client.query('UPDATE sponsored_listings SET is_published = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [Boolean(isPublished), id]);
+        return res.status(200).json({ success: true });
+      }
+
+      if (action === 'update_placement_creative') {
+        const session = parseAdminSession(req);
+        if (!session?.id) return res.status(401).json({ error: 'Unauthorized' });
+        const { id, adHeadline, adImageUrl, targetUrl, ctaText, placementSlot } = req.body || {};
+        if (!id) return res.status(400).json({ error: 'id required' });
+
+        await client.query(`
+          UPDATE sponsored_listings 
+          SET ad_headline = $1,
+              ad_image_url = $2,
+              target_url = $3,
+              cta_text = $4,
+              placement_slot = $5,
+              updated_at = CURRENT_TIMESTAMP
+          WHERE id = $6
+        `, [adHeadline || '', adImageUrl || '', targetUrl || '', ctaText || 'Learn More', placementSlot || 'directory_spotlight', id]);
+
+        return res.status(200).json({ success: true });
+      }
+
+      if (action === 'admin_create_placement') {
+        const session = parseAdminSession(req);
+        if (!session?.id) return res.status(401).json({ error: 'Unauthorized' });
+        const { providerName, providerWebsite, tierId, adHeadline, adImageUrl, targetUrl, ctaText, placementSlot, durationDays, adminNote, isPublished } = req.body || {};
+        
+        const tier = Number(tierId) || 1;
+        const days = Number(durationDays) || 30;
+        const payerInfo = {
+          name: providerName || 'Direct Sponsor',
+          company: providerName || 'Direct Sponsor',
+          website: providerWebsite || targetUrl || '',
+          customPartnerName: providerName || 'Direct Sponsor',
+          adHeadline: adHeadline || '',
+          adImageUrl: adImageUrl || '',
+          targetUrl: targetUrl || '',
+          ctaText: ctaText || 'Learn More',
+          placementSlot: placementSlot || 'directory_spotlight'
+        };
+
+        const ins = await client.query(`
+          INSERT INTO sponsored_listings 
+          (provider_id, tier_id, amount_cents, payer_info, payment_status, start_at, end_at, ad_headline, ad_image_url, target_url, cta_text, placement_slot, is_published, admin_note)
+          VALUES (NULL, $1, 0, $2, 'paid', NOW(), NOW() + ($3 || ' days')::interval, $4, $5, $6, $7, $8, $9, $10)
+          RETURNING id
+        `, [tier, JSON.stringify(payerInfo), `${days}`, adHeadline || '', adImageUrl || '', targetUrl || '', ctaText || 'Learn More', placementSlot || 'directory_spotlight', isPublished !== false, adminNote || 'Created by Admin']);
+
+        return res.status(200).json({ success: true, id: ins.rows[0].id });
       }
 
       // Sponsor testimonials CRUD (admin)

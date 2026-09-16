@@ -257,9 +257,42 @@ export interface PaymentGatewaysConfig {
   };
 }
 
+export interface SponsoredListing {
+  id: number;
+  providerId?: number | null;
+  providerName?: string;
+  providerWebsite?: string;
+  tierId: number;
+  tierName?: string;
+  durationDays?: number;
+  amountCents: number;
+  paymentStatus: 'pending' | 'paid' | 'cancelled' | 'refunded';
+  startAt?: string | null;
+  endAt?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+  payerInfo?: any;
+  payerName?: string;
+  payerEmail?: string;
+  payerCompany?: string;
+  campaignNote?: string;
+  clicks?: number;
+  conversions?: number;
+  invoiceNumber?: string;
+  invoiceDueDate?: string;
+  offlinePaymentMethod?: string;
+  adminNote?: string;
+  adHeadline?: string;
+  adImageUrl?: string;
+  targetUrl?: string;
+  ctaText?: string;
+  placementSlot?: 'directory_spotlight' | 'homepage_spotlight' | 'blog_in_article' | 'header_announcement' | string;
+  isPublished?: boolean;
+}
+
 // Ad network type definitions for window object
 declare global {
   interface Window {
     // Custom window properties if needed
   }
-}
+}

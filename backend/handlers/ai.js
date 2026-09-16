@@ -92,35 +92,55 @@ const normalizeSources = (items) => {
     .slice(0, 8);
 };
 
-const fetchNewsContext = async (query, { regionHint } = {}) => {
-  const q = `${String(query || '').trim()} ${regionHint || 'Nigeria'}`.trim();
-  const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-NG&gl=NG&ceid=NG:en`;
-  const res = await fetch(url, { headers: { 'User-Agent': 'GrantifyBot/1.0' } });
-  if (!res.ok) return { items: [], contextText: '' };
-  const xml = await res.text();
-
-  const items = [];
-  const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
-  let match;
-  while ((match = itemRegex.exec(xml)) && items.length < 6) {
-    const itemXml = match[1];
-    const title = (itemXml.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>/i) || itemXml.match(/<title>([\s\S]*?)<\/title>/i) || [])[1];
-    const link = (itemXml.match(/<link>([\s\S]*?)<\/link>/i) || [])[1];
-    const pubDate = (itemXml.match(/<pubDate>([\s\S]*?)<\/pubDate>/i) || [])[1];
-    if (!title || !link) continue;
-    items.push({
-      title: String(title).replace(/<[^>]+>/g, '').trim(),
-      link: String(link).trim(),
-      pubDate: pubDate ? String(pubDate).trim() : ''
-    });
+const fetchWithTimeout = async (url, opts = {}, timeoutMs = 3000) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...opts, signal: controller.signal });
+    return res;
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error(`Request timed out after ${timeoutMs}ms`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
   }
+};
 
-  if (items.length === 0) return { items: [], contextText: '' };
-  const contextText = items
-    .map((i, idx) => `${idx + 1}. ${i.title}${i.pubDate ? ` (${i.pubDate})` : ''} - ${i.link}`)
-    .join('\n');
+const fetchNewsContext = async (query, { regionHint } = {}) => {
+  try {
+    const q = `${String(query || '').trim()} ${regionHint || 'Nigeria'}`.trim();
+    const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-NG&gl=NG&ceid=NG:en`;
+    const res = await fetchWithTimeout(url, { headers: { 'User-Agent': 'GrantifyBot/1.0' } }, 2500);
+    if (!res.ok) return { items: [], contextText: '' };
+    const xml = await res.text();
 
-  return { items, contextText };
+    const items = [];
+    const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
+    let match;
+    while ((match = itemRegex.exec(xml)) && items.length < 6) {
+      const itemXml = match[1];
+      const title = (itemXml.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>/i) || itemXml.match(/<title>([\s\S]*?)<\/title>/i) || [])[1];
+      const link = (itemXml.match(/<link>([\s\S]*?)<\/link>/i) || [])[1];
+      const pubDate = (itemXml.match(/<pubDate>([\s\S]*?)<\/pubDate>/i) || [])[1];
+      if (!title || !link) continue;
+      items.push({
+        title: String(title).replace(/<[^>]+>/g, '').trim(),
+        link: String(link).trim(),
+        pubDate: pubDate ? String(pubDate).trim() : ''
+      });
+    }
+
+    if (items.length === 0) return { items: [], contextText: '' };
+    const contextText = items
+      .map((i, idx) => `${idx + 1}. ${i.title}${i.pubDate ? ` (${i.pubDate})` : ''} - ${i.link}`)
+      .join('\n');
+
+    return { items, contextText };
+  } catch {
+    return { items: [], contextText: '' };
+  }
 };
 
 const fetchDuckDuckGoContext = async (query) => {
@@ -129,7 +149,7 @@ const fetchDuckDuckGoContext = async (query) => {
 
   try {
     const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(q)}&format=json&no_html=1&skip_disambig=1`;
-    const res = await fetch(url, { headers: { 'User-Agent': 'GrantifyBot/1.0' } });
+    const res = await fetchWithTimeout(url, { headers: { 'User-Agent': 'GrantifyBot/1.0' } }, 2500);
     if (!res.ok) return { items: [], contextText: '' };
     const data = await res.json();
 
@@ -183,10 +203,19 @@ const slugifyTitle = (title) => {
 
 const makeBlogSlug = (title, id) => `${slugifyTitle(title)}~${encodeURIComponent(String(id))}`;
 
+let cachedLocalContext = { text: '', expiresAt: 0 };
 const buildGrantifyLocalContext = async () => {
-  // Best-effort. If tables don't exist yet, just return empty context.
-  const client = await pool.connect();
+  if (Date.now() < cachedLocalContext.expiresAt && cachedLocalContext.text) {
+    return cachedLocalContext.text;
+  }
+
+  // Best-effort with quick timeout
+  let client;
   try {
+    const connectPromise = pool.connect();
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('DB connection timed out')), 2500));
+    client = await Promise.race([connectPromise, timeoutPromise]);
+
     const ctx = [];
 
     try {
@@ -229,9 +258,13 @@ const buildGrantifyLocalContext = async () => {
       // ignore
     }
 
-    return ctx.length ? ctx.join('\n\n') : '';
+    const resText = ctx.length ? ctx.join('\n\n') : '';
+    cachedLocalContext = { text: resText, expiresAt: Date.now() + 10 * 60 * 1000 };
+    return resText;
+  } catch {
+    return cachedLocalContext.text || '';
   } finally {
-    client.release();
+    if (client) client.release();
   }
 };
 
@@ -465,20 +498,18 @@ export default async function handler(req, res) {
           { role: 'user', content: userPrompt }
         ];
 
-    const groqUrl = 'https://api.groq.com/openai/v1/chat/completions';
     const modelsToTry = Array.from(new Set([
       process.env.GROQ_MODEL,
       'qwen/qwen3.8-27b',
       'groq/compound-mini',
-      'llama-3.1-8b-instant',
-      'openai/gpt-oss-120b'
+      'openai/gpt-oss-20b'
     ].filter(Boolean)));
 
-    let response = null;
+    let parsedContent = null;
     let lastError = null;
     for (const candidateModel of modelsToTry) {
       try {
-        const res = await fetch(groqUrl, {
+        const res = await fetchWithTimeout(groqUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -487,32 +518,40 @@ export default async function handler(req, res) {
           body: JSON.stringify({
             model: candidateModel,
             messages,
-            temperature: 0.8
+            max_tokens: type === 'blog' ? 1200 : 850,
+            temperature: 0.7
           })
-        });
+        }, 12000);
 
         if (res.ok) {
-          response = res;
-          break;
+          const data = await res.json();
+          let raw = data.choices?.[0]?.message?.content || '';
+          raw = raw.replace(/<thought>[\s\S]*?<\/thought>/gi, '').trim();
+          if (raw.length > 0) {
+            parsedContent = raw;
+            break;
+          }
+          console.warn(`[AI Handler] Groq model '${candidateModel}' yielded empty content.`);
+        } else {
+          const errText = await res.text().catch(() => '');
+          console.warn(`[AI Handler] Groq model '${candidateModel}' failed (${res.status}):`, errText);
+          lastError = new Error(`Groq API Error (${res.status}): ${errText}`);
         }
-
-        const errText = await res.text().catch(() => '');
-        console.warn(`[AI Handler] Groq model '${candidateModel}' failed (${res.status}):`, errText);
-        lastError = new Error(`Groq API Error (${res.status}): ${errText}`);
       } catch (e) {
         console.warn(`[AI Handler] Groq request exception for '${candidateModel}':`, e?.message);
         lastError = e;
       }
     }
 
-    if (!response) {
-      throw lastError || new Error('Groq API Error: all model candidates failed');
+    let rawContent = parsedContent;
+    if (!rawContent) {
+      if (type === 'blog') {
+        rawContent = `<h2>${prompt}</h2><p>Grantify provides strategic insights for Nigerian businesses and entrepreneurs on <strong>${prompt}</strong>. Explore our funding guides and directories to find the best opportunities for your enterprise.</p>`;
+      } else {
+        rawContent = `Hello! I am the Grantify Concierge. We assist Nigerian founders and SMEs in discovering verified grants, matching loans, and strategic business growth tools. You can explore our <a href="/loan-providers">Licensed Loan Providers & Reviews</a> directory or check out practical guidance on our <a href="/blog">Community Blog</a>. How can I help you find funding or prepare your application today?`;
+      }
     }
 
-    const data = await response.json();
-    let rawContent = data.choices?.[0]?.message?.content || 'No response generated.';
-    // Strip reasoning / chain-of-thought blocks if emitted by reasoning or compound models
-    rawContent = rawContent.replace(/<thought>[\s\S]*?<\/thought>/gi, '').trim();
     let aiText = postProcessAnchors(rawContent);
 
     // Post-process blog outputs to remove first-person travel/anecdote sentences
