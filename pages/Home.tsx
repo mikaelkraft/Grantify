@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ApiService } from '../services/storage';
+import { SEO } from '../components/SEO';
 import { AdSlot } from '../components/AdSlot';
 import { TestimonialCard } from '../components/TestimonialCard';
 import { RecentApplicantsTicker } from '../components/RecentApplicantsTicker';
@@ -275,9 +276,48 @@ export const Home: React.FC = () => {
     }
   };
 
+  const homeSchema = useMemo(() => [
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Grantify",
+      "url": "https://grantify.help",
+      "description": "Empowering entrepreneurs, families, and businesses across Nigeria with smart grant matches, funding alerts, and financial intelligence.",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://grantify.help/blog?q={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Grantify",
+      "url": "https://grantify.help",
+      "logo": "https://grantify.help/logo.svg",
+      "sameAs": [
+        "https://twitter.com/grantify",
+        "https://linkedin.com/company/grantify"
+      ],
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "customer support",
+        "url": "https://grantify.help/contact"
+      }
+    }
+  ], []);
+
   if (submitted) {
     return (
       <div className="max-w-3xl mx-auto py-20 px-4 animate-in fade-in zoom-in duration-500">
+        <SEO
+          title="Application Submitted | Grantify"
+          description="Your grant match application has been received and is being processed by Grantify specialists."
+          canonical="https://grantify.help"
+        />
         <div className="bg-white dark:bg-gray-900 rounded-[3rem] shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800">
           <div className="bg-grantify-green p-12 text-center text-white relative">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl"></div>
@@ -333,6 +373,12 @@ export const Home: React.FC = () => {
 
   return (
     <div className="pb-20">
+      <SEO
+        title="Grantify - Empowering Families & Businesses with Legitimate Funding"
+        description="Escape predatory loan app traps and fake intermediaries. Discover verified non-dilutive grants, BOI/SMEDAN funding alerts, and licensed SME credit facilities across Nigeria."
+        canonical="https://grantify.help"
+        schema={homeSchema}
+      />
       <div className="space-y-0">
         <RecentApplicantsTicker applicants={recentApplicants} />
         <BlogTicker posts={blogPosts.slice(0, 3)} />

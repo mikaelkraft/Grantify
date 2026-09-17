@@ -14,6 +14,7 @@ import { Sponsor } from './pages/Sponsor';
 import { Quiz } from './pages/Quiz';
 import { Pitch } from './pages/Pitch';
 import { Grants } from './pages/Grants';
+import { NotFound } from './pages/NotFound';
 import { ApiService } from './services/storage';
 
 function App() {
@@ -49,7 +50,7 @@ function App() {
           <Route path="/quiz" element={<Quiz />} />
           <Route path="/pitch" element={<Pitch />} />
           <Route path="/grants/:state" element={<Grants />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Layout>
     </BrowserRouter>

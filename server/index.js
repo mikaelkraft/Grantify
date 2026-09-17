@@ -13,6 +13,17 @@ app.use(express.json({ limit: '10mb' }));
 
 app.get('/healthz', (_req, res) => res.status(200).json({ ok: true }));
 
+app.get('/sitemap.xml', async (req, res) => {
+  const proxiedReq = Object.create(req);
+  Object.defineProperty(proxiedReq, 'query', {
+    value: { ...(req.query || {}), path: 'sitemap' },
+    writable: true,
+    configurable: true,
+    enumerable: true,
+  });
+  return apiRouter(proxiedReq, res);
+});
+
 // Vercel rewrites: /api/* -> /api/index?path=*
 // For local dev, emulate that by populating req.query.path.
 app.all(/^\/api\/(.*)/, async (req, res) => {

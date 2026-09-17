@@ -31,6 +31,7 @@ import oneDriveStatus from '../backend/handlers/onedrive_status.js';
 import sponsored from '../backend/handlers/sponsored.js';
 import pitch from '../backend/handlers/pitch.js';
 import fundingAlertImage from '../backend/handlers/funding_alert_image.js';
+import sitemap from '../backend/handlers/sitemap.js';
 
 const ensureJsonBody = async (req) => {
   // Vercel may not populate req.body for non-POST methods.
@@ -166,6 +167,7 @@ export default async function handler(req, res) {
     }
 
     if (root === 'funding-alert-image') return fundingAlertImage(req, res);
+    if (root === 'sitemap' || root === 'sitemap.xml') return sitemap(req, res);
 
     return res.status(404).json({ error: 'Not found' });
   } catch (err) {

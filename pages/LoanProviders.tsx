@@ -196,6 +196,15 @@ export const LoanProviders: React.FC = () => {
 
   useEffect(() => {
     document.title = 'Compare Legitimate Instant Loan Apps in Nigeria | Grantify';
+    const canonicalUrl = 'https://grantify.help/loan-providers';
+    let linkCanonical = document.querySelector('link[rel="canonical"]');
+    if (!linkCanonical) {
+      linkCanonical = document.createElement('link');
+      linkCanonical.setAttribute('rel', 'canonical');
+      document.head.appendChild(linkCanonical);
+    }
+    linkCanonical.setAttribute('href', canonicalUrl);
+
     const meta = document.head.querySelector('meta[name="description"]');
     if (meta) {
       meta.setAttribute('content', 'Compare verified CBN-licensed loan apps and microfinance providers in Nigeria. Read honest community reviews, interest rates, ranges, and apply safely.');

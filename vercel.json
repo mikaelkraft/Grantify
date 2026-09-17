@@ -11,9 +11,10 @@
   ],
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/index?path=:path*" },
+    { "source": "/sitemap.xml", "destination": "/api/index?path=sitemap" },
     { "source": "/share/blog/:id", "destination": "/api/index?path=share&type=blog&id=:id" },
     {
-      "source": "/((?!api|ads\\.txt|sw\\.js|favicon\\.ico|favicon\\.svg|favicon-32\\.png|apple-touch-icon\\.png|logo\\.svg|og-default\\.svg).*)",
+      "source": "/((?!api|sitemap\\.xml|robots\\.txt|ads\\.txt|sw\\.js|favicon\\.ico|favicon\\.svg|favicon-32\\.png|apple-touch-icon\\.png|logo\\.svg|og-default\\.svg).*)",
       "destination": "/"
     }
   ]

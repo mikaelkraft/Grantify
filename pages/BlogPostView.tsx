@@ -439,7 +439,16 @@ export const BlogPostView: React.FC = () => {
       const description = normalizeNbsp(stripHtml(post.content || '')).slice(0, 160) || 'Discover funding options and learn from community intelligence.';
       const derived = derivePostImage(post);
       const safeImage = (derived && !String(derived).startsWith('data:')) ? String(derived) : '';
-      const image = safeImage || '/og-default.svg';
+      const image = safeImage || 'https://grantify.help/og-default.svg';
+
+      const canonicalUrl = `https://grantify.help/blog/${makeBlogSlug(post.title, post.id)}`;
+      let linkCanonical = document.querySelector('link[rel="canonical"]');
+      if (!linkCanonical) {
+        linkCanonical = document.createElement('link');
+        linkCanonical.setAttribute('rel', 'canonical');
+        document.head.appendChild(linkCanonical);
+      }
+      linkCanonical.setAttribute('href', canonicalUrl);
 
       const setMeta = (selector: string, attr: 'content', value: string) => {
         const el = document.head.querySelector(selector) as HTMLMetaElement | null;
@@ -449,6 +458,7 @@ export const BlogPostView: React.FC = () => {
       setMeta('meta[property="og:title"]', 'content', safeTitle);
       setMeta('meta[property="og:description"]', 'content', description);
       setMeta('meta[property="og:image"]', 'content', image);
+      setMeta('meta[property="og:url"]', 'content', canonicalUrl);
       setMeta('meta[name="twitter:title"]', 'content', safeTitle);
       setMeta('meta[name="twitter:description"]', 'content', description);
       setMeta('meta[name="twitter:image"]', 'content', image);
@@ -459,24 +469,25 @@ export const BlogPostView: React.FC = () => {
 
       const schema = {
         '@context': 'https://schema.org',
-        '@type': 'Article',
+        '@type': 'BlogPosting',
         headline: safeTitle,
         description,
         datePublished: String(post.createdAt || post.updatedAt || new Date().toISOString()),
         dateModified: String(post.updatedAt || post.createdAt || new Date().toISOString()),
         author: {
           '@type': 'Person',
-          name: normalizeNbsp(post.author || 'Grantify')
+          name: normalizeNbsp(post.author || 'Grantify Editorial Team')
         },
         publisher: {
           '@type': 'Organization',
           name: 'Grantify',
+          url: 'https://grantify.help',
           logo: {
             '@type': 'ImageObject',
-            url: '/logo.png'
+            url: 'https://grantify.help/logo.svg'
           }
         },
-        mainEntityOfPage: `${window.location.origin}${window.location.pathname}`,
+        mainEntityOfPage: canonicalUrl,
         image: image ? [image] : undefined,
         comment: Array.isArray(post.comments) ? post.comments.map(c => ({
           '@type': 'Comment',

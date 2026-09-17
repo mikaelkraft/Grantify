@@ -161,6 +161,15 @@ export const Sponsor: React.FC = () => {
   useEffect(() => {
     document.title = 'Sponsor & Advertise | Grantify Nigeria';
     
+    const canonicalUrl = 'https://grantify.help/sponsor';
+    let linkCanonical = document.querySelector('link[rel="canonical"]');
+    if (!linkCanonical) {
+      linkCanonical = document.createElement('link');
+      linkCanonical.setAttribute('rel', 'canonical');
+      document.head.appendChild(linkCanonical);
+    }
+    linkCanonical.setAttribute('href', canonicalUrl);
+
     const setMeta = (selector: string, attr: string, value: string) => {
       const el = document.head.querySelector(selector);
       if (el) el.setAttribute(attr, value);
@@ -169,6 +178,7 @@ export const Sponsor: React.FC = () => {
     const desc = 'Advertise your microfinance bank, fintech platform, or loan institution on Grantify Nigeria. Choose from premium top-of-funnel placement and listing features.';
     setMeta('meta[property="og:title"]', 'content', 'Sponsor & Advertise | Grantify Nigeria');
     setMeta('meta[property="og:description"]', 'content', desc);
+    setMeta('meta[property="og:url"]', 'content', canonicalUrl);
     setMeta('meta[name="twitter:title"]', 'content', 'Sponsor & Advertise | Grantify');
     setMeta('meta[name="twitter:description"]', 'content', desc);
     

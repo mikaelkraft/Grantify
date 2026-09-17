@@ -1,0 +1,24 @@
+# Grantify Robots Directive
+# https://grantify.help
+
+User-agent: *
+Allow: /
+Allow: /blog
+Allow: /blog/*
+Allow: /grants/*
+Allow: /loan-providers
+Allow: /pitch
+Allow: /quiz
+Allow: /sponsor
+Allow: /contact
+Allow: /terms
+Allow: /privacy
+
+# Disallow admin dashboard and internal APIs
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /api/
+Disallow: /api/*
+
+# Authoritative Sitemap
+Sitemap: https://grantify.help/sitemap.xml
