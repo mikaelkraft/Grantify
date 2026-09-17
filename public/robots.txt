@@ -13,6 +13,8 @@ Allow: /sponsor
 Allow: /contact
 Allow: /terms
 Allow: /privacy
+Allow: /rss.xml
+Allow: /feed.xml
 
 # Disallow admin dashboard and internal APIs
 Disallow: /admin

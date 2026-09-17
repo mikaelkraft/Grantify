@@ -313,6 +313,27 @@ export const Pitch: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {/* Sponsor Callout */}
+      <div className="mt-8 rounded-2xl bg-gradient-to-r from-grantify-green to-emerald-800 text-white p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl">
+        <div className="max-w-xl">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-grantify-gold/20 text-grantify-gold border border-grantify-gold/40 text-[10px] font-black uppercase tracking-wider mb-2">
+            Corporate &amp; Brand Sponsorship
+          </div>
+          <h4 className="text-xl sm:text-2xl font-black mb-1.5">
+            Sponsor the Weekly ₦50K Pitch Competition
+          </h4>
+          <p className="text-xs sm:text-sm text-emerald-100/90 leading-relaxed">
+            Put your brand, fintech app, or SME financial services directly in front of thousands of active Nigerian entrepreneurs and business founders every single week.
+          </p>
+        </div>
+        <a
+          href="/sponsor?tier=featured"
+          className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-grantify-gold text-gray-950 font-black text-xs uppercase tracking-wider shadow-lg hover:bg-yellow-400 hover:shadow-xl transition-all whitespace-nowrap shrink-0"
+        >
+          <Sparkles size={16} /> Become a Headline Sponsor
+        </a>
+      </div>
     </div>
   );
 };

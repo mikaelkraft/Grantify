@@ -329,12 +329,12 @@ export default async function handler(req, res) {
           flutterwave: {
             ...defaultGatewayConfig.flutterwave,
             ...(savedConfig.flutterwave || {}),
-            clientId: (savedConfig.flutterwave?.clientId || defaultGatewayConfig.flutterwave.clientId || '').trim(),
-            clientSecret: (savedConfig.flutterwave?.clientSecret || defaultGatewayConfig.flutterwave.clientSecret || '').trim(),
+            clientId: (savedConfig.flutterwave?.clientId || savedConfig.flutterwave?.publicKey || defaultGatewayConfig.flutterwave.clientId || '').trim(),
+            clientSecret: (savedConfig.flutterwave?.clientSecret || savedConfig.flutterwave?.secretKey || defaultGatewayConfig.flutterwave.clientSecret || '').trim(),
             encryptionKey: (savedConfig.flutterwave?.encryptionKey || defaultGatewayConfig.flutterwave.encryptionKey || '').trim(),
             secretHash: (savedConfig.flutterwave?.secretHash || defaultGatewayConfig.flutterwave.secretHash || '').trim(),
-            publicKey: (savedConfig.flutterwave?.publicKey || defaultGatewayConfig.flutterwave.publicKey || '').trim(),
-            secretKey: (savedConfig.flutterwave?.secretKey || defaultGatewayConfig.flutterwave.secretKey || '').trim(),
+            publicKey: (savedConfig.flutterwave?.publicKey || savedConfig.flutterwave?.clientId || defaultGatewayConfig.flutterwave.publicKey || '').trim(),
+            secretKey: (savedConfig.flutterwave?.secretKey || savedConfig.flutterwave?.clientSecret || defaultGatewayConfig.flutterwave.secretKey || '').trim(),
             mode: savedConfig.flutterwave?.mode || defaultGatewayConfig.flutterwave.mode || 'live'
           },
           opay: {

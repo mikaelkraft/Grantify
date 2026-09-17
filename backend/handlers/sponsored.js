@@ -287,10 +287,10 @@ export default async function handler(req, res) {
           } catch {}
 
           if (provider === 'flutterwave') {
-            const flwClientId = (gwConfig?.flutterwave?.clientId || process.env.FLW_CLIENT_ID || process.env.FLUTTERWAVE_CLIENT_ID || '').trim();
-            const flwClientSecret = (gwConfig?.flutterwave?.clientSecret || process.env.FLW_CLIENT_SECRET || process.env.FLUTTERWAVE_CLIENT_SECRET || '').trim();
-            const fwKey = (gwConfig?.flutterwave?.publicKey || process.env.FLW_PUBLIC_KEY || process.env.FLUTTERWAVE_PUBLIC_KEY || '').trim();
-            const fwSecret = (gwConfig?.flutterwave?.secretKey || process.env.FLW_SECRET_KEY || process.env.FLUTTERWAVE_SECRET_KEY || '').trim();
+            const flwClientId = (gwConfig?.flutterwave?.clientId || gwConfig?.flutterwave?.publicKey || process.env.FLW_CLIENT_ID || process.env.FLUTTERWAVE_CLIENT_ID || '').trim();
+            const flwClientSecret = (gwConfig?.flutterwave?.clientSecret || gwConfig?.flutterwave?.secretKey || process.env.FLW_CLIENT_SECRET || process.env.FLUTTERWAVE_CLIENT_SECRET || '').trim();
+            const fwKey = (gwConfig?.flutterwave?.publicKey || gwConfig?.flutterwave?.clientId || process.env.FLW_PUBLIC_KEY || process.env.FLUTTERWAVE_PUBLIC_KEY || '').trim();
+            const fwSecret = (gwConfig?.flutterwave?.secretKey || gwConfig?.flutterwave?.clientSecret || process.env.FLW_SECRET_KEY || process.env.FLUTTERWAVE_SECRET_KEY || '').trim();
             const flwMode = (gwConfig?.flutterwave?.mode || process.env.FLW_MODE || 'live').toLowerCase();
             const isLive = flwMode === 'live' || flwMode === 'production';
             const txRef = `SPO-${id}-${Date.now()}`;

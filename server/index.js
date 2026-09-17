@@ -13,10 +13,21 @@ app.use(express.json({ limit: '10mb' }));
 
 app.get('/healthz', (_req, res) => res.status(200).json({ ok: true }));
 
-app.get('/sitemap.xml', async (req, res) => {
+app.get(['/sitemap.xml', '/sitemap'], async (req, res) => {
   const proxiedReq = Object.create(req);
   Object.defineProperty(proxiedReq, 'query', {
     value: { ...(req.query || {}), path: 'sitemap' },
+    writable: true,
+    configurable: true,
+    enumerable: true,
+  });
+  return apiRouter(proxiedReq, res);
+});
+
+app.get(['/rss.xml', '/rss', '/feed.xml', '/feed'], async (req, res) => {
+  const proxiedReq = Object.create(req);
+  Object.defineProperty(proxiedReq, 'query', {
+    value: { ...(req.query || {}), path: 'rss' },
     writable: true,
     configurable: true,
     enumerable: true,
