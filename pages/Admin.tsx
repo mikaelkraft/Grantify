@@ -27,7 +27,8 @@ import {
   EyeOff,
   Lock,
   Building2,
-  CheckCircle
+  CheckCircle,
+  Sparkles
 } from 'lucide-react';
 import React, { useEffect, useRef, useState, useTransition } from 'react';
 import { ApiService } from '../services/storage';

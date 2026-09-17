@@ -4,7 +4,7 @@ import { AdSlot } from './AdSlot';
 import { ApiService } from '../services/storage';
 import { AdConfig, BlogPost, LoanProvider, WhatsappConfig, SocialLinksConfig } from '../types';
 import { makeBlogPath } from '../utils/blogRouting';
-import { Menu, X, AlertTriangle, ShieldAlert, RefreshCw, HelpCircle, Moon, Sun, Search, MessageCircle, Trophy } from 'lucide-react';
+import { Menu, X, AlertTriangle, ShieldAlert, RefreshCw, HelpCircle, Moon, Sun, Search, MessageCircle, Trophy, ArrowUp } from 'lucide-react';
 import { AiChatbot } from './AiChatbot';
 import { SocialAppLogo } from './SocialAppLogo';
 
@@ -22,6 +22,9 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const [blockerDetected, setBlockerDetected] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isPromo1Dismissed, setIsPromo1Dismissed] = useState(false);
+  const [isPromo2Dismissed, setIsPromo2Dismissed] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
   const location = useLocation();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -139,6 +142,14 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       window.removeEventListener('keydown', onKeyDown);
     };
   }, [isSearchOpen]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 400);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const ensureSearchIndex = async () => {
     if (blogIndex.length && loanIndex.length) return;
@@ -298,29 +309,72 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 relative">
       
       {/* Floating Promo Button 1 (Admin Configurable) */}
-      {ads?.promo1Link && (
-        <a 
-          href={ads.promo1Link}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="fixed bottom-24 right-6 z-50 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 animate-bounce flex items-center gap-2 print:hidden"
-        >
-          <span>🔥</span>
-          <span>{ads.promo1Text || 'Offer'}</span>
-        </a>
+      {ads?.promo1Link && !isPromo1Dismissed && (
+        <div className="fixed bottom-36 sm:bottom-32 right-4 sm:right-6 z-40 flex items-center print:hidden group">
+          <a 
+            href={ads.promo1Link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold py-2 sm:py-2.5 px-3.5 sm:px-5 text-xs sm:text-sm rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center gap-1.5"
+          >
+            <span>🔥</span>
+            <span>{ads.promo1Text || 'Offer'}</span>
+          </a>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsPromo1Dismissed(true);
+            }}
+            className="w-5 h-5 -ml-2 -mt-6 bg-gray-900/90 hover:bg-black text-white rounded-full flex items-center justify-center text-[10px] shadow-md border border-white/20 transition-all opacity-80 hover:opacity-100"
+            title="Dismiss offer"
+            aria-label="Dismiss offer"
+          >
+            <X size={10} />
+          </button>
+        </div>
       )}
 
       {/* Floating Promo Button 2 (Admin Configurable) */}
-      {ads?.promo2Link && (
-        <a 
-          href={ads.promo2Link}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 animate-pulse flex items-center gap-2 print:hidden"
+      {ads?.promo2Link && !isPromo2Dismissed && (
+        <div className="fixed bottom-48 sm:bottom-44 right-4 sm:right-6 z-40 flex items-center print:hidden group">
+          <a 
+            href={ads.promo2Link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold py-2 sm:py-2.5 px-3.5 sm:px-5 text-xs sm:text-sm rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center gap-1.5"
+          >
+            <span>🎁</span>
+            <span>{ads.promo2Text || 'Bonus'}</span>
+          </a>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsPromo2Dismissed(true);
+            }}
+            className="w-5 h-5 -ml-2 -mt-6 bg-gray-900/90 hover:bg-black text-white rounded-full flex items-center justify-center text-[10px] shadow-md border border-white/20 transition-all opacity-80 hover:opacity-100"
+            title="Dismiss bonus"
+            aria-label="Dismiss bonus"
+          >
+            <X size={10} />
+          </button>
+        </div>
+      )}
+
+      {/* Universal Floating Back to Top Button */}
+      {showBackToTop && (
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-20 right-4 sm:right-6 z-30 bg-white/95 dark:bg-gray-900/95 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-800 shadow-lg hover:shadow-xl rounded-full p-2.5 sm:p-3 transition-all hover:scale-110 active:scale-95 flex items-center justify-center backdrop-blur-sm print:hidden"
+          title="Back to top"
+          aria-label="Back to top"
         >
-          <span>🎁</span>
-          <span>{ads.promo2Text || 'Bonus'}</span>
-        </a>
+          <ArrowUp size={18} />
+        </button>
       )}
 
       {/* Compliance Warning Modal */}

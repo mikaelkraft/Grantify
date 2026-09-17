@@ -58,37 +58,61 @@ export const TestimonialCard: React.FC<Props> = ({ data }) => {
     setImageError(true);
   };
 
+  // Get clean badge label without duplicate words (e.g. "Grant Grant")
+  const getBadgeLabel = () => {
+    if (!data.provider || !data.provider.trim()) {
+      return isLoan ? 'Approved Loan' : 'Non-Dilutive Grant';
+    }
+    const prov = data.provider.trim();
+    const suffix = isLoan ? 'Loan' : 'Grant';
+    if (new RegExp(`\\b${suffix}\\b`, 'i').test(prov)) {
+      return prov;
+    }
+    return `${prov} ${suffix}`;
+  };
+
+  const badgeLabel = getBadgeLabel();
+
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm hover:shadow-md transition-all p-5 mb-4 flex flex-col h-full relative group">
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-start gap-3 min-w-0">
-          <img 
-            src={imageError ? DEFAULT_AVATAR : data.image} 
-            alt={data.name} 
-            className="w-10 h-10 rounded-full object-cover border border-gray-100 dark:border-gray-800 shrink-0"
-            onError={handleImageError}
-          />
-          <div className="min-w-0">
-            <h4 className="font-black text-gray-900 dark:text-gray-100 text-sm truncate">{data.name}</h4>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {data.date} • <span className={isLoan ? "text-amber-700 dark:text-amber-400 font-semibold" : "text-emerald-700 dark:text-emerald-400 font-semibold"}>
-                {isLoan ? 'Approved' : 'Received'} {formatCurrency(data.amount)}
-              </span>
-            </p>
-          </div>
-        </div>
+      {/* Top Header Row: Category Badge & Verified Date */}
+      <div className="flex items-center justify-between gap-2 mb-3.5">
+        {isLoan ? (
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shadow-xs max-w-[72%]">
+            <ShieldCheck size={12} className="shrink-0 text-amber-600 dark:text-amber-400" />
+            <span className="truncate">{badgeLabel}</span>
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 shadow-xs max-w-[72%]">
+            <CheckCircle size={12} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
+            <span className="truncate">{badgeLabel}</span>
+          </span>
+        )}
+        <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 whitespace-nowrap shrink-0">
+          {data.date}
+        </span>
+      </div>
 
-        {/* Funding Type Badge */}
-        <div className="shrink-0">
-          {isLoan ? (
-            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shadow-xs">
-              <ShieldCheck size={11} /> {data.provider ? `${data.provider} Loan` : 'Loan Approved'}
+      {/* User Profile Row: Avatar, Full Name, Clean Amount Tag */}
+      <div className="flex items-center gap-3 mb-3.5">
+        <img 
+          src={imageError ? DEFAULT_AVATAR : data.image} 
+          alt={data.name} 
+          className="w-11 h-11 rounded-full object-cover border border-gray-100 dark:border-gray-800 shrink-0 shadow-xs"
+          onError={handleImageError}
+        />
+        <div className="min-w-0 flex-1">
+          <h4 className="font-black text-gray-900 dark:text-gray-100 text-sm sm:text-base leading-tight truncate">
+            {data.name}
+          </h4>
+          <p className="text-xs mt-0.5 whitespace-nowrap">
+            <span className="text-gray-500 dark:text-gray-400 font-medium">
+              {isLoan ? 'Approved' : 'Received'}:{' '}
             </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 shadow-xs">
-              <CheckCircle size={11} /> {data.provider ? `${data.provider} Grant` : 'Grant Match'}
+            <span className={isLoan ? "text-amber-700 dark:text-amber-400 font-bold" : "text-emerald-700 dark:text-emerald-400 font-bold"}>
+              {formatCurrency(data.amount)}
             </span>
-          )}
+          </p>
         </div>
       </div>
       

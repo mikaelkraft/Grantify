@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ApiService } from '../services/storage';
 import { BlogPost, BlogComment, AdConfig } from '../types';
-import { Loader2, ThumbsUp, Heart, Hand, MessageSquare, ArrowLeft, Send, Calendar, User, Shield, Share2, Eye, ArrowUp, Copy, Flag, Sparkles, ExternalLink } from 'lucide-react';
+import { Loader2, ThumbsUp, Heart, Hand, MessageSquare, ArrowLeft, Send, Calendar, User, Shield, Share2, Eye, Copy, Flag, Sparkles, ExternalLink } from 'lucide-react';
 import { AdSlot } from '../components/AdSlot';
 import { FacebookShareButton, TwitterShareButton, WhatsappShareButton, LinkedinShareButton, FacebookIcon, WhatsappIcon, LinkedinIcon } from 'react-share';
 import { getBlogPlaceholderImage } from '../utils/blogPlaceholder';
@@ -377,7 +377,6 @@ export const BlogPostView: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
-  const [showBackToTop, setShowBackToTop] = useState(false);
   const [myReaction, setMyReaction] = useState<'likes' | 'loves' | 'claps' | null>(null);
   const [didCopyLink, setDidCopyLink] = useState(false);
   const [commentsSort, setCommentsSort] = useState<'oldest' | 'newest' | 'helpful'>('oldest');
@@ -589,13 +588,6 @@ export const BlogPostView: React.FC = () => {
       navigate(`/blog/${canonical}`, { replace: true });
     }
   }, [post?.id, post?.title, slugOrId, navigate]);
-
-  useEffect(() => {
-    const onScroll = () => setShowBackToTop(window.scrollY > 600);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
 
   useEffect(() => {
     try {
@@ -1405,18 +1397,6 @@ export const BlogPostView: React.FC = () => {
           )}
         </div>
       </section>
-
-      {showBackToTop && (
-        <button
-          type="button"
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="fixed bottom-24 right-6 z-40 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-800 shadow-lg hover:shadow-xl rounded-full p-3 transition"
-          title="Back to top"
-          aria-label="Back to top"
-        >
-          <ArrowUp size={18} />
-        </button>
-      )}
     </div>
   );
 };
