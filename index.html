@@ -273,37 +273,90 @@
       .quill-content img { max-width: 100%; height: auto; border-radius: 12px; }
 
       /* Admin editor (ReactQuill) - sticky toolbar + dark mode */
+      .admin-quill {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+      }
       .admin-quill .ql-toolbar.ql-snow {
         position: sticky;
         top: 0;
-        z-index: 40;
+        z-index: 30;
         background: #ffffff;
-        overflow-x: auto;
+        display: flex !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+        padding: 6px 8px !important;
+        gap: 2px !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+      }
+      .admin-quill .ql-toolbar.ql-snow .ql-formats {
+        margin-right: 4px !important;
+        margin-bottom: 2px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        flex-wrap: wrap !important;
       }
       .admin-quill .ql-toolbar.ql-snow,
       .admin-quill .ql-container.ql-snow {
         border-color: rgba(0,0,0,0.08);
+        box-sizing: border-box !important;
       }
 
       /* Prevent mobile layout expansion when editing long / media-heavy posts */
-      .admin-quill .ql-container.ql-snow,
-      .admin-quill .ql-editor {
-        max-width: 100%;
+      .admin-quill .ql-container.ql-snow {
+        max-width: 100% !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
       }
       .admin-quill .ql-editor {
-        overflow-wrap: anywhere;
-        word-break: normal;
+        max-width: 100% !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        overflow-wrap: break-word !important;
+        word-break: break-word !important;
+        padding: 12px 14px !important;
+        font-size: 15px;
+        line-height: 1.6;
+      }
+      @media (max-width: 640px) {
+        .admin-quill .ql-toolbar.ql-snow {
+          padding: 4px 6px !important;
+          gap: 1px !important;
+        }
+        .admin-quill .ql-toolbar.ql-snow button {
+          padding: 2px 4px !important;
+          width: 26px !important;
+          height: 26px !important;
+        }
+        .admin-quill .ql-toolbar.ql-snow .ql-picker-label {
+          padding-left: 4px !important;
+          padding-right: 2px !important;
+        }
+        .admin-quill .ql-editor {
+          padding: 10px !important;
+          font-size: 14px !important;
+        }
       }
       .admin-quill .ql-editor img,
       .admin-quill .ql-editor iframe,
       .admin-quill .ql-editor video {
-        max-width: 100%;
-        height: auto;
+        max-width: 100% !important;
+        height: auto !important;
       }
       .admin-quill .ql-editor pre {
-        max-width: 100%;
+        max-width: 100% !important;
         overflow-x: auto;
         white-space: pre-wrap;
+        word-break: break-all;
       }
       .dark .admin-quill .ql-toolbar.ql-snow {
         background: #0b1220;

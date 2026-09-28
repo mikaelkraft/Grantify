@@ -54,26 +54,26 @@ const ANGLES = [
 ];
 
 const STORY_SEEDS = [
-  'A fashion entrepreneur in Yaba trying to stabilize cashflow after a viral weekend surge exhausted her fabrics and generator fuel',
+  'A high-end ready-to-wear fashion label in Yaba trying to stabilize cashflow after bulk fabric supplier price revisions and delayed boutique consignments',
   'A commercial rice mill operator in Kano balancing broken destoner equipment repairs with grain purchase cycles',
   'A retail pharmacy owner in Enugu navigating NAFDAC compliance renewal fees and distributor price hikes on essential medications',
   'A solar installer in Kaduna chasing delayed milestone payouts on public school electrification projects',
-  'A master furniture fabricator in Aba grappling with diesel costs for his heavy industrial sanders while fulfilling hotel orders',
+  'A commercial furniture manufacturer in Aba expanding timber drying kilns and precision CNC routing capacity to fulfill corporate tenders',
   'A corporate catering firm in Ibadan transitioning from cash payments to 45-day invoice terms with logistics clients',
   'A commercial catfish farmer in Ogun state battling skyrocketing imported feed costs and cold-chain losses during transit',
   'A high-volume printing press owner in Port Harcourt struggling to keep two oilfield safety manual contracts on delivery schedule',
   'A wholesale textile trader in Onitsha balancing container clearing delays at Onne port with retailer advance deposits',
-  'A metal fabrication shop owner in Lagos Mainland trying to keep 12 welders on payroll despite 5-day grid outages',
+  'A structural steel and metal fabrication shop in Ikeja managing 60-day invoice milestones on warehouse construction contracts',
   'A vocational tech academy founder in Abuja weighing tuition installment discounts against facility rent in Utako',
   'A tomato aggregator in Jos tackling post-harvest transit spoilage, bad road detours, and volatile Mile 12 market price swings',
   'A gadget refurbishment shop in Computer Village Ikeja needing bridge capital to purchase a batch of tested screens from Dubai',
   'A commercial cassava flour processor in Oyo state seeking an off-taker guarantee to unlock a bank equipment lease',
-  'A cold-room seafood distributor in Calabar seeking solar-hybrid backup before festival season restocking begins',
+  'A cold-chain seafood distributor in Calabar expanding refrigerated storage capacity before peak festive season restocking',
   'A ginger export aggregator in Kafanchan Kaduna needing pre-shipment export finance to fulfill an EU order',
   'An auto spare parts importer in Nnewi negotiating credit lines with local mechanics while awaiting container clearance at Tin Can',
   'A private clinic administrator in Benin City balancing nursing payroll with delayed private health insurance HMO disbursements',
   'A poultry farmer in Abeokuta weighing whether to buy day-old chicks at inflated prices or pivot to egg production',
-  'A logistics courier operator in Surulere Lagos facing multiple state dispatch rider levy demands and maintenance costs',
+  'A logistics courier operator in Surulere Lagos facing multiple state dispatch rider levy demands and fleet maintenance costs',
   'A leather footwear workshop manager in Ariaria Market Aba trying to mechanize sole stitching for school uniform tenders',
   'A bakery owner in Ilorin dealing with 200% price increases on flour and butter while customers resist bread price hikes',
   'An edtech startup founder in Yaba striving to extend 6-month runway after an international investor froze Africa fund deployments',
@@ -84,7 +84,7 @@ const STORY_SEEDS = [
   'A commercial block-making industry owner in Uyo dealing with sudden cement price increases mid-way through a estate supply contract',
   'A waste recycling aggregator in Kano city buying baling equipment to supply plastic flakes to industrial packaging manufacturers',
   'A small garment factory in Oshodi Lagos fulfilling 5,000 corporate polo orders with tight client delivery deadlines',
-  'A dry-cleaning chain operator in Gwarinpa Abuja considering an inverter upgrade to reduce daily fuel expenses',
+  'A commercial dry-cleaning chain in Gwarinpa Abuja securing commercial steam boiler equipment leasing to meet hotel linen contracts',
   'A honey aggregator and packager in Makurdi Benue state seeking organic export lab certification to sell to premium supermarket chains',
   'A commercial vehicle fleet repair depot in Warri managing spare parts inventory on credit while waiting for corporate fleet payouts',
   'A software dev shop in Ikeja seeking invoice discounting against a government ministry digitization contract',
@@ -161,12 +161,13 @@ const AUTODRAFT_MARKER = 'autodraft';
 
 const buildGroqMessages = ({ angleLabel, storySeed, recentTitles, newsContext }) => {
   const structureVariant = STRUCTURE_VARIANTS[Math.floor(Math.random() * STRUCTURE_VARIANTS.length)] || STRUCTURE_VARIANTS[0];
-  const systemInstruction = `You are "Grantifier", a street-smart, highly respected Nigerian business editor, funding insider, and grounded financial journalist writing directly for Nigerian business owners, SME operators, and entrepreneurs.
+  const systemInstruction = `You are "Grantifier", a senior Nigerian business editor, seasoned funding consultant, and pragmatic financial journalist writing authoritative, comprehensive, and highly engaging articles for Nigerian business owners, SME operators, and startup founders.
 
-VOICE & PERSONA:
-- Write like an experienced, trusted Nigerian insider talking to a fellow business owner over coffee or lunch: warm, pragmatic, sharp, and conversational.
-- Ground every piece in vivid Nigerian business realities: fuel and diesel prices, generator maintenance, bank POS charges, CAC post-incorporation wahala, supplier credit cycles, customs clearance delays at Apapa or Onne ports, foreign exchange volatility, and why most grant applications get rejected in the first round.
-- Avoid robotic, generic AI textbook jargon. Ban cliché AI phrases like: "In today's fast-paced world", "In the dynamic landscape of", "Crucial stepping stone", "Beacon of hope", "Testament to", "Furthermore", "Additionally", "Moreover", "It is important to remember".
+VOICE & EDITORIAL STANDARD:
+- Write like a seasoned Nigerian financial journalist and venture advisor (such as BusinessDay or Stears): professional, sharp, insightful, and actionable.
+- Ground every piece in substantive Nigerian commercial, legal, and operational mechanics: CAC post-incorporation filings, Tax Clearance Certificates (TCC), audited financial statements, Bank of Industry (BOI) matching funds, SMEDAN credit ratings, export documentation (NXP forms, NEPC guidelines), trade credit terms, invoice discounting, asset leasing, and commercial bank collateral covenants.
+- ABSOLUTE BAN ON POWER & FUEL CLICHÉS: DO NOT mention "diesel costs", "generator maintenance", "fuel bills", "generator fumes", "blackouts", or "fuel price spikes". Do NOT make fuel or power the problem or plotline. The stories and guides must address real commercial financing and operational business strategy.
+- Ban AI fluff and robotic clichés: Do NOT use phrases like "In today's fast-paced world", "In the dynamic landscape of", "Crucial stepping stone", "Beacon of hope", "Testament to", "Furthermore", "Additionally", "Moreover", "It is important to remember", or "Let's dive in".
 - NEVER use em dashes (—). Use commas, colons, or clean periods instead.
 - Do NOT include a generic "Conclusion" or "In Summary" section. Conclude with concrete, immediate operator next steps.
 - Use Naira (₦) with realistic market numbers (e.g. ₦1.5M, ₦5M, ₦25M working capital).
@@ -181,26 +182,28 @@ VOICE & PERSONA:
     ? titles.map((t, i) => `${i + 1}. ${t}`).join('\n')
     : '(none available)';
 
-  const userPrompt = `Write a compelling, human, and practical Nigerian business briefing on this theme: "${safeAngle}".
+  const userPrompt = `Write an authoritative, highly practical, and engaging Nigerian business and financing guide on this theme: "${safeAngle}".
 
 Opening Narrative Hook:
-Use this realistic scenario to anchor the opening: "${safeSeed}".
-Start mid-action in the opening paragraph with concrete sensory and financial details (e.g., fuel costs, inventory invoice, delayed customer transfer, unread bank alert). Do NOT start with "In Nigeria...", "Meet [Name]...", or "SMEs are the backbone...". Dive straight into the operational moment.
+Anchor the opening with this operational scenario: "${safeSeed}".
+Start mid-action in the opening paragraph with concrete business and financial dynamics (e.g., supplier trade terms, inventory turnover, delayed milestone invoice collection, or bank credit evaluation).
+CRITICAL: Do NOT mention diesel, generators, or fuel. Keep the focus entirely on commercial and financial execution.
+Do NOT start with "In Nigeria...", "Meet [Name]...", or "SMEs are the backbone...". Dive straight into the operational moment.
 
 Avoid repeating these recent daily post titles:
 ${recentBlock}
 
 Structure & Content Plan:
 - <h2> Punchy, curiosity-sparking, natural headline (do NOT force the word "Nigeria" unless it genuinely makes the title better; no dates in title).
-- 1 vivid narrative opening hook paragraph that connects the operator's dilemma to the broader market reality.
+- 1 vivid narrative opening hook paragraph that connects the operator's dilemma to the broader commercial market reality.
 - 4 crisp, engaging <h3> sections following this dynamic blueprint:
   1) ${structureVariant.sectionA}
   2) ${structureVariant.sectionB}
   3) ${structureVariant.sectionC}
   4) ${structureVariant.sectionD}
-- In each section, write natural paragraphs with varied sentence length. Use 1-2 realistic micro-scenes (e.g., an off-taker demanding 30-day terms, a bank loan officer asking for landed property collateral, or a grant reviewer searching for audited accounts).
-- Provide practical funding guidance: explain grants (SMEDAN, TEF, BOI, donor funds), structured loans, asset financing, or supplier credit. Contrast realistic grant requirements against predatory loan shark apps.
-- Provide a crisp risk-management section with concrete red flags (e.g. upfront processing fee scams, unrealistic interest calculations, hidden monthly management charges).
+- In each section, write natural paragraphs with varied sentence length. Use 1-2 realistic micro-scenes (e.g., an enterprise off-taker demanding 45-day payment terms, a commercial bank loan committee requiring perfected landed collateral, or a grant review board looking for audited management accounts).
+- Provide practical funding guidance: explain grants (SMEDAN, TEF, BOI, donor matching facilities, state enterprise funds), structured loans, equipment lease financing, invoice factoring, or supplier credit. Contrast realistic grant requirements against predatory quick-loan apps.
+- Provide a crisp risk-management section with concrete red flags (e.g. upfront advance fee scams, unrealistic compound interest calculations, hidden monthly management charges, or signing personal guarantees blindly).
 - Provide an actionable checklist with 5-6 practical bullet points in the final section.
 
 Traffic & Keyword Intent:

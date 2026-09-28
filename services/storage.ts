@@ -1225,10 +1225,14 @@ export const ApiService = {
     if (payload?.action === 'comment' || payload?.action === 'likeComment') {
       if (!payload.userId) payload.userId = getOrCreateAnonUserId();
     }
+    const adminHeader = getAdminSessionHeader();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (adminHeader) headers['X-Admin-Session'] = adminHeader;
+
     const method = data.action === 'update' ? 'PUT' : 'POST';
     const res = await fetch(`${API_URL}/api/blog`, {
       method: method,
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(payload)
     });
     if (!res.ok) {
@@ -1250,7 +1254,10 @@ export const ApiService = {
   },
 
   deleteBlogPost: async (id: string): Promise<void> => {
-    const res = await fetch(`${API_URL}/api/blog?id=${id}`, { method: 'DELETE' });
+    const adminHeader = getAdminSessionHeader();
+    const headers: Record<string, string> = {};
+    if (adminHeader) headers['X-Admin-Session'] = adminHeader;
+    const res = await fetch(`${API_URL}/api/blog?id=${id}`, { method: 'DELETE', headers });
     if (!res.ok) throw new Error('Failed to delete blog post');
   },
 

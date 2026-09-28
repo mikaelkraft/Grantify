@@ -598,6 +598,26 @@ export default async function handler(req, res) {
         }
       }
 
+      if (action === 'approve' || action === 'publishDraft') {
+        const postId = toStr(req.body?.id).trim();
+        if (!postId) return res.status(400).json({ error: 'Missing post id' });
+
+        await client.query(`
+          UPDATE blog_posts
+          SET source_url = CASE WHEN LOWER(COALESCE(source_url, '')) IN ('autodraft', 'autoblog', 'autopost') THEN '' ELSE source_url END,
+              source_name = CASE WHEN LOWER(COALESCE(source_name, '')) IN ('autodraft', 'autoblog', 'autopost') THEN '' ELSE source_name END,
+              tags = ARRAY(
+                SELECT elem FROM unnest(COALESCE(tags, ARRAY[]::text[])) AS elem
+                WHERE LOWER(elem) NOT IN ('autodraft', 'autoblog', 'autopost')
+              ),
+              updated_at = CURRENT_TIMESTAMP
+          WHERE id = $1
+        `, [postId]);
+
+        clearBlogCache();
+        return res.status(200).json({ success: true, message: 'Draft approved and published' });
+      }
+
       const id = Date.now().toString();
       const seededLikes = typeof likes === 'number' ? likes : Math.floor(Math.random() * 4);
       const seededLoves = typeof loves === 'number' ? loves : Math.floor(Math.random() * 2);
@@ -619,7 +639,22 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'PUT') {
-      const { id, title, content, author, authorRole, category, image, tags, sourceName, sourceUrl, views, createdAt, likes, loves, claps } = req.body;
+      const { id, title, content, author, authorRole, category, image, tags, sourceName, sourceUrl, views, createdAt, likes, loves, claps, publishDraft } = req.body;
+
+      const isPublishingDraft = publishDraft === true ||
+        String(sourceUrl || '').toLowerCase() === '' ||
+        String(sourceUrl || '').toLowerCase() !== 'autodraft';
+
+      const dirtyMarkers = ['autodraft', 'autoblog', 'autopost'];
+      let safeTags = Array.isArray(tags) ? tags : [];
+      let safeSourceName = typeof sourceName === 'string' ? sourceName : '';
+      let safeSourceUrl = typeof sourceUrl === 'string' ? sourceUrl : '';
+
+      if (isPublishingDraft) {
+        safeTags = safeTags.filter(t => !dirtyMarkers.includes(String(t || '').trim().toLowerCase()));
+        if (dirtyMarkers.includes(safeSourceUrl.toLowerCase())) safeSourceUrl = '';
+        if (dirtyMarkers.includes(safeSourceName.toLowerCase())) safeSourceName = '';
+      }
 
       const cleanedContent = stripDataImagesFromHtml(content);
       const featuredImage = deriveFeaturedImage(image, cleanedContent);
@@ -638,7 +673,7 @@ export default async function handler(req, res) {
              created_at = COALESCE($11, created_at),
              updated_at = CURRENT_TIMESTAMP
          WHERE id = $12`,
-        [title, cleanedContent, author, authorRole, category, featuredImage, tags || [], sourceName, sourceUrl, typeof views === 'number' ? views : null, createdAt || null, id]
+        [title, cleanedContent, author, authorRole, category, featuredImage, safeTags, safeSourceName, safeSourceUrl, typeof views === 'number' ? views : null, createdAt || null, id]
       );
 
       clearBlogCache();

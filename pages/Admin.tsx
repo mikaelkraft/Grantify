@@ -1513,26 +1513,51 @@ export const Admin: React.FC = () => {
     }
   };
 
+  const cleanAutodraftFields = <T extends Partial<BlogPost>>(post: T): T => {
+    const dirtyMarkers = ['autodraft', 'autoblog', 'autopost'];
+    const nextTags = Array.isArray(post.tags)
+      ? post.tags.filter(t => !dirtyMarkers.includes(String(t || '').trim().toLowerCase()))
+      : [];
+
+    const rawSourceUrl = String(post.sourceUrl || '').trim();
+    const nextSourceUrl = dirtyMarkers.includes(rawSourceUrl.toLowerCase()) ? '' : rawSourceUrl;
+
+    const rawSourceName = String(post.sourceName || '').trim();
+    const nextSourceName = dirtyMarkers.includes(rawSourceName.toLowerCase()) ? '' : rawSourceName;
+
+    return {
+      ...post,
+      tags: nextTags,
+      sourceUrl: nextSourceUrl,
+      sourceName: nextSourceName
+    };
+  };
+
   const isAutodraftPost = (post: BlogPost) => {
     const isSourceUrlAutodraft = String(post.sourceUrl || '').toLowerCase() === 'autodraft';
-    const isTagAutodraft = Array.isArray(post.tags) && post.tags.map(String).some(t => t.toLowerCase() === 'autodraft');
+    const isTagAutodraft = Array.isArray(post.tags) && post.tags.map(String).some(t => {
+      const low = t.toLowerCase();
+      return low === 'autodraft' || low === 'autoblog' || low === 'autopost';
+    });
     return isSourceUrlAutodraft || isTagAutodraft;
   };
 
   const handleBulkApproveBlogPosts = async () => {
     const ids = Array.from(selectedBlogPostIds);
     if (ids.length === 0) return;
-    const ok = window.confirm(`Approve and publish ${ids.length} post(s)? This removes the autodraft tag.`);
+    const ok = window.confirm(`Approve and publish ${ids.length} post(s)? This removes all autodraft and autopost labels and publishes them immediately.`);
     if (!ok) return;
 
     setIsSavingPost(true);
     try {
+      const updatedPostsMap = new Map<string, BlogPost>();
       for (const id of ids) {
         const post = blogPosts.find(p => String(p.id) === String(id));
         if (!post) continue;
-        const nextTags = (Array.isArray(post.tags) ? post.tags.filter(t => String(t).toLowerCase() !== 'autodraft') : []);
+        const cleaned = cleanAutodraftFields(post);
         await ApiService.submitBlogAction({
           action: 'update',
+          publishDraft: true,
           id: String(post.id),
           title: post.title,
           content: post.content,
@@ -1540,17 +1565,24 @@ export const Admin: React.FC = () => {
           authorRole: post.authorRole,
           category: post.category,
           image: post.image || '',
-          tags: nextTags,
-          sourceName: post.sourceName || '',
-          sourceUrl: String(post.sourceUrl || '').toLowerCase() === 'autodraft' ? '' : (post.sourceUrl || ''),
+          tags: cleaned.tags || [],
+          sourceName: cleaned.sourceName || '',
+          sourceUrl: cleaned.sourceUrl || '',
           views: post.views,
           likes: post.likes,
           loves: post.loves,
           claps: post.claps,
           createdAt: post.createdAt
         });
+        updatedPostsMap.set(String(id), {
+          ...post,
+          tags: cleaned.tags || [],
+          sourceName: cleaned.sourceName || '',
+          sourceUrl: cleaned.sourceUrl || ''
+        });
       }
 
+      setBlogPosts(prev => prev.map(p => updatedPostsMap.get(String(p.id)) || p));
       setSelectedBlogPostIds(new Set());
       await refreshData();
       alert('Selected posts approved and published.');
@@ -1624,12 +1656,13 @@ export const Admin: React.FC = () => {
   };
 
   const handleApproveSinglePost = async (post: BlogPost) => {
-    if (!window.confirm(`Approve and publish "${post.title}"? This will remove the "autodraft" tag.`)) return;
+    if (!window.confirm(`Approve and publish "${post.title}"? This will remove all autodraft and autopost labels and publish immediately.`)) return;
     setIsSavingPost(true);
     try {
-      const nextTags = (Array.isArray(post.tags) ? post.tags.filter(t => String(t).toLowerCase() !== 'autodraft') : []);
+      const cleaned = cleanAutodraftFields(post);
       await ApiService.submitBlogAction({
         action: 'update',
+        publishDraft: true,
         id: String(post.id),
         title: post.title,
         content: post.content,
@@ -1637,15 +1670,29 @@ export const Admin: React.FC = () => {
         authorRole: post.authorRole,
         category: post.category,
         image: post.image || '',
-        tags: nextTags,
-        sourceName: post.sourceName || '',
-        sourceUrl: String(post.sourceUrl || '').toLowerCase() === 'autodraft' ? '' : (post.sourceUrl || ''),
+        tags: cleaned.tags || [],
+        sourceName: cleaned.sourceName || '',
+        sourceUrl: cleaned.sourceUrl || '',
         views: post.views,
         likes: post.likes,
         loves: post.loves,
         claps: post.claps,
         createdAt: post.createdAt
       });
+      setBlogPosts(prev => prev.map(p => (String(p.id) === String(post.id) ? {
+        ...p,
+        tags: cleaned.tags || [],
+        sourceName: cleaned.sourceName || '',
+        sourceUrl: cleaned.sourceUrl || ''
+      } : p)));
+      if (newPost.id === post.id) {
+        setNewPost(prev => ({
+          ...prev,
+          tags: cleaned.tags || [],
+          sourceName: cleaned.sourceName || '',
+          sourceUrl: cleaned.sourceUrl || ''
+        }));
+      }
       await refreshData();
       alert('Post approved and published.');
     } catch (e: any) {
@@ -1789,10 +1836,18 @@ export const Admin: React.FC = () => {
       // sanitize AI output / pasted HTML before submit (defense in depth)
       content = sanitizeEditorHtml(content);
 
+      let cleanedPostData = { ...newPost };
+      const isDraftBeingPublished = isEditingPost && isAutodraftPost(newPost as BlogPost);
+      if (isDraftBeingPublished) {
+        cleanedPostData = cleanAutodraftFields(cleanedPostData);
+        setNewPost(cleanedPostData);
+      }
+
       const payload = {
-        ...newPost,
-        image: (newPost.image || '').trim(),
-        content
+        ...cleanedPostData,
+        image: (cleanedPostData.image || '').trim(),
+        content,
+        publishDraft: isDraftBeingPublished ? true : undefined
       };
 
       if (isEditingPost && newPost.id) {
@@ -1818,7 +1873,10 @@ export const Admin: React.FC = () => {
           };
         }));
         if (updated?.success === true || updated?.success === undefined) {
-          setPostSaveNotice({ kind: 'success', message: 'Publication updated.' });
+          setPostSaveNotice({
+            kind: 'success',
+            message: isDraftBeingPublished ? 'Article approved and published to community!' : 'Publication updated.'
+          });
         }
       } else {
         const created = await ApiService.submitBlogAction({ ...payload, action: 'create' });
@@ -4875,7 +4933,7 @@ export const Admin: React.FC = () => {
                    </div>
 
                     {/* Add New/Edit Post Form */}
-                    <div id="new-post-form" className={`p-6 rounded-xl border mb-8 transition-all ${isEditingPost ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900 shadow-md' : 'bg-gray-100 dark:bg-gray-950 border-gray-200 dark:border-gray-800'}`}>
+                    <div id="new-post-form" className={`p-3.5 sm:p-5 md:p-6 rounded-xl border mb-8 transition-all w-full max-w-full min-w-0 overflow-hidden ${isEditingPost ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900 shadow-md' : 'bg-gray-100 dark:bg-gray-950 border-gray-200 dark:border-gray-800'}`}>
                       <div className="flex justify-between items-center mb-4">
                         <h4 className="font-bold flex items-center gap-2 text-gray-700 dark:text-gray-100">
                           {isEditingPost ? <Zap className="text-blue-600 animate-pulse" size={18} /> : null}
@@ -4942,10 +5000,10 @@ export const Admin: React.FC = () => {
                         )
                       )}
                       
-                      <form onSubmit={handleAddBlogPost} className="grid md:grid-cols-2 gap-4">
-                         <div className="md:col-span-2 flex flex-col md:flex-row gap-3">
-                           <input className={inputClassSmall + " flex-grow"} placeholder="Title" value={newPost.title} onChange={e => setNewPost({...newPost, title: e.target.value})} required />
-                           <div className="flex gap-2 min-w-fit">
+                      <form onSubmit={handleAddBlogPost} className="grid md:grid-cols-2 gap-3 sm:gap-4 w-full max-w-full min-w-0">
+                         <div className="md:col-span-2 flex flex-col sm:flex-row gap-2 sm:gap-3 w-full min-w-0">
+                           <input className={inputClassSmall + " flex-grow min-w-0"} placeholder="Title" value={newPost.title} onChange={e => setNewPost({...newPost, title: e.target.value})} required />
+                           <div className="flex gap-2 shrink-0">
                              <button 
                                type="button"
                                onClick={handleAiSmartWrite}
@@ -5167,9 +5225,9 @@ export const Admin: React.FC = () => {
                             </div>
                           )}
                          
-                         <div className="md:col-span-2 bg-white dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-800 overflow-visible min-h-[300px] flex flex-col min-w-0 max-w-full">
+                         <div className="md:col-span-2 bg-white dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-800 overflow-hidden min-h-[300px] flex flex-col min-w-0 w-full max-w-full">
                             <div className="p-2 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Article Content</div>
-                            <div className="px-3 py-2 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between gap-3">
+                            <div className="px-2.5 sm:px-3 py-2 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 flex flex-wrap items-center justify-between gap-2">
                               <label className="flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-gray-200">
                                 <input
                                   type="checkbox"
@@ -5239,9 +5297,25 @@ export const Admin: React.FC = () => {
                             />
                          </div>
  
-                         <div className="flex flex-wrap items-start gap-3 mt-4">
-                           <button type="submit" disabled={isSavingPost} className={`${isEditingPost ? 'bg-blue-600 hover:bg-blue-800' : 'bg-grantify-green hover:bg-green-800'} inline-flex items-center justify-center min-h-11 text-white font-bold py-3 leading-tight rounded transition shadow-lg relative z-10 px-4 whitespace-normal text-center`}>
-                             {isSavingPost ? "Saving..." : (isEditingPost ? "Update Publication" : "Publish Article to Community")}
+                         <div className="flex flex-wrap items-start gap-2.5 sm:gap-3 mt-4 w-full max-w-full">
+                           <button
+                             type="submit"
+                             disabled={isSavingPost}
+                             className={`${
+                               isEditingPost
+                                 ? isAutodraftPost(newPost as BlogPost)
+                                   ? 'bg-indigo-600 hover:bg-indigo-700'
+                                   : 'bg-blue-600 hover:bg-blue-800'
+                                 : 'bg-grantify-green hover:bg-green-800'
+                             } inline-flex items-center justify-center min-h-11 text-white font-bold py-3 leading-tight rounded transition shadow-lg relative z-10 px-4 whitespace-normal text-center`}
+                           >
+                             {isSavingPost
+                               ? "Saving..."
+                               : isEditingPost
+                               ? isAutodraftPost(newPost as BlogPost)
+                                 ? "Approve & Publish Article"
+                                 : "Update Publication"
+                               : "Publish Article to Community"}
                            </button>
                            <button
                              type="button"
@@ -5257,23 +5331,36 @@ export const Admin: React.FC = () => {
                            >
                              Preview Article
                            </button>
-                           {isEditingPost && (
+                           {isEditingPost && isAutodraftPost(newPost as BlogPost) && (
                              <button
                                type="button"
                                disabled={isSavingPost}
                                onClick={async () => {
                                  if (!newPost.id) return;
-                                 if (!window.confirm('Approve and publish this post? This will remove the "autodraft" tag and publish.')) return;
+                                 if (!window.confirm('Approve and publish this post? This will remove all autodraft and autopost labels and publish immediately.')) return;
                                  setIsSavingPost(true);
                                  try {
+                                   const cleaned = cleanAutodraftFields(newPost);
                                    const payload = {
-                                     ...newPost,
-                                     tags: (Array.isArray(newPost.tags) ? newPost.tags.filter(t => String(t).toLowerCase() !== 'autodraft') : []),
-                                     content: autoLinkUrls ? linkifyHtml(newPost.content) : newPost.content
+                                     ...cleaned,
+                                     content: autoLinkUrls ? linkifyHtml(cleaned.content) : cleaned.content,
+                                     publishDraft: true
                                    };
-                                   const updated = await ApiService.submitBlogAction({ ...payload, id: String(newPost.id), action: 'update' });
-                                   // update local list
-                                   setBlogPosts(prev => prev.map(p => (String(p.id) === String(newPost.id) ? { ...p, ...payload } : p)));
+                                   await ApiService.submitBlogAction({ ...payload, id: String(newPost.id), action: 'update' });
+                                   setNewPost(prev => ({
+                                     ...prev,
+                                     tags: cleaned.tags || [],
+                                     sourceName: cleaned.sourceName || '',
+                                     sourceUrl: cleaned.sourceUrl || ''
+                                   }));
+                                   setBlogPosts(prev => prev.map(p => (String(p.id) === String(newPost.id) ? {
+                                     ...p,
+                                     ...payload,
+                                     tags: cleaned.tags || [],
+                                     sourceName: cleaned.sourceName || '',
+                                     sourceUrl: cleaned.sourceUrl || ''
+                                   } : p)));
+                                   setPostSaveNotice({ kind: 'success', message: 'Article approved and published to community!' });
                                    alert('Post approved and published.');
                                    void refreshData();
                                  } catch (e: any) {
@@ -5282,9 +5369,9 @@ export const Admin: React.FC = () => {
                                    setIsSavingPost(false);
                                  }
                                }}
-                               className="inline-flex items-center justify-center min-h-11 max-w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 leading-tight px-4 rounded transition shadow-md whitespace-normal text-center"
+                               className="inline-flex items-center justify-center min-h-11 max-w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 leading-tight px-4 rounded transition shadow-md whitespace-normal text-center"
                              >
-                               Approve and publish post
+                               Approve and publish draft
                              </button>
                            )}
                          </div>
@@ -5407,7 +5494,7 @@ export const Admin: React.FC = () => {
                                     Draft
                                   </div>
                                 )}
-                                {post.sourceName && (
+                                {post.sourceName && !['autoblog', 'autopost', 'autodraft'].includes(String(post.sourceName).toLowerCase()) && (
                                   <div className="flex items-center gap-1 text-[10px] text-blue-500 font-bold mt-1">
                                     <LinkIcon size={10} /> {post.sourceName}
                                   </div>
@@ -5420,7 +5507,7 @@ export const Admin: React.FC = () => {
                               <td className="p-3">
                                 <span className="text-[10px] bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-200 px-2 py-0.5 rounded font-black uppercase">{post.category}</span>
                                 <div className="flex flex-wrap gap-1 mt-1">
-                                  {post.tags?.map((tag, i) => (
+                                  {post.tags?.filter(t => !['autodraft', 'autoblog', 'autopost'].includes(String(t).toLowerCase())).map((tag, i) => (
                                     <span key={i} className="text-[9px] text-gray-400 bg-gray-100 px-1 rounded">#{tag}</span>
                                   ))}
                                 </div>
