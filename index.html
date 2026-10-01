@@ -118,6 +118,11 @@
           page-break-inside: avoid !important;
         }
       }
+      html, body, #root {
+        overflow-x: clip !important;
+        max-width: 100vw !important;
+        width: 100% !important;
+      }
       body {
         font-family: 'Open Sans', sans-serif;
       }
@@ -278,7 +283,8 @@
         max-width: 100% !important;
         min-width: 0 !important;
         box-sizing: border-box !important;
-        overflow-x: hidden !important;
+        overflow-x: clip !important;
+        overscroll-behavior-x: contain !important;
       }
       .admin-quill .ql-toolbar.ql-snow {
         position: sticky;
@@ -293,7 +299,8 @@
         max-width: 100% !important;
         width: 100% !important;
         box-sizing: border-box !important;
-        overflow-x: hidden !important;
+        overflow-x: clip !important;
+        overscroll-behavior-x: contain !important;
       }
       .admin-quill .ql-toolbar.ql-snow .ql-formats {
         margin-right: 4px !important;
@@ -313,19 +320,51 @@
         max-width: 100% !important;
         width: 100% !important;
         box-sizing: border-box !important;
-        overflow-x: hidden !important;
+        overflow-x: clip !important;
+        overscroll-behavior-x: contain !important;
       }
       .admin-quill .ql-editor {
         max-width: 100% !important;
         width: 100% !important;
         box-sizing: border-box !important;
-        overflow-x: hidden !important;
+        overflow-x: clip !important;
         overflow-y: auto !important;
-        overflow-wrap: break-word !important;
+        overscroll-behavior-x: contain !important;
+        overflow-wrap: anywhere !important;
         word-break: break-word !important;
+        white-space: pre-wrap !important;
         padding: 12px 14px !important;
         font-size: 15px;
         line-height: 1.6;
+      }
+      .admin-quill .ql-editor p,
+      .admin-quill .ql-editor span,
+      .admin-quill .ql-editor strong,
+      .admin-quill .ql-editor em,
+      .admin-quill .ql-editor h1,
+      .admin-quill .ql-editor h2,
+      .admin-quill .ql-editor h3,
+      .admin-quill .ql-editor h4,
+      .admin-quill .ql-editor h5,
+      .admin-quill .ql-editor h6,
+      .admin-quill .ql-editor li,
+      .admin-quill .ql-editor blockquote {
+        max-width: 100% !important;
+        overflow-wrap: anywhere !important;
+        word-break: break-word !important;
+        white-space: pre-wrap !important;
+      }
+      .admin-quill .ql-editor a {
+        max-width: 100% !important;
+        overflow-wrap: anywhere !important;
+        word-break: break-all !important;
+        white-space: normal !important;
+      }
+      .admin-quill .ql-editor table {
+        max-width: 100% !important;
+        display: block !important;
+        overflow-x: auto !important;
+        overscroll-behavior-x: contain !important;
       }
       @media (max-width: 640px) {
         .admin-quill .ql-toolbar.ql-snow {
@@ -351,12 +390,16 @@
       .admin-quill .ql-editor video {
         max-width: 100% !important;
         height: auto !important;
+        box-sizing: border-box !important;
       }
-      .admin-quill .ql-editor pre {
+      .admin-quill .ql-editor pre,
+      .admin-quill .ql-editor pre.ql-syntax,
+      .admin-quill .ql-editor code {
         max-width: 100% !important;
-        overflow-x: auto;
-        white-space: pre-wrap;
-        word-break: break-all;
+        overflow-x: auto !important;
+        overscroll-behavior-x: contain !important;
+        white-space: pre-wrap !important;
+        word-break: break-all !important;
       }
       .dark .admin-quill .ql-toolbar.ql-snow {
         background: #0b1220;

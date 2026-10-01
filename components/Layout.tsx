@@ -711,8 +711,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       </header>
 
       {/* Main Content */}
-      <main className="flex-grow mx-auto w-full max-w-7xl px-3 sm:px-4 md:px-6 py-6 md:py-8 print:p-0 print:m-0 print:max-w-none">
-        <div className="w-full">
+      <main className="flex-grow mx-auto w-full max-w-7xl px-3 sm:px-4 md:px-6 py-6 md:py-8 print:p-0 print:m-0 print:max-w-none min-w-0 max-w-full overflow-x-hidden">
+        <div className="w-full max-w-full min-w-0">
             {children}
         </div>
       </main>

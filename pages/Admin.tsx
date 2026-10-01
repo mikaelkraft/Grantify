@@ -2077,7 +2077,7 @@ export const Admin: React.FC = () => {
 
   // Dashboard
   return (
-    <div className="bg-white dark:bg-gray-900 min-h-[600px] rounded shadow-lg overflow-hidden flex flex-col border border-gray-100 dark:border-gray-800">
+    <div className="bg-white dark:bg-gray-900 min-h-[600px] rounded shadow-lg overflow-hidden flex flex-col border border-gray-100 dark:border-gray-800 w-full max-w-full min-w-0">
       <div className="bg-gray-800 text-white p-4 flex justify-between items-center">
         <div>
           <h2 className="text-xl font-bold">Admin Dashboard</h2>
@@ -2088,7 +2088,7 @@ export const Admin: React.FC = () => {
         </button>
       </div>
 
-      <div className="flex flex-col md:flex-row h-full flex-grow">
+      <div className="flex flex-col md:flex-row h-full flex-grow w-full max-w-full min-w-0">
         {/* Sidebar Tabs */}
         <div className="w-full md:w-64 bg-gray-100 dark:bg-gray-950 p-4 space-y-2 border-r border-gray-200 dark:border-gray-800">
            <button
@@ -2176,7 +2176,7 @@ export const Admin: React.FC = () => {
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 p-6 overflow-y-auto overflow-x-hidden bg-white dark:bg-gray-900 min-h-[500px] text-gray-900 dark:text-gray-100">
+        <div className="flex-1 p-4 sm:p-6 overflow-y-auto overflow-x-hidden bg-white dark:bg-gray-900 min-h-[500px] text-gray-900 dark:text-gray-100 w-full max-w-full min-w-0">
           {isLoading && (
              <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-300">
                 <Loader2 className="animate-spin mr-2" /> Loading data...
@@ -4918,7 +4918,7 @@ export const Admin: React.FC = () => {
               )}
               {/* Blog Management Tab */}
               {activeTab === 'blog' && (
-                <div className="max-w-6xl mx-auto">
+                <div className="max-w-6xl mx-auto w-full max-w-full min-w-0">
                    <div className="flex justify-between items-center mb-6">
                       <h3 className="text-xl font-bold">Community Blog Posts</h3>
                       <button 
@@ -5378,12 +5378,12 @@ export const Admin: React.FC = () => {
                       </form>
                     </div>
  
-                    <div className="bg-white dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-800 overflow-x-auto">
-                      <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 sticky top-0 z-10">
+                    <div className="bg-white dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-800 overflow-x-auto w-full max-w-full min-w-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-3 py-2 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 sticky top-0 z-10 w-full min-w-0">
                         <div className="text-xs text-gray-500">
                           {selectedBlogPostIds.size > 0 ? `${selectedBlogPostIds.size} selected` : 'Select posts/drafts to manage in bulk'}
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                           <button
                             type="button"
                             onClick={() => {
