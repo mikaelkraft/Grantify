@@ -1081,7 +1081,7 @@ export const ApiService = {
     }
   },
 
-  updatePlacementCreative: async (id: number, creativeData: { adHeadline?: string; adImageUrl?: string; targetUrl?: string; ctaText?: string; placementSlot?: string }): Promise<void> => {
+  updatePlacementCreative: async (id: number, creativeData: { adHeadline?: string; adImageUrl?: string; targetUrl?: string; ctaText?: string; placementSlot?: string; isPublished?: boolean }): Promise<void> => {
     const adminHeader = getAdminSessionHeader();
     if (!adminHeader) throw new Error('Admin session missing');
     const res = await fetch(`${API_URL}/api/sponsored?action=update_placement_creative`, {
@@ -1095,7 +1095,23 @@ export const ApiService = {
     }
   },
 
-  adminCreatePlacement: async (data: { providerName: string; providerWebsite?: string; tierId: number; adHeadline: string; adImageUrl?: string; targetUrl: string; ctaText?: string; placementSlot: string; durationDays?: number; adminNote?: string; isPublished?: boolean }): Promise<any> => {
+  adminCreatePlacement: async (data: { 
+    providerName: string; 
+    providerWebsite?: string; 
+    tierId?: number; 
+    payerName?: string;
+    payerEmail?: string;
+    durationDays?: number;
+    amountCents?: number;
+    adHeadline: string; 
+    adImageUrl?: string; 
+    targetUrl: string; 
+    ctaText?: string; 
+    placementSlot: string; 
+    adminNote?: string; 
+    campaignNote?: string;
+    isPublished?: boolean;
+  }): Promise<any> => {
     const adminHeader = getAdminSessionHeader();
     if (!adminHeader) throw new Error('Admin session missing');
     const res = await fetch(`${API_URL}/api/sponsored?action=admin_create_placement`, {

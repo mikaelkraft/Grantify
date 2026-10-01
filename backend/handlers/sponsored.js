@@ -513,7 +513,7 @@ export default async function handler(req, res) {
       if (action === 'update_placement_creative') {
         const session = parseAdminSession(req);
         if (!session?.id) return res.status(401).json({ error: 'Unauthorized' });
-        const { id, adHeadline, adImageUrl, targetUrl, ctaText, placementSlot } = req.body || {};
+        const { id, adHeadline, adImageUrl, targetUrl, ctaText, placementSlot, isPublished } = req.body || {};
         if (!id) return res.status(400).json({ error: 'id required' });
 
         await client.query(`
@@ -523,9 +523,10 @@ export default async function handler(req, res) {
               target_url = $3,
               cta_text = $4,
               placement_slot = $5,
+              is_published = COALESCE($7, is_published),
               updated_at = CURRENT_TIMESTAMP
           WHERE id = $6
-        `, [adHeadline || '', adImageUrl || '', targetUrl || '', ctaText || 'Learn More', placementSlot || 'directory_spotlight', id]);
+        `, [adHeadline || '', adImageUrl || '', targetUrl || '', ctaText || 'Learn More', placementSlot || 'directory_spotlight', id, typeof isPublished === 'boolean' ? isPublished : null]);
 
         return res.status(200).json({ success: true });
       }
@@ -533,12 +534,15 @@ export default async function handler(req, res) {
       if (action === 'admin_create_placement') {
         const session = parseAdminSession(req);
         if (!session?.id) return res.status(401).json({ error: 'Unauthorized' });
-        const { providerName, providerWebsite, tierId, adHeadline, adImageUrl, targetUrl, ctaText, placementSlot, durationDays, adminNote, isPublished } = req.body || {};
+        const { providerName, providerWebsite, tierId, payerName, payerEmail, amountCents, adHeadline, adImageUrl, targetUrl, ctaText, placementSlot, durationDays, adminNote, campaignNote, isPublished } = req.body || {};
         
         const tier = Number(tierId) || 1;
         const days = Number(durationDays) || 30;
+        const cents = Number(amountCents) || 0;
+        const note = campaignNote || adminNote || 'Created by Admin';
         const payerInfo = {
-          name: providerName || 'Direct Sponsor',
+          name: payerName || providerName || 'Direct Sponsor',
+          email: payerEmail || '',
           company: providerName || 'Direct Sponsor',
           website: providerWebsite || targetUrl || '',
           customPartnerName: providerName || 'Direct Sponsor',
@@ -546,15 +550,16 @@ export default async function handler(req, res) {
           adImageUrl: adImageUrl || '',
           targetUrl: targetUrl || '',
           ctaText: ctaText || 'Learn More',
-          placementSlot: placementSlot || 'directory_spotlight'
+          placementSlot: placementSlot || 'directory_spotlight',
+          campaignNote: note
         };
 
         const ins = await client.query(`
           INSERT INTO sponsored_listings 
           (provider_id, tier_id, amount_cents, payer_info, payment_status, start_at, end_at, ad_headline, ad_image_url, target_url, cta_text, placement_slot, is_published, admin_note)
-          VALUES (NULL, $1, 0, $2, 'paid', NOW(), NOW() + ($3 || ' days')::interval, $4, $5, $6, $7, $8, $9, $10)
+          VALUES (NULL, $1, $2, $3, 'paid', NOW(), NOW() + ($4 || ' days')::interval, $5, $6, $7, $8, $9, $10, $11)
           RETURNING id
-        `, [tier, JSON.stringify(payerInfo), `${days}`, adHeadline || '', adImageUrl || '', targetUrl || '', ctaText || 'Learn More', placementSlot || 'directory_spotlight', isPublished !== false, adminNote || 'Created by Admin']);
+        `, [tier, cents, JSON.stringify(payerInfo), `${days}`, adHeadline || '', adImageUrl || '', targetUrl || '', ctaText || 'Learn More', placementSlot || 'directory_spotlight', isPublished !== false, note]);
 
         return res.status(200).json({ success: true, id: ins.rows[0].id });
       }
