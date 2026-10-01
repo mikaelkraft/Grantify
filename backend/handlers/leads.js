@@ -12,6 +12,8 @@ const parseAdminSession = (req) => {
   } catch {
     return null;
   }
+};
+
 const requireValidAdmin = async (req) => {
   const session = parseAdminSession(req);
   if (!session?.id || !session?.passwordHash) return null;
