@@ -1,11 +1,35 @@
-// Handler: /api/config
-
 import pool, { toCamelCase } from '../db.js';
+
+const parseAdminSession = (req) => {
+  try {
+    const raw = req.headers['x-admin-session'];
+    if (!raw) return null;
+    const json = decodeURIComponent(escape(Buffer.from(String(raw), 'base64').toString('utf8')));
+    const parsed = JSON.parse(json);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const requireValidAdmin = async (req) => {
+  const session = parseAdminSession(req);
+  if (!session?.id || !session?.passwordHash) return null;
+  try {
+    const res = await pool.query('SELECT id, username, role, name, password_hash FROM admin_users WHERE id = $1', [session.id]);
+    const row = res.rows?.[0];
+    if (!row) return null;
+    if (String(row.password_hash) !== String(session.passwordHash)) return null;
+    return row;
+  } catch {
+    return null;
+  }
+};
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Admin-Session');
 
   // Config values (including ad HTML) are expected to change from the Admin UI.
   // Avoid intermediary caching that can cause stale ad wiring after updates.
@@ -16,6 +40,11 @@ export default async function handler(req, res) {
   const { type } = req.query;
 
   try {
+    if (req.method === 'POST') {
+      const admin = await requireValidAdmin(req);
+      if (!admin) return res.status(401).json({ error: 'Unauthorized: Admin session required' });
+    }
+
     if (type === 'autoblog') {
       await pool.query(`
         CREATE TABLE IF NOT EXISTS autoblog_config (
@@ -321,6 +350,7 @@ export default async function handler(req, res) {
       `, [JSON.stringify(defaultGatewayConfig)]);
 
       if (req.method === 'GET') {
+        const admin = await requireValidAdmin(req);
         const result = await pool.query('SELECT config_json, updated_at FROM payment_gateways_config WHERE id=1');
         const row = result.rows[0];
         const savedConfig = (row && row.config_json) ? row.config_json : {};
@@ -358,8 +388,51 @@ export default async function handler(req, res) {
             ...(savedConfig.bankwire || {})
           },
         };
+
+        // Authenticated admin can view full config in Admin Dashboard
+        if (admin) {
+          return res.status(200).json({
+            gateways: merged,
+            updatedAt: row?.updated_at || null
+          });
+        }
+
+        // Public visitor (e.g. Sponsor page) receives sanitized public gateway data without any secret keys
+        const publicGateways = {
+          flutterwave: {
+            enabled: Boolean(merged.flutterwave?.enabled),
+            publicKey: merged.flutterwave?.publicKey || merged.flutterwave?.clientId || '',
+            clientId: merged.flutterwave?.clientId || '',
+            mode: merged.flutterwave?.mode || 'live',
+            hasKey: Boolean(merged.flutterwave?.clientSecret || merged.flutterwave?.secretKey)
+          },
+          opay: {
+            enabled: Boolean(merged.opay?.enabled),
+            merchantId: merged.opay?.merchantId || '',
+            publicKey: merged.opay?.publicKey || '',
+            mode: merged.opay?.mode || 'sandbox',
+            hasKey: Boolean(merged.opay?.secretKey)
+          },
+          paypal: {
+            enabled: Boolean(merged.paypal?.enabled),
+            clientId: merged.paypal?.clientId || '',
+            paypalEmail: merged.paypal?.paypalEmail || '',
+            mode: merged.paypal?.mode || 'sandbox',
+            hasKey: Boolean(merged.paypal?.clientSecret)
+          },
+          bankwire: {
+            enabled: Boolean(merged.bankwire?.enabled !== false),
+            bankName: merged.bankwire?.bankName || '',
+            accountName: merged.bankwire?.accountName || '',
+            accountNumber: merged.bankwire?.accountNumber || '',
+            sortCodeSwift: merged.bankwire?.sortCodeSwift || '',
+            instructions: merged.bankwire?.instructions || '',
+            invoiceNote: merged.bankwire?.invoiceNote || ''
+          }
+        };
+
         return res.status(200).json({
-          gateways: merged,
+          gateways: publicGateways,
           updatedAt: row?.updated_at || null
         });
       }

@@ -12,6 +12,18 @@ const parseAdminSession = (req) => {
   } catch {
     return null;
   }
+const requireValidAdmin = async (req) => {
+  const session = parseAdminSession(req);
+  if (!session?.id || !session?.passwordHash) return null;
+  try {
+    const res = await pool.query('SELECT id, username, role, name, password_hash FROM admin_users WHERE id = $1', [session.id]);
+    const row = res.rows?.[0];
+    if (!row) return null;
+    if (String(row.password_hash) !== String(session.passwordHash)) return null;
+    return row;
+  } catch {
+    return null;
+  }
 };
 
 export default async function handler(req, res) {
@@ -46,6 +58,9 @@ export default async function handler(req, res) {
             fullName: row.full_name
           })));
         }
+
+        const admin = await requireValidAdmin(req);
+        if (!admin) return res.status(401).json({ error: 'Unauthorized: Admin session required to view applications' });
 
         const result = await pool.query('SELECT * FROM applications ORDER BY date_applied DESC');
         const apps = result.rows.map(row => ({

@@ -229,6 +229,30 @@ export default async function handler(req, res) {
           return res.status(200).send(csv);
         }
 
+        const session = parseAdminSession(req);
+        if (!active && !session?.id) {
+          return res.status(401).json({ error: 'Unauthorized: Admin session required to view all listings' });
+        }
+
+        // For public visitors fetching active ads, redact internal and private billing/contact fields
+        if (!session?.id) {
+          const publicAds = mappedRows.map(r => ({
+            id: r.id,
+            provider_id: r.provider_id,
+            tier_id: r.tier_id,
+            tier_name: r.tier_name,
+            provider_name: r.provider_name,
+            provider_website: r.provider_website,
+            ad_headline: r.ad_headline,
+            ad_image_url: r.ad_image_url,
+            target_url: r.target_url,
+            cta_text: r.cta_text,
+            placement_slot: r.placement_slot,
+            is_published: r.is_published
+          }));
+          return res.status(200).json(publicAds);
+        }
+
         return res.status(200).json(mappedRows);
       }
 

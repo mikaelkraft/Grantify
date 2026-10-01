@@ -367,9 +367,13 @@ export const ApiService = {
   },
 
   saveWhatsappConfig: async (data: WhatsappConfig): Promise<void> => {
+    const adminHeader = getAdminSessionHeader();
     const res = await fetch(`${API_URL}/api/config?type=whatsapp`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        ...(adminHeader ? { 'X-Admin-Session': adminHeader } : {})
+      },
       body: JSON.stringify(data)
     });
     if (!res.ok) throw new Error('Failed to save WhatsApp config');
@@ -522,9 +526,13 @@ export const ApiService = {
   },
 
   setAutoblogEnabled: async (enabled: boolean): Promise<{ success: boolean; enabled: boolean }> => {
+    const adminHeader = getAdminSessionHeader();
     const res = await fetch(`${API_URL}/api/config?type=autoblog`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        ...(adminHeader ? { 'X-Admin-Session': adminHeader } : {})
+      },
       body: JSON.stringify({ enabled })
     });
     if (!res.ok) throw new Error('Failed to update autoblog config');
@@ -551,7 +559,10 @@ export const ApiService = {
   },
 
   getApplications: async (): Promise<LoanApplication[]> => {
-    const res = await fetch(`${API_URL}/api/leads?type=applications`);
+    const adminHeader = getAdminSessionHeader();
+    const res = await fetch(`${API_URL}/api/leads?type=applications`, {
+      headers: adminHeader ? { 'X-Admin-Session': adminHeader } : undefined
+    });
     if (!res.ok) throw new Error('Failed to fetch applications from API');
     return await res.json();
   },
@@ -657,9 +668,13 @@ export const ApiService = {
   },
 
   saveAds: async (data: AdConfig): Promise<void> => {
+    const adminHeader = getAdminSessionHeader();
     const res = await fetch(`${API_URL}/api/config?type=ads`, {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        ...(adminHeader ? { 'X-Admin-Session': adminHeader } : {})
+      },
       body: JSON.stringify(data)
     });
     if (!res.ok) throw new Error('Failed to save ads via API');
@@ -667,15 +682,22 @@ export const ApiService = {
 
   // -- Admins --
   getAdmins: async (): Promise<AdminUser[]> => {
-    const res = await fetch(`${API_URL}/api/admins`);
+    const adminHeader = getAdminSessionHeader();
+    const res = await fetch(`${API_URL}/api/admins`, {
+      headers: adminHeader ? { 'X-Admin-Session': adminHeader } : undefined
+    });
     if (!res.ok) throw new Error('Failed to fetch admins from API');
     return await res.json();
   },
 
   saveAdmins: async (data: AdminUser[]): Promise<void> => {
+    const adminHeader = getAdminSessionHeader();
     const res = await fetch(`${API_URL}/api/admins`, {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        ...(adminHeader ? { 'X-Admin-Session': adminHeader } : {})
+      },
       body: JSON.stringify(data)
     });
     if (!res.ok) throw new Error('Failed to save admins via API');
@@ -689,9 +711,13 @@ export const ApiService = {
   },
 
   saveRepaymentContent: async (data: RepaymentContent): Promise<void> => {
+    const adminHeader = getAdminSessionHeader();
     const res = await fetch(`${API_URL}/api/config?type=repayment`, {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        ...(adminHeader ? { 'X-Admin-Session': adminHeader } : {})
+      },
       body: JSON.stringify(data)
     });
     if (!res.ok) throw new Error('Failed to save repayment content via API');
@@ -700,7 +726,10 @@ export const ApiService = {
   // -- Payment Gateways --
   getPaymentGatewaysConfig: async (): Promise<{ gateways: PaymentGatewaysConfig; updatedAt?: string }> => {
     try {
-      const res = await fetch(`${API_URL}/api/config?type=payment_gateways`);
+      const adminHeader = getAdminSessionHeader();
+      const res = await fetch(`${API_URL}/api/config?type=payment_gateways`, {
+        headers: adminHeader ? { 'X-Admin-Session': adminHeader } : undefined
+      });
       if (!res.ok) throw new Error('Failed to fetch payment gateways config');
       return await res.json();
     } catch {
@@ -1389,8 +1418,11 @@ export const ApiService = {
   },
 
   getContactMessages: async (limit = 100): Promise<ContactMessage[]> => {
+    const adminHeader = getAdminSessionHeader();
     const safeLimit = Math.min(Math.max(Number(limit) || 100, 1), 200);
-    const res = await fetch(`${API_URL}/api/contact?limit=${encodeURIComponent(String(safeLimit))}`);
+    const res = await fetch(`${API_URL}/api/contact?limit=${encodeURIComponent(String(safeLimit))}`, {
+      headers: adminHeader ? { 'X-Admin-Session': adminHeader } : undefined
+    });
     if (!res.ok) throw new Error('Failed to fetch contact messages');
     return await res.json();
   },

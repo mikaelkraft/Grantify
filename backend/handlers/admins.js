@@ -12,6 +12,18 @@ const parseAdminSession = (req) => {
   } catch {
     return null;
   }
+const requireValidAdmin = async (req) => {
+  const session = parseAdminSession(req);
+  if (!session?.id || !session?.passwordHash) return null;
+  try {
+    const res = await pool.query('SELECT id, username, role, name, password_hash FROM admin_users WHERE id = $1', [session.id]);
+    const row = res.rows?.[0];
+    if (!row) return null;
+    if (String(row.password_hash) !== String(session.passwordHash)) return null;
+    return row;
+  } catch {
+    return null;
+  }
 };
 
 export default async function handler(req, res) {
@@ -23,13 +35,16 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const result = await pool.query('SELECT id, username, role, name, password_hash FROM admin_users');
+      const admin = await requireValidAdmin(req);
+      if (!admin) return res.status(401).json({ error: 'Unauthorized: Admin session required' });
+
+      // NEVER return password_hash over the network
+      const result = await pool.query('SELECT id, username, role, name FROM admin_users ORDER BY id ASC');
       return res.status(200).json(result.rows.map(r => ({
         id: r.id,
         username: r.username,
         role: r.role,
-        name: r.name,
-        passwordHash: r.password_hash
+        name: r.name
       })));
     }
 
@@ -142,6 +157,11 @@ export default async function handler(req, res) {
         });
       }
 
+      const admin = await requireValidAdmin(req);
+      if (!admin) return res.status(401).json({ error: 'Unauthorized: Admin session required' });
+      const isSuper = String(admin.role).toLowerCase() === 'owner' || String(admin.role).toUpperCase() === 'SUPER_ADMIN';
+      if (!isSuper) return res.status(403).json({ error: 'Forbidden: Super Admin access required to manage admin accounts' });
+
       const items = req.body;
       if (!Array.isArray(items)) return res.status(400).json({ error: 'Expected array' });
 
@@ -151,12 +171,24 @@ export default async function handler(req, res) {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
+        const existingRes = await client.query('SELECT id, password_hash FROM admin_users');
+        const existingMap = new Map(existingRes.rows.map(r => [String(r.id), r.password_hash]));
+
         await client.query('DELETE FROM admin_users');
 
         for (const a of items) {
-          const passwordHash = a.passwordHash?.startsWith('$2')
-            ? a.passwordHash
-            : await bcrypt.hash(a.passwordHash, saltRounds);
+          let passwordHash = '';
+          if (a.passwordHash && typeof a.passwordHash === 'string' && a.passwordHash.trim()) {
+            passwordHash = a.passwordHash.startsWith('$2')
+              ? a.passwordHash
+              : await bcrypt.hash(a.passwordHash, saltRounds);
+          } else if (existingMap.has(String(a.id))) {
+            passwordHash = existingMap.get(String(a.id));
+          } else {
+            // Fallback for new admin without password provided
+            const tempPass = Math.random().toString(36).slice(2) + '!Admin123';
+            passwordHash = await bcrypt.hash(tempPass, saltRounds);
+          }
 
           await client.query(
             'INSERT INTO admin_users (id, username, password_hash, role, name) VALUES ($1, $2, $3, $4, $5)',

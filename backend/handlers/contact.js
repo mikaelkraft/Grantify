@@ -51,6 +51,9 @@ export default async function handler(req, res) {
     `);
 
     if (req.method === 'GET') {
+      const admin = await requireValidAdmin(req);
+      if (!admin) return res.status(401).json({ error: 'Unauthorized: Admin session required' });
+
       const limit = Math.min(Math.max(parseInt(String(req.query?.limit || '50'), 10) || 50, 1), 200);
       const result = await client.query(
         `SELECT id, name, email, phone, subject, message, created_at
