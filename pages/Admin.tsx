@@ -4932,61 +4932,6 @@ export const Admin: React.FC = () => {
                           })}
                         </tbody>
                       </table>
-
-                      {/* Pagination Bar */}
-                      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 text-xs text-gray-600 dark:text-gray-300 w-full min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span>
-                            Showing <strong className="text-gray-900 dark:text-gray-100">{totalBlogPosts === 0 ? 0 : blogStartIndex + 1}</strong> to <strong className="text-gray-900 dark:text-gray-100">{blogEndIndex}</strong> of <strong className="text-gray-900 dark:text-gray-100">{totalBlogPosts}</strong> articles
-                          </span>
-                        </div>
-
-                        {!isAllBlogPosts && totalBlogPages > 1 && (
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <button
-                              type="button"
-                              disabled={safeBlogPage <= 1}
-                              onClick={() => setBlogCurrentPage(1)}
-                              className="px-2 py-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-xs text-gray-800 dark:text-gray-100"
-                              title="First page"
-                            >
-                              « First
-                            </button>
-                            <button
-                              type="button"
-                              disabled={safeBlogPage <= 1}
-                              onClick={() => setBlogCurrentPage(prev => Math.max(1, prev - 1))}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-xs text-gray-800 dark:text-gray-100"
-                              title="Previous page"
-                            >
-                              <ChevronLeft size={14} /> Prev
-                            </button>
-
-                            <span className="px-2 font-semibold text-gray-800 dark:text-gray-100">
-                              Page {safeBlogPage} of {totalBlogPages}
-                            </span>
-
-                            <button
-                              type="button"
-                              disabled={safeBlogPage >= totalBlogPages}
-                              onClick={() => setBlogCurrentPage(prev => Math.min(totalBlogPages, prev + 1))}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-xs text-gray-800 dark:text-gray-100"
-                              title="Next page"
-                            >
-                              Next <ChevronRight size={14} />
-                            </button>
-                            <button
-                              type="button"
-                              disabled={safeBlogPage >= totalBlogPages}
-                              onClick={() => setBlogCurrentPage(totalBlogPages)}
-                              className="px-2 py-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-xs text-gray-800 dark:text-gray-100"
-                              title="Last page"
-                            >
-                              Last »
-                            </button>
-                          </div>
-                        )}
-                      </div>
                     </div>
                   )}
                 </div>
@@ -5484,7 +5429,7 @@ export const Admin: React.FC = () => {
                                 setBlogPageSize(val === 'all' ? 'all' : Number(val));
                                 setBlogCurrentPage(1);
                               }}
-                              className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-2 py-0.5 text-xs font-semibold text-gray-800 dark:text-gray-100"
+                              className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-2 py-0.5 text-xs font-semibold text-gray-800 dark:text-gray-100 cursor-pointer"
                               aria-label="Articles per page"
                             >
                               <option value={10}>10</option>
@@ -5494,6 +5439,34 @@ export const Admin: React.FC = () => {
                               <option value="all">All ({totalBlogPosts})</option>
                             </select>
                           </div>
+
+                          {!isAllBlogPosts && totalBlogPages > 1 && (
+                            <div className="flex items-center gap-1 border-l border-gray-200 dark:border-gray-700 pl-2 ml-1">
+                              <button
+                                type="button"
+                                disabled={safeBlogPage <= 1}
+                                onClick={() => setBlogCurrentPage(prev => Math.max(1, prev - 1))}
+                                className="px-2 py-0.5 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-0.5"
+                                title="Previous page"
+                                aria-label="Previous page"
+                              >
+                                <ChevronLeft size={13} /> Prev
+                              </button>
+                              <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-gray-200/70 dark:bg-gray-800 text-gray-800 dark:text-gray-200">
+                                {safeBlogPage} / {totalBlogPages}
+                              </span>
+                              <button
+                                type="button"
+                                disabled={safeBlogPage >= totalBlogPages}
+                                onClick={() => setBlogCurrentPage(prev => Math.min(totalBlogPages, prev + 1))}
+                                className="px-2 py-0.5 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-0.5"
+                                title="Next page"
+                                aria-label="Next page"
+                              >
+                                Next <ChevronRight size={13} />
+                              </button>
+                            </div>
+                          )}
                         </div>
                         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                           <button
@@ -5678,6 +5651,101 @@ export const Admin: React.FC = () => {
                           ))}
                         </tbody>
                       </table>
+
+                      {/* Blog Table Pagination Bar */}
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 text-xs text-gray-600 dark:text-gray-300 w-full min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span>
+                            Showing <strong className="text-gray-900 dark:text-gray-100">{totalBlogPosts === 0 ? 0 : blogStartIndex + 1}</strong> to <strong className="text-gray-900 dark:text-gray-100">{blogEndIndex}</strong> of <strong className="text-gray-900 dark:text-gray-100">{totalBlogPosts}</strong> articles
+                          </span>
+                        </div>
+
+                        {!isAllBlogPosts && totalBlogPages > 1 && (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <button
+                              type="button"
+                              disabled={safeBlogPage <= 1}
+                              onClick={() => {
+                                setBlogCurrentPage(1);
+                                window.scrollTo({ top: 300, behavior: 'smooth' });
+                              }}
+                              className="px-2.5 py-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-xs text-gray-800 dark:text-gray-100"
+                              title="First page"
+                            >
+                              « First
+                            </button>
+                            <button
+                              type="button"
+                              disabled={safeBlogPage <= 1}
+                              onClick={() => {
+                                setBlogCurrentPage(prev => Math.max(1, prev - 1));
+                                window.scrollTo({ top: 300, behavior: 'smooth' });
+                              }}
+                              className="inline-flex items-center gap-1 px-3 py-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-xs text-gray-800 dark:text-gray-100"
+                              title="Previous page"
+                            >
+                              <ChevronLeft size={14} /> Prev
+                            </button>
+
+                            {/* Page numbers */}
+                            {Array.from({ length: totalBlogPages }, (_, idx) => idx + 1)
+                              .filter(p => p === 1 || p === totalBlogPages || Math.abs(p - safeBlogPage) <= 1)
+                              .reduce<(number | string)[]>((acc, p, i, arr) => {
+                                if (i > 0 && (p as number) - (arr[i - 1] as number) > 1) {
+                                  acc.push('...');
+                                }
+                                acc.push(p);
+                                return acc;
+                              }, [])
+                              .map((p, i) =>
+                                typeof p === 'string' ? (
+                                  <span key={`ellipsis-${i}`} className="px-1 text-gray-400">...</span>
+                                ) : (
+                                  <button
+                                    key={p}
+                                    type="button"
+                                    onClick={() => {
+                                      setBlogCurrentPage(p);
+                                      window.scrollTo({ top: 300, behavior: 'smooth' });
+                                    }}
+                                    className={`px-3 py-1 rounded font-bold text-xs transition ${
+                                      p === safeBlogPage
+                                        ? 'bg-grantify-green text-white shadow'
+                                        : 'border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-100'
+                                    }`}
+                                  >
+                                    {p}
+                                  </button>
+                                )
+                              )}
+
+                            <button
+                              type="button"
+                              disabled={safeBlogPage >= totalBlogPages}
+                              onClick={() => {
+                                setBlogCurrentPage(prev => Math.min(totalBlogPages, prev + 1));
+                                window.scrollTo({ top: 300, behavior: 'smooth' });
+                              }}
+                              className="inline-flex items-center gap-1 px-3 py-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-xs text-gray-800 dark:text-gray-100"
+                              title="Next page"
+                            >
+                              Next <ChevronRight size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={safeBlogPage >= totalBlogPages}
+                              onClick={() => {
+                                setBlogCurrentPage(totalBlogPages);
+                                window.scrollTo({ top: 300, behavior: 'smooth' });
+                              }}
+                              className="px-2.5 py-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-xs text-gray-800 dark:text-gray-100"
+                              title="Last page"
+                            >
+                              Last »
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     {/* Bulk Edit Modal */}
