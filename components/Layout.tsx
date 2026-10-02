@@ -26,6 +26,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const [isPromo2Dismissed, setIsPromo2Dismissed] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith('/admin');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -309,7 +310,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 relative">
       
       {/* Floating Promo Button 1 (Admin Configurable) */}
-      {ads?.promo1Link && !isPromo1Dismissed && (
+      {!isAdminRoute && ads?.promo1Link && !isPromo1Dismissed && (
         <div className="fixed bottom-36 sm:bottom-32 right-4 sm:right-6 z-40 flex items-center print:hidden group">
           <a 
             href={ads.promo1Link}
@@ -337,7 +338,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       )}
 
       {/* Floating Promo Button 2 (Admin Configurable) */}
-      {ads?.promo2Link && !isPromo2Dismissed && (
+      {!isAdminRoute && ads?.promo2Link && !isPromo2Dismissed && (
         <div className="fixed bottom-48 sm:bottom-44 right-4 sm:right-6 z-40 flex items-center print:hidden group">
           <a 
             href={ads.promo2Link}
@@ -365,7 +366,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       )}
 
       {/* Universal Floating Back to Top Button */}
-      {showBackToTop && (
+      {!isAdminRoute && showBackToTop && (
         <button
           type="button"
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
@@ -711,7 +712,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       </header>
 
       {/* Main Content */}
-      <main className="flex-grow mx-auto w-full max-w-7xl px-3 sm:px-4 md:px-6 py-6 md:py-8 print:p-0 print:m-0 print:max-w-none min-w-0 max-w-full overflow-x-hidden">
+      <main className="flex-grow mx-auto w-full max-w-7xl px-3 sm:px-4 md:px-6 py-6 md:py-8 print:p-0 print:m-0 print:max-w-none min-w-0 max-w-full overflow-x-clip">
         <div className="w-full max-w-full min-w-0">
             {children}
         </div>
@@ -828,12 +829,14 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       </footer>
 
       {/* AI Chat Assistant */}
-      <div className="print:hidden">
-        <AiChatbot />
-      </div>
+      {!isAdminRoute && (
+        <div className="print:hidden">
+          <AiChatbot />
+        </div>
+      )}
 
       {/* WhatsApp Floating Button */}
-      {whatsappConfig && whatsappConfig.isEnabled && (
+      {!isAdminRoute && whatsappConfig && whatsappConfig.isEnabled && (
         <a
           href={whatsappConfig.phoneNumber
             ? `https://wa.me/${whatsappConfig.phoneNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(whatsappConfig.preFilledText)}`

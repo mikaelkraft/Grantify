@@ -28,7 +28,9 @@ import {
   Lock,
   Building2,
   CheckCircle,
-  Sparkles
+  Sparkles,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import React, { useEffect, useRef, useState, useTransition } from 'react';
 import { ApiService } from '../services/storage';
@@ -115,6 +117,8 @@ export const Admin: React.FC = () => {
   const [allReviews, setAllReviews] = useState<ProviderReview[]>([]);
   const [includeHiddenReviews, setIncludeHiddenReviews] = useState(false);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [blogCurrentPage, setBlogCurrentPage] = useState(1);
+  const [blogPageSize, setBlogPageSize] = useState<number | 'all'>(10);
   const [selectedBlogPostIds, setSelectedBlogPostIds] = useState<Set<string>>(new Set());
   const [showBulkEditModal, setShowBulkEditModal] = useState(false);
   const [bulkEditForm, setBulkEditForm] = useState({
@@ -141,6 +145,15 @@ export const Admin: React.FC = () => {
     extras.sort((a,b) => a.localeCompare(b));
     return base.concat(extras);
   }, [blogPosts]);
+
+  const totalBlogPosts = blogPosts.length;
+  const isAllBlogPosts = blogPageSize === 'all';
+  const effectiveBlogPageSize = isAllBlogPosts ? totalBlogPosts || 1 : (blogPageSize as number);
+  const totalBlogPages = isAllBlogPosts ? 1 : Math.max(1, Math.ceil(totalBlogPosts / effectiveBlogPageSize));
+  const safeBlogPage = Math.min(Math.max(1, blogCurrentPage), totalBlogPages);
+  const blogStartIndex = isAllBlogPosts ? 0 : (safeBlogPage - 1) * effectiveBlogPageSize;
+  const blogEndIndex = isAllBlogPosts ? totalBlogPosts : Math.min(blogStartIndex + effectiveBlogPageSize, totalBlogPosts);
+  const visibleBlogPosts = isAllBlogPosts ? blogPosts : blogPosts.slice(blogStartIndex, blogEndIndex);
   const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
 
   // Smart Writer helpers
@@ -2040,8 +2053,8 @@ export const Admin: React.FC = () => {
       setIsGeneratingAi(false);
     }
   };
-    const inputClass = "w-full p-2 border border-gray-200 dark:border-gray-800 rounded bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-grantify-gold outline-none";
-    const inputClassSmall = "border border-gray-200 dark:border-gray-800 rounded bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-grantify-gold outline-none p-1";
+    const inputClass = "w-full p-2 border border-gray-200 dark:border-gray-800 rounded bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-grantify-gold outline-none box-border";
+    const inputClassSmall = "w-full min-w-0 max-w-full box-border border border-gray-200 dark:border-gray-800 rounded bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-grantify-gold outline-none p-1";
 
   // Login Screen
   if (!user) {
@@ -2077,7 +2090,7 @@ export const Admin: React.FC = () => {
 
   // Dashboard
   return (
-    <div className="bg-white dark:bg-gray-900 min-h-[600px] rounded shadow-lg overflow-hidden flex flex-col border border-gray-100 dark:border-gray-800 w-full max-w-full min-w-0">
+    <div className="bg-white dark:bg-gray-900 min-h-[600px] rounded shadow-lg overflow-x-clip overflow-y-auto flex flex-col border border-gray-100 dark:border-gray-800 w-full max-w-full min-w-0">
       <div className="bg-gray-800 text-white p-4 flex justify-between items-center">
         <div>
           <h2 className="text-xl font-bold">Admin Dashboard</h2>
@@ -2088,9 +2101,9 @@ export const Admin: React.FC = () => {
         </button>
       </div>
 
-      <div className="flex flex-col md:flex-row h-full flex-grow w-full max-w-full min-w-0">
+      <div className="flex flex-col md:flex-row h-full flex-grow w-full max-w-full min-w-0 overflow-x-clip">
         {/* Sidebar Tabs */}
-        <div className="w-full md:w-64 bg-gray-100 dark:bg-gray-950 p-4 space-y-2 border-r border-gray-200 dark:border-gray-800">
+        <div className="w-full md:w-64 shrink-0 bg-gray-100 dark:bg-gray-950 p-4 space-y-2 border-r border-gray-200 dark:border-gray-800">
            <button
              type="button"
              onClick={() => {
@@ -2176,7 +2189,14 @@ export const Admin: React.FC = () => {
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 p-4 sm:p-6 overflow-y-auto overflow-x-hidden bg-white dark:bg-gray-900 min-h-[500px] text-gray-900 dark:text-gray-100 w-full max-w-full min-w-0">
+        <div
+          className="flex-1 admin-content-area p-4 sm:p-6 overflow-y-auto overflow-x-clip bg-white dark:bg-gray-900 min-h-[500px] text-gray-900 dark:text-gray-100 w-full max-w-full min-w-0"
+          onScroll={(e) => {
+            if (e.currentTarget.scrollLeft !== 0) {
+              e.currentTarget.scrollLeft = 0;
+            }
+          }}
+        >
           {isLoading && (
              <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-300">
                 <Loader2 className="animate-spin mr-2" /> Loading data...
@@ -4912,13 +4932,68 @@ export const Admin: React.FC = () => {
                           })}
                         </tbody>
                       </table>
+
+                      {/* Pagination Bar */}
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 text-xs text-gray-600 dark:text-gray-300 w-full min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span>
+                            Showing <strong className="text-gray-900 dark:text-gray-100">{totalBlogPosts === 0 ? 0 : blogStartIndex + 1}</strong> to <strong className="text-gray-900 dark:text-gray-100">{blogEndIndex}</strong> of <strong className="text-gray-900 dark:text-gray-100">{totalBlogPosts}</strong> articles
+                          </span>
+                        </div>
+
+                        {!isAllBlogPosts && totalBlogPages > 1 && (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <button
+                              type="button"
+                              disabled={safeBlogPage <= 1}
+                              onClick={() => setBlogCurrentPage(1)}
+                              className="px-2 py-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-xs text-gray-800 dark:text-gray-100"
+                              title="First page"
+                            >
+                              « First
+                            </button>
+                            <button
+                              type="button"
+                              disabled={safeBlogPage <= 1}
+                              onClick={() => setBlogCurrentPage(prev => Math.max(1, prev - 1))}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-xs text-gray-800 dark:text-gray-100"
+                              title="Previous page"
+                            >
+                              <ChevronLeft size={14} /> Prev
+                            </button>
+
+                            <span className="px-2 font-semibold text-gray-800 dark:text-gray-100">
+                              Page {safeBlogPage} of {totalBlogPages}
+                            </span>
+
+                            <button
+                              type="button"
+                              disabled={safeBlogPage >= totalBlogPages}
+                              onClick={() => setBlogCurrentPage(prev => Math.min(totalBlogPages, prev + 1))}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-xs text-gray-800 dark:text-gray-100"
+                              title="Next page"
+                            >
+                              Next <ChevronRight size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={safeBlogPage >= totalBlogPages}
+                              onClick={() => setBlogCurrentPage(totalBlogPages)}
+                              className="px-2 py-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-xs text-gray-800 dark:text-gray-100"
+                              title="Last page"
+                            >
+                              Last »
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
               )}
               {/* Blog Management Tab */}
               {activeTab === 'blog' && (
-                <div className="max-w-6xl mx-auto w-full max-w-full min-w-0">
+                <div className="max-w-6xl mx-auto w-full max-w-full min-w-0 overflow-x-clip">
                    <div className="flex justify-between items-center mb-6">
                       <h3 className="text-xl font-bold">Community Blog Posts</h3>
                       <button 
@@ -4933,7 +5008,15 @@ export const Admin: React.FC = () => {
                    </div>
 
                     {/* Add New/Edit Post Form */}
-                    <div id="new-post-form" className={`p-3.5 sm:p-5 md:p-6 rounded-xl border mb-8 transition-all w-full max-w-full min-w-0 overflow-hidden ${isEditingPost ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900 shadow-md' : 'bg-gray-100 dark:bg-gray-950 border-gray-200 dark:border-gray-800'}`}>
+                    <div
+                      id="new-post-form"
+                      className={`p-3.5 sm:p-5 md:p-6 rounded-xl border mb-8 transition-all w-full max-w-full min-w-0 overflow-x-clip overflow-y-visible ${isEditingPost ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900 shadow-md' : 'bg-gray-100 dark:bg-gray-950 border-gray-200 dark:border-gray-800'}`}
+                      onScroll={(e) => {
+                        if (e.currentTarget.scrollLeft !== 0) {
+                          e.currentTarget.scrollLeft = 0;
+                        }
+                      }}
+                    >
                       <div className="flex justify-between items-center mb-4">
                         <h4 className="font-bold flex items-center gap-2 text-gray-700 dark:text-gray-100">
                           {isEditingPost ? <Zap className="text-blue-600 animate-pulse" size={18} /> : null}
@@ -5000,7 +5083,15 @@ export const Admin: React.FC = () => {
                         )
                       )}
                       
-                      <form onSubmit={handleAddBlogPost} className="grid md:grid-cols-2 gap-3 sm:gap-4 w-full max-w-full min-w-0">
+                      <form
+                        onSubmit={handleAddBlogPost}
+                        className="admin-post-form grid md:grid-cols-2 gap-3 sm:gap-4 w-full max-w-full min-w-0 overflow-x-clip"
+                        onScroll={(e) => {
+                          if (e.currentTarget.scrollLeft !== 0) {
+                            e.currentTarget.scrollLeft = 0;
+                          }
+                        }}
+                      >
                          <div className="md:col-span-2 flex flex-col sm:flex-row gap-2 sm:gap-3 w-full min-w-0">
                            <input className={inputClassSmall + " flex-grow min-w-0"} placeholder="Title" value={newPost.title} onChange={e => setNewPost({...newPost, title: e.target.value})} required />
                            <div className="flex gap-2 shrink-0">
@@ -5147,10 +5238,10 @@ export const Admin: React.FC = () => {
                            </div>
                          )}
                          
-                         <div className="md:col-span-2 flex flex-col gap-2">
-                            <div className="flex flex-col md:flex-row gap-2 items-center">
+                         <div className="md:col-span-2 flex flex-col gap-2 w-full max-w-full min-w-0">
+                            <div className="flex flex-col md:flex-row gap-2 items-center w-full max-w-full min-w-0">
                               <input
-                                className={inputClassSmall + " flex-grow w-full"}
+                                className={inputClassSmall + " flex-grow w-full min-w-0 max-w-full"}
                                 placeholder="Featured Image URL (e.g. Unsplash, GDrive, or direct URL)"
                                 value={newPost.image}
                                 onChange={e => setNewPost({ ...newPost, image: e.target.value })}
@@ -5225,7 +5316,7 @@ export const Admin: React.FC = () => {
                             </div>
                           )}
                          
-                         <div className="md:col-span-2 bg-white dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-800 overflow-hidden min-h-[300px] flex flex-col min-w-0 w-full max-w-full">
+                         <div className="md:col-span-2 bg-white dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-800 overflow-x-clip overflow-y-visible min-h-[300px] flex flex-col min-w-0 w-full max-w-full">
                             <div className="p-2 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 text-[10px] font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Article Content</div>
                             <div className="px-2.5 sm:px-3 py-2 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 flex flex-wrap items-center justify-between gap-2">
                               <label className="flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-gray-200">
@@ -5236,7 +5327,7 @@ export const Admin: React.FC = () => {
                                 />
                                 Auto hyperlink URLs
                               </label>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap min-w-0">
                                 <select
                                   className="text-xs bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg px-2 py-1 text-gray-700 dark:text-gray-100"
                                   defaultValue=""
@@ -5380,8 +5471,29 @@ export const Admin: React.FC = () => {
  
                     <div className="bg-white dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-800 overflow-x-auto w-full max-w-full min-w-0">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-3 py-2 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 sticky top-0 z-10 w-full min-w-0">
-                        <div className="text-xs text-gray-500">
-                          {selectedBlogPostIds.size > 0 ? `${selectedBlogPostIds.size} selected` : 'Select posts/drafts to manage in bulk'}
+                        <div className="flex flex-wrap items-center gap-3">
+                          <div className="text-xs text-gray-500">
+                            {selectedBlogPostIds.size > 0 ? `${selectedBlogPostIds.size} selected` : 'Select posts/drafts to manage in bulk'}
+                          </div>
+                          <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                            <span>Per page:</span>
+                            <select
+                              value={blogPageSize}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setBlogPageSize(val === 'all' ? 'all' : Number(val));
+                                setBlogCurrentPage(1);
+                              }}
+                              className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-2 py-0.5 text-xs font-semibold text-gray-800 dark:text-gray-100"
+                              aria-label="Articles per page"
+                            >
+                              <option value={10}>10</option>
+                              <option value={25}>25</option>
+                              <option value={50}>50</option>
+                              <option value={100}>100</option>
+                              <option value="all">All ({totalBlogPosts})</option>
+                            </select>
+                          </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                           <button
@@ -5451,7 +5563,7 @@ export const Admin: React.FC = () => {
                               <input
                                 type="checkbox"
                                 aria-label="Select all posts"
-                                checked={blogPosts.length > 0 && blogPosts.every(p => selectedBlogPostIds.has(String(p.id)))}
+                                checked={visibleBlogPosts.length > 0 && visibleBlogPosts.every(p => selectedBlogPostIds.has(String(p.id)))}
                                 onChange={(e) => {
                                   if (e.target.checked) {
                                     setSelectedBlogPostIds(new Set(blogPosts.map(p => String(p.id))));
@@ -5469,7 +5581,7 @@ export const Admin: React.FC = () => {
                           </tr>
                         </thead>
                         <tbody className="divide-y">
-                          {blogPosts.map(post => (
+                          {visibleBlogPosts.map(post => (
                             <tr key={post.id} className={newPost.id === post.id ? 'bg-blue-50' : ''}>
                               <td className="p-3 align-top">
                                 <input

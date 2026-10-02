@@ -284,6 +284,7 @@
         min-width: 0 !important;
         box-sizing: border-box !important;
         overflow-x: clip !important;
+        overscroll-behavior: contain !important;
         overscroll-behavior-x: contain !important;
       }
       .admin-quill .ql-toolbar.ql-snow {
@@ -300,6 +301,7 @@
         width: 100% !important;
         box-sizing: border-box !important;
         overflow-x: clip !important;
+        overscroll-behavior: contain !important;
         overscroll-behavior-x: contain !important;
       }
       .admin-quill .ql-toolbar.ql-snow .ql-formats {
@@ -321,21 +323,36 @@
         width: 100% !important;
         box-sizing: border-box !important;
         overflow-x: clip !important;
+        overscroll-behavior: contain !important;
         overscroll-behavior-x: contain !important;
       }
       .admin-quill .ql-editor {
         max-width: 100% !important;
         width: 100% !important;
         box-sizing: border-box !important;
-        overflow-x: clip !important;
+        overflow-x: hidden !important;
         overflow-y: auto !important;
+        overscroll-behavior: contain !important;
         overscroll-behavior-x: contain !important;
+        touch-action: pan-y !important;
         overflow-wrap: anywhere !important;
         word-break: break-word !important;
         white-space: pre-wrap !important;
         padding: 12px 14px !important;
         font-size: 15px;
         line-height: 1.6;
+      }
+
+      /* Admin post form and dashboard container isolation - prevent horizontal scrolling of detail input boxes */
+      #new-post-form,
+      .admin-post-form,
+      .admin-content-area {
+        overflow-x: clip !important;
+        overscroll-behavior: contain !important;
+        overscroll-behavior-x: contain !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
       }
       .admin-quill .ql-editor p,
       .admin-quill .ql-editor span,
