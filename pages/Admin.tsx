@@ -2090,7 +2090,7 @@ export const Admin: React.FC = () => {
 
   // Dashboard
   return (
-    <div className="bg-white dark:bg-gray-900 min-h-[600px] rounded shadow-lg overflow-x-clip overflow-y-auto flex flex-col border border-gray-100 dark:border-gray-800 w-full max-w-full min-w-0">
+    <div className="bg-white dark:bg-gray-900 min-h-[600px] rounded shadow-lg overflow-x-clip flex flex-col border border-gray-100 dark:border-gray-800 w-full max-w-full min-w-0">
       <div className="bg-gray-800 text-white p-4 flex justify-between items-center">
         <div>
           <h2 className="text-xl font-bold">Admin Dashboard</h2>
@@ -2190,7 +2190,7 @@ export const Admin: React.FC = () => {
 
         {/* Content Area */}
         <div
-          className="flex-1 admin-content-area p-4 sm:p-6 overflow-y-auto overflow-x-clip bg-white dark:bg-gray-900 min-h-[500px] text-gray-900 dark:text-gray-100 w-full max-w-full min-w-0"
+          className="flex-1 admin-content-area p-4 sm:p-6 overflow-x-clip bg-white dark:bg-gray-900 min-h-[500px] text-gray-900 dark:text-gray-100 w-full max-w-full min-w-0"
           onScroll={(e) => {
             if (e.currentTarget.scrollLeft !== 0) {
               e.currentTarget.scrollLeft = 0;
